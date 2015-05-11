@@ -1,1 +1,99 @@
-:-)
+<html>
+    <head>
+        <title>GSoC Baseline Study</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script type="text/javascript" src="patient_data.js"></script>
+    </head>
+    <body>
+        <script>
+            var data = JSON.parse(patients);
+            console.log("got "+data.patients.length+" patients");
+            
+            var margin = {top: 80, right: 0, bottom: 10, left: 80},
+                width = 1000,
+                height = 1000;
+        
+            var matrix = [];
+            var n = data.patients.length;
+            
+            var all_ages = [];
+            var all_karnofsky_scores = [];
+            var all_death_days_to = [];
+            
+            
+            function get_all_values(){
+                data.patients.forEach(function(patient, i){
+                    all_ages[i]=parseInt(data.patients[i].age_at_initial_pathologic_diagnosis);
+                    all_karnofsky_scores[i]=parseInt(data.patients[i].karnofsky_score);
+                    all_death_days_to[i]=parseInt(data.patients[i].death_days_to);
+                });
+            }
+            
+            get_all_values();
+            
+            function compare_values(a,b){
+                return a-b;
+            }
+            
+            all_ages.sort(compare_values);
+            all_karnofsky_scores.sort(compare_values);
+            all_death_days_to.sort(compare_values);
+            var ages_ranks = {};
+            var karnofsky_score_ranks = {};
+            var death_days_to_ranks = {};
+            
+           
+            function create_rank_maps(){
+                var counter = 1;
+                ages_ranks[all_ages[0]]=1;
+                for (var i=1;i<n;i++){
+                    if (all_ages[i]>all_ages[i-1]){
+                        counter++;
+                        ages_ranks[all_ages[i]]=counter;
+                    }
+                }
+                counter=1;
+                karnofsky_score_ranks[all_karnofsky_scores[0]]=1;
+                for (var i=1;i<n;i++){
+                    if (all_karnofsky_scores[i]>all_karnofsky_scores[i-1]){
+                        counter++;
+                        karnofsky_score_ranks[all_karnofsky_scores[i]]=counter;
+                    }
+                }
+                counter=1;
+                death_days_to_ranks[all_death_days_to[0]]=1;
+                for (var i=1;i<n;i++){
+                    if (all_death_days_to[i]>all_death_days_to[i-1]){
+                        counter++;
+                        death_days_to_ranks[all_death_days_to[i]]=counter;
+                    }
+                }
+            }
+            create_rank_maps();
+            console.log("got "+Object.keys(ages_ranks).length+" ranks for age attribute.. lowest age: "+all_ages[0]+" (rank "+ages_ranks[all_ages[0]]+"), highest age: "+all_ages[n-1]+" (rank "+ages_ranks[all_ages[n-1]]+")");
+            console.log("got "+Object.keys(karnofsky_score_ranks).length+" ranks for karnofsky score attribute.. lowest karnofsky score: "+all_karnofsky_scores[0]+" (rank "+karnofsky_score_ranks[all_karnofsky_scores[0]]+"), highest karnofsky: "+all_karnofsky_scores[n-1]+" (rank "+karnofsky_score_ranks[all_karnofsky_scores[n-1]]+")");
+            console.log("got "+Object.keys(death_days_to_ranks).length+" ranks for death_days_to attribute.. lowest: "+all_death_days_to[0]+" (rank "+death_days_to_ranks[all_death_days_to[0]]+"), highest: "+all_death_days_to[n-1]+" (rank "+death_days_to_ranks[all_death_days_to[n-1]]+")");
+            
+            function list_patient_vectors(){
+                
+                var age_quantile;
+                var karnofsky_score_quantile;
+                var death_days_to_quantile;
+                data.patients.forEach(function(patient, i){
+                    
+                    age_quantile = ages_ranks[parseInt(patient.age_at_initial_pathologic_diagnosis)]/(Object.keys(ages_ranks).length+1);
+                    karnofsky_score_quantile = karnofsky_score_ranks[parseInt(patient.karnofsky_score)]/(Object.keys(karnofsky_score_ranks).length+1);
+                    death_days_to_quantile = death_days_to_ranks[parseInt(patient.death_days_to)]/(Object.keys(death_days_to_ranks).length+1);
+                    console.log("patient "+(i+1)+": age "+patient.age_at_initial_pathologic_diagnosis+", karnofsky score "+patient.karnofsky_score+", death_days_to "+patient.death_days_to);
+                    console.log("   --> quantile vector (age, karnofsky score, death days to): "+age_quantile.toFixed(2)+", "+karnofsky_score_quantile.toFixed(2)+", "+death_days_to_quantile.toFixed(2));
+                    
+                });
+                
+            }
+            
+            list_patient_vectors();
+            
+        </script>
+    </body>
+</html>
