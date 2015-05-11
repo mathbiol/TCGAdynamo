@@ -75,6 +75,8 @@
             console.log("got "+Object.keys(karnofsky_score_ranks).length+" ranks for karnofsky score attribute.. lowest karnofsky score: "+all_karnofsky_scores[0]+" (rank "+karnofsky_score_ranks[all_karnofsky_scores[0]]+"), highest karnofsky: "+all_karnofsky_scores[n-1]+" (rank "+karnofsky_score_ranks[all_karnofsky_scores[n-1]]+")");
             console.log("got "+Object.keys(death_days_to_ranks).length+" ranks for death_days_to attribute.. lowest: "+all_death_days_to[0]+" (rank "+death_days_to_ranks[all_death_days_to[0]]+"), highest: "+all_death_days_to[n-1]+" (rank "+death_days_to_ranks[all_death_days_to[n-1]]+")");
             
+            var patient_vectors = [];
+            
             function list_patient_vectors(){
                 
                 var age_quantile;
@@ -88,11 +90,70 @@
                     console.log("patient "+(i+1)+": age "+patient.age_at_initial_pathologic_diagnosis+", karnofsky score "+patient.karnofsky_score+", death_days_to "+patient.death_days_to);
                     console.log("   --> quantile vector (age, karnofsky score, death days to): "+age_quantile.toFixed(2)+", "+karnofsky_score_quantile.toFixed(2)+", "+death_days_to_quantile.toFixed(2));
                     
+                    patient_vectors[i] = {age_quantile: age_quantile, karnofsky_score_quantile: karnofsky_score_quantile, death_days_to_quantile: death_days_to_quantile};
+                    
                 });
                 
             }
             
             list_patient_vectors();
+            
+            var euclidean_distances = [];
+            
+            
+            function compute_euclidean_distance(patient_a, patient_b){
+                
+                
+                var age_quantile_diff = patient_vectors[patient_a].age_quantile-patient_vectors[patient_b].age_quantile;
+                var karnofsky_score_diff = patient_vectors[patient_a].karnofsky_score_quantile-patient_vectors[patient_b].karnofsky_score_quantile;
+                var death_days_to_diff = patient_vectors[patient_a].death_days_to_quantile-patient_vectors[patient_b].death_days_to_quantile;
+                
+                var sum = age_quantile_diff*age_quantile_diff+karnofsky_score_diff*karnofsky_score_diff+death_days_to_diff*death_days_to_diff;
+                
+                sum = Math.sqrt(sum);
+                
+                //console.log(sum);
+                
+                return(sum);
+            }
+            
+            for (var i=0;i<n-1;i++){
+                euclidean_distances[i] = [];
+                for (var k=i+1;k<n;k++){
+                   //console.log("distance between patient "+(i+1)+" and patient "+(k+1));
+                   euclidean_distances[i][k-(i+1)]=compute_euclidean_distance(i,k);
+                }
+            }
+            
+            var max_distance=0;
+            var min_distance=10;
+            var row_index_max=-1;
+            var col_index_max=-1;
+            var row_index_min=-1;
+            var col_index_min=-1;
+            for (var i=0;i<n-1;i++){
+                for (var k=0;k<n-i-1;k++){
+                    
+                    if (euclidean_distances[i][k]>max_distance){
+                        max_distance = euclidean_distances[i][k];
+                        row_index_max=i;
+                        col_index_max=k;
+                    }
+                    if (euclidean_distances[i][k]<min_distance){
+                        min_distance = euclidean_distances[i][k];
+                        row_index_min=i;
+                        col_index_min=k;
+                    }
+                }
+            }
+            
+            console.log("max distance: "+max_distance+" between patient "+(row_index_max+1)+" and patient "+(col_index_max+row_index_max+2));
+            console.log("patient "+(row_index_max+1)+" (age, karnofsky score, death days to): "+data.patients[row_index_max].age_at_initial_pathologic_diagnosis+", "+data.patients[row_index_max].karnofsky_score+", "+data.patients[row_index_max].death_days_to);
+            console.log("patient "+(col_index_max+row_index_max+2)+" (age, karnofsky score, death days to): "+data.patients[col_index_max+row_index_max+1].age_at_initial_pathologic_diagnosis+", "+data.patients[col_index_max+row_index_max+1].karnofsky_score+", "+data.patients[col_index_max+row_index_max+1].death_days_to);
+            console.log("min distance: "+min_distance+" between patient "+(row_index_min+1)+" and patient "+(col_index_min+row_index_min+2));
+            console.log("patient "+(row_index_min+1)+" (age, karnofsky score, death days to): "+data.patients[row_index_min].age_at_initial_pathologic_diagnosis+", "+data.patients[row_index_min].karnofsky_score+", "+data.patients[row_index_min].death_days_to);
+            console.log("patient "+(col_index_min+row_index_min+1)+" (age, karnofsky score, death days to): "+data.patients[col_index_min+row_index_min+1].age_at_initial_pathologic_diagnosis+", "+data.patients[col_index_max+row_index_max+1].karnofsky_score+", "+data.patients[col_index_min+row_index_min+1].death_days_to);
+           
             
         </script>
     </body>
