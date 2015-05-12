@@ -4,15 +4,16 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <script type="text/javascript" src="patient_data.js"></script>
+        <style>
+			body { margin: 0}
+			canvas { margin: 0}
+        </style>
+        <script src="three.min.js"></script>
     </head>
     <body>
         <script>
             var data = JSON.parse(patients);
             console.log("got "+data.patients.length+" patients");
-            
-            var margin = {top: 80, right: 0, bottom: 10, left: 80},
-                width = 1000,
-                height = 1000;
         
             var matrix = [];
             var n = data.patients.length;
@@ -112,7 +113,6 @@
                 
                 sum = Math.sqrt(sum);
                 
-                //console.log(sum);
                 
                 return(sum);
             }
@@ -154,7 +154,75 @@
             console.log("patient "+(row_index_min+1)+" (age, karnofsky score, death days to): "+data.patients[row_index_min].age_at_initial_pathologic_diagnosis+", "+data.patients[row_index_min].karnofsky_score+", "+data.patients[row_index_min].death_days_to);
             console.log("patient "+(col_index_min+row_index_min+1)+" (age, karnofsky score, death days to): "+data.patients[col_index_min+row_index_min+1].age_at_initial_pathologic_diagnosis+", "+data.patients[col_index_max+row_index_max+1].karnofsky_score+", "+data.patients[col_index_min+row_index_min+1].death_days_to);
            
+            var scene = new THREE.Scene();
+            var width = 800;
+            var height = 800;
+  
+            var canvas = document.createElement('canvas');
+            document.body.appendChild(canvas);
+            var renderer = new THREE.WebGLRenderer({canvas: canvas});
+            renderer.setSize(width, height);
             
+            var scene = new THREE.Scene();
+            
+            camera = new THREE.OrthographicCamera( width / - 2, width / 2, height / 2, height / - 2, - 500, 1000 );
+            camera.position.x = 0;
+            camera.position.y = 0;
+       	    camera.position.z = 1;
+            
+            var boxwidth = width/(n-1);
+            
+            
+            var geometry = new THREE.BoxGeometry((boxwidth-(boxwidth*0.08)), (boxwidth-(boxwidth*0.08)), 0 );
+            var material = new THREE.MeshBasicMaterial( { color: new THREE.Color( 1, 0, 0 ) } );
+            
+            
+            function add_patient_boxes(){
+                
+                var x_coord = -width/2+boxwidth/2;
+                var y_coord = width/2-boxwidth/2;
+                var r;
+                var g;
+                var distance;
+                for (var i=0;i<n-1;i++){
+                    x_coord = -width/2+boxwidth/2+(i*boxwidth);
+                    for (var k=0;k<n-i;k++){
+                        distance = euclidean_distances[i][k];
+                        r = distance/max_distance;
+                        g = (max_distance-distance)/max_distance;
+                        
+                        var material = new THREE.MeshBasicMaterial( { color: new THREE.Color( r, g, 0 ) } );
+                        var point = new THREE.Mesh( geometry, material );
+                        
+                        point.position.x=x_coord;
+                        point.position.y=y_coord;
+                        x_coord = x_coord+boxwidth;
+           
+                        scene.add(point);
+                    }
+                    y_coord=y_coord-(boxwidth);
+                }
+                
+            }
+            
+            add_patient_boxes();
+            
+            function render() {
+                requestAnimationFrame( render );
+                renderer.render( scene, camera );
+            }
+            render();
+            
+            canvas.addEventListener('mousedown', mousedown, false);
+           
+            function mousedown(event){
+                
+                var row = Math.floor((event.y+document.body.scrollTop)/boxwidth);
+                var column = Math.floor(event.x/boxwidth);
+                document.getElementById("text").innerHTML = " difference between patient "+(row+1)+" and patient "+(column+2)+" is "+euclidean_distances[row][column-row].toFixed(3)+"<br> patient "+(row+1)+": age "+data.patients[row].age_at_initial_pathologic_diagnosis+", karnofsky score "+data.patients[row].karnofsky_score+", death days to "+data.patients[row].death_days_to+"<br> patient "+(column+2)+": age "+data.patients[column+1].age_at_initial_pathologic_diagnosis+", karnofsky score "+data.patients[column+1].karnofsky_score+", death days to "+data.patients[column+1].death_days_to;
+                
+            }
         </script>
+        <p id="text">click somewhere</p>
     </body>
 </html>
