@@ -13,17 +13,27 @@
     <body>
         <script>
             
+            //I genereated a json file which contains a subset of the complete patient list
+            //this json file contains 50 patients and for each patient I extracted the following attributes:
+            //      -bcr patient uuid
+            //      -age at initial pathologic diagnosis
+            //      -karnofksy score
+            //      -histological type
+            //      -death days to
+            //      -last contact days to
+            //      -vital status
+            //      -birth days to 
+            //      -gender
+            //In this first experiment I only use "age", "karnofsky score" and "death days to"
             var data = JSON.parse(patients);
-            console.log("got "+data.patients.length+" patients");
-        
-            var matrix = [];
+            console.log("data contains "+data.patients.length+" patients");
             var n = data.patients.length;
             
+            //first I parse the json file to extract the attributes for each patient
+            //into arrays
             var all_ages = [];
             var all_karnofsky_scores = [];
             var all_death_days_to = [];
-            
-            
             function get_all_values(){
                 data.patients.forEach(function(patient, i){
                     all_ages[i]=parseInt(data.patients[i].age_at_initial_pathologic_diagnosis);
@@ -31,21 +41,20 @@
                     all_death_days_to[i]=parseInt(data.patients[i].death_days_to);
                 });
             }
-            
             get_all_values();
             
+            //now I sort the values and create a "rank map" (see create_rank_maps()) which I use afterwards 
+            //to compute the quantile vectors (see compute_quantile_vectors())
             function compare_values(a,b){
                 return a-b;
             }
-            
             all_ages.sort(compare_values);
             all_karnofsky_scores.sort(compare_values);
             all_death_days_to.sort(compare_values);
+            
             var ages_ranks = {};
             var karnofsky_score_ranks = {};
             var death_days_to_ranks = {};
-            
-           
             function create_rank_maps(){
                 var counter = 1;
                 ages_ranks[all_ages[0]]=1;
@@ -73,13 +82,9 @@
                 }
             }
             create_rank_maps();
-            //console.log("got "+Object.keys(ages_ranks).length+" ranks for age attribute.. lowest age: "+all_ages[0]+" (rank "+ages_ranks[all_ages[0]]+"), highest age: "+all_ages[n-1]+" (rank "+ages_ranks[all_ages[n-1]]+")");
-            //console.log("got "+Object.keys(karnofsky_score_ranks).length+" ranks for karnofsky score attribute.. lowest karnofsky score: "+all_karnofsky_scores[0]+" (rank "+karnofsky_score_ranks[all_karnofsky_scores[0]]+"), highest karnofsky: "+all_karnofsky_scores[n-1]+" (rank "+karnofsky_score_ranks[all_karnofsky_scores[n-1]]+")");
-            //console.log("got "+Object.keys(death_days_to_ranks).length+" ranks for death_days_to attribute.. lowest: "+all_death_days_to[0]+" (rank "+death_days_to_ranks[all_death_days_to[0]]+"), highest: "+all_death_days_to[n-1]+" (rank "+death_days_to_ranks[all_death_days_to[n-1]]+")");
-            
+           
             var patient_vectors = [];
-            
-            function list_patient_vectors(){
+            function compute_quantile_vectors(){
                 
                 var age_quantile;
                 var karnofsky_score_quantile;
@@ -89,43 +94,38 @@
                     age_quantile = ages_ranks[parseInt(patient.age_at_initial_pathologic_diagnosis)]/(Object.keys(ages_ranks).length+1);
                     karnofsky_score_quantile = karnofsky_score_ranks[parseInt(patient.karnofsky_score)]/(Object.keys(karnofsky_score_ranks).length+1);
                     death_days_to_quantile = death_days_to_ranks[parseInt(patient.death_days_to)]/(Object.keys(death_days_to_ranks).length+1);
-                    //console.log("patient "+(i+1)+": age "+patient.age_at_initial_pathologic_diagnosis+", karnofsky score "+patient.karnofsky_score+", death_days_to "+patient.death_days_to);
-                    //console.log("   --> quantile vector (age, karnofsky score, death days to): "+age_quantile.toFixed(2)+", "+karnofsky_score_quantile.toFixed(2)+", "+death_days_to_quantile.toFixed(2));
                     
                     patient_vectors[i] = {age_quantile: age_quantile, karnofsky_score_quantile: karnofsky_score_quantile, death_days_to_quantile: death_days_to_quantile};
                     
                 });
                 
             }
+            compute_quantile_vectors();
             
-            list_patient_vectors();
-            
+            //now I go over all patient pairs and compute the euclidean distance between the patients
             var euclidean_distances = [];
-            
-            
             function compute_euclidean_distance(patient_a, patient_b){
-                
-                
                 var age_quantile_diff = patient_vectors[patient_a].age_quantile-patient_vectors[patient_b].age_quantile;
                 var karnofsky_score_diff = patient_vectors[patient_a].karnofsky_score_quantile-patient_vectors[patient_b].karnofsky_score_quantile;
                 var death_days_to_diff = patient_vectors[patient_a].death_days_to_quantile-patient_vectors[patient_b].death_days_to_quantile;
-                
                 var sum = age_quantile_diff*age_quantile_diff+karnofsky_score_diff*karnofsky_score_diff+death_days_to_diff*death_days_to_diff;
                 
                 sum = Math.sqrt(sum);
-                
-                
                 return(sum);
             }
             
             for (var i=0;i<n-1;i++){
                 euclidean_distances[i] = [];
                 for (var k=i+1;k<n;k++){
-                   //console.log("distance between patient "+(i+1)+" and patient "+(k+1));
                    euclidean_distances[i][k-(i+1)]=compute_euclidean_distance(i,k);
                 }
             }
             
+            
+            //next I go over all patient pairs again and check if the patients are similar (for example distance<0.2)
+            //or not. If they are similar I set an edge between them which I use later to compute the forces
+            //for the graph layout. Also I compute the degree of each patient node which is also used
+            //for the force computation.
             var patient_distance;
             var edge_between = [];
             var node_degree = [];
@@ -154,7 +154,7 @@
                 node_degree[i]=degree_counter;
             }
             
-            
+            //here  is the point where the rendering starts.. you can skip until the next comment
             var scene = new THREE.Scene();
             var width = 800;
             var height = 800;
@@ -165,24 +165,25 @@
             renderer.setSize(width, height);
             
             var scene = new THREE.Scene();
-            
-            camera = new THREE.OrthographicCamera( width*3 / - 2, width*3 / 2, height*3 / 2, height*3 / - 2, - 500, 1000 );
+            var camera_parameter=15;
+            camera = new THREE.OrthographicCamera( width*camera_parameter / - 2, width*camera_parameter / 2, height*camera_parameter / 2, height*camera_parameter / - 2, - 500, 1000 );
             camera.position.x = 0;
             camera.position.y = 0;
        	    camera.position.z = 10;
            
-            var geometry = new THREE.SphereGeometry(15,0,0);
+            var geometry = new THREE.SphereGeometry(45,0,0);
             var material = new THREE.MeshBasicMaterial( { color: new THREE.Color( 1, 0, 0 ) } );
             var green_material = new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 1, 0 ) } );
-            
-            var points = [];
             var patient_points = [];
             
+            //I assign a random point for each node at first. Also I give a green color to
+            //the patients 6,7,14,39 and 47 (this is just a random group of similar patients
+            //to illustrate the clustering  )
             
             var random_x;
             var random_y;
             for (var i=0;i<n;i++){
-                if (i==6 || i==7 || i==14 || i==39 || i==47){
+                if (i==6 || i==7 || i==14 || i==39 || i==47 || i==51){
                     patient_points[i] = new THREE.Mesh( geometry, green_material );
                 }
                 else{
@@ -197,13 +198,17 @@
             
             
             var counter=0;
-            
+            //in the update step I calculate the repulsion force Fr for each pair of nodes
+            //If there is an edge between two nodes (which means that the two patients
+            //are similar) I also compute the attraction force Fa. Finally I go over all nodes
+            //again and compute a gravity which pulls the node to the center of the plane
+            //so that the nodes dont float away
             var Fr = 0;
             var Fa = 0;
             var Fg = 0;
             var distance = 0;
-            var kr = -60;
-            var kg = 0.01;
+            var kr = -150;
+            var kg = 0.002;
             var Ftotal = 0;
             var vector_between_x;
             var vector_between_y;
@@ -211,51 +216,42 @@
             var gravity_vector_y;
             var gravity_vector_length;
             var velocity;
-            function update3(){
-                
+            function update(){
+                //go over all nodes..
                 for (var i=0;i<n;i++){
+                    //..and for each  node over all other nodes 
                     for (var k=i+1;k<n;k++){
-                        if (edge_between[i][k]==1){
+                        
+                            
                             distance = Math.sqrt(Math.pow((patient_points[i].position.x-patient_points[k].position.x),2)+Math.pow((patient_points[i].position.y-patient_points[k].position.y),2));
                             vector_between_x = patient_points[i].position.x-patient_points[k].position.x;
                             vector_between_y = patient_points[i].position.y-patient_points[k].position.y;
                             vector_between_x = vector_between_x/distance;
                             vector_between_y = vector_between_y/distance;
                             
+                            //compute Fr as suggested in the paper
                             Fr = kr*(4/distance);
-                            Fa = Math.log((1+distance));
+                            
+                            //if the two patients are similar comptue Fa, else set Fa=0
+                            if (edge_between[i][k]==1){
+                                Fa = Math.log((1+distance));
+                            }
+                            else{
+                                Fa=0;
+                            }
                             Ftotal = Fr + Fa;
                         
+                            //set new positions
                             patient_points[k].position.x=patient_points[k].position.x+vector_between_x*Ftotal*0.8;
                             patient_points[k].position.y=patient_points[k].position.y+vector_between_y*Ftotal*0.8;
                 
                             patient_points[i].position.x=patient_points[i].position.x-vector_between_x*Ftotal*0.8;
                             patient_points[i].position.y=patient_points[i].position.y-vector_between_y*Ftotal*0.8;
-                            
-                        }
-                        else{
-                            distance = Math.sqrt(Math.pow((patient_points[i].position.x-patient_points[k].position.x),2)+Math.pow((patient_points[i].position.y-patient_points[k].position.y),2));
-                            vector_between_x = patient_points[i].position.x-patient_points[k].position.x;
-                            vector_between_y = patient_points[i].position.y-patient_points[k].position.y;
-                            vector_between_x = vector_between_x/distance;
-                            vector_between_y = vector_between_y/distance;
-                            
-                            Fr = kr*(4/distance);
-                            Fa = 0;
-                            Ftotal = Fr + Fa;
-                            
-                            patient_points[k].position.x=patient_points[k].position.x+vector_between_x*Ftotal*0.8;
-                            patient_points[k].position.y=patient_points[k].position.y+vector_between_y*Ftotal*0.8;
-                
-                            patient_points[i].position.x=patient_points[i].position.x-vector_between_x*Ftotal*0.8;
-                            patient_points[i].position.y=patient_points[i].position.y-vector_between_y*Ftotal*0.8;
-                            
-                        }
+                       
                     }
                 }
-                
+                //finally go over all nodes and compute the gravity
                 for (var i=0;i<n;i++){
-                    
                     gravity_vector_x=-patient_points[i].position.x;
                     gravity_vector_y=-patient_points[i].position.y;
                     
@@ -270,70 +266,19 @@
                 }
             }
             
-            
-            function update2(){
-                
-                for (var i=0;i<5;i++){
-                    for (var k=i+1;k<5;k++){
-                        distance = Math.sqrt(Math.pow((points[i].position.x-points[k].position.x),2)+Math.pow((points[i].position.y-points[k].position.y),2));
-                        vector_between_x = points[i].position.x-points[k].position.x;
-                        vector_between_y = points[i].position.y-points[k].position.y;
-                        vector_between_x = vector_between_x/distance;
-                        vector_between_y = vector_between_y/distance;
-                        Fr = kr*(4/distance);
-                        Fa = Math.log((1+distance));
-                        Ftotal = Fr + Fa;
-                        
-                        points[k].position.x=points[k].position.x+vector_between_x*Ftotal*0.3;
-                        points[k].position.y=points[k].position.y+vector_between_y*Ftotal*0.3;
-                
-                        points[i].position.x=points[i].position.x-vector_between_x*Ftotal*0.3;
-                        points[i].position.y=points[i].position.y-vector_between_y*Ftotal*0.3;
-                    }
-                }
-                
-                
-            }
-            
-            function update(){
-                
-                distance = Math.sqrt(Math.pow((points[4].position.x-points[2].position.x),2)+Math.pow((points[4].position.y-points[2].position.y),2));
-                vector_between_x = points[4].position.x-points[2].position.x;
-                vector_between_y = points[4].position.y-points[2].position.y;
-                vector_between_x = vector_between_x/distance;
-                vector_between_y = vector_between_y/distance;
-           
-                Fr = kr*(4/distance);
-                Fa = Math.log((1+distance));
-                Ftotal = Fr + Fa;
-                //console.log(distance+"; "+Fr+"; "+Fa+"; "+Ftotal);
-                
-                points[2].position.x=points[2].position.x+vector_between_x*Ftotal*0.8;
-                points[2].position.y=points[2].position.y+vector_between_y*Ftotal*0.8;
-                
-                points[4].position.x=points[4].position.x-vector_between_x*Ftotal*0.8;
-                points[4].position.y=points[4].position.y-vector_between_y*Ftotal*0.8;
-                
-            }
-            
             function render() {
-                counter++;
-                //console.log(counter);
-                update3();
+                update();
                 renderer.render( scene, camera );
-                
             }
-            
-            
             
             setInterval(render, 1000/30);
             
             
             
         </script>
-        <p id="text">click somewhere</p> 
+        <p id="text">"hallo"</p> 
         <script>
-            document.getElementById("text").innerHTML = "the green dots represent the following patients:</br>patient 6: age "+data.patients[6].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[6].karnofsky_score+", death days to: "+data.patients[6].death_days_to+"</br>patient 7: age "+data.patients[7].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[7].karnofsky_score+", death days to: "+data.patients[7].death_days_to+"</br>patient 14: age "+data.patients[14].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[14].karnofsky_score+", death days to: "+data.patients[14].death_days_to+"</br>patient 39: age "+data.patients[39].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[39].karnofsky_score+", death days to: "+data.patients[39].death_days_to+"</br>patient 47: age "+data.patients[47].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[47].karnofsky_score+", death days to: "+data.patients[47].death_days_to;
+            document.getElementById("text").innerHTML = "the green dots represent the following patients:</br>patient 6: age "+data.patients[6].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[6].karnofsky_score+", death days to: "+data.patients[6].death_days_to+"</br>patient 7: age "+data.patients[7].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[7].karnofsky_score+", death days to: "+data.patients[7].death_days_to+"</br>patient 14: age "+data.patients[14].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[14].karnofsky_score+", death days to: "+data.patients[14].death_days_to+"</br>patient 39: age "+data.patients[39].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[39].karnofsky_score+", death days to: "+data.patients[39].death_days_to+"</br>patient 47: age "+data.patients[47].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[47].karnofsky_score+", death days to: "+data.patients[47].death_days_to+"</br>patient 51: age "+data.patients[51].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[51].karnofsky_score+", death days to: "+data.patients[51].death_days_to;
         </script>
     </body>
 </html>
