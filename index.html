@@ -4,6 +4,8 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <script type="text/javascript" src="patient_data.js"></script>
+        <script type="text/javascript" src="graph.js"></script>
+        <script type="text/javascript" src="community_detection.js"></script>
         <style>
 			body { margin: 0}
 			canvas { margin: 0}
@@ -154,6 +156,43 @@
                 node_degree[i]=degree_counter;
             }
             
+            var graph = new graph(data.patients.length, edge_between);
+            
+            for (var i=0;i<n;i++){
+                for (var k=i+1;k<n;k++){
+                    if (edge_between[i][k]==1){
+                        graph.add_edge(i,k);
+                    }
+                }
+            }
+            graph.compute_weights();
+            graph.compute_node_neighbors();
+            community = new community(graph);
+            community.modularity();
+            community.iteration();
+            
+            var all_communities = [];
+            var number_communities = 0;
+            var community_found=false;
+            var community;
+            for (var i=0;i<n;i++){
+                community_found=false;
+                console.log(i+": "+community.community_of_node[i]);
+                tmp_community=community.community_of_node[i];
+                for (var k=0;k<number_communities;k++){
+                    if (all_communities[k]==tmp_community){
+                        community_found=true;
+                    }
+                }
+                if (!community_found){
+                    all_communities[number_communities]=tmp_community;
+                    number_communities++;
+                   // console.log("its new.. got "+number_communities);
+                }
+                
+            }   
+            console.log(number_communities);
+            
             //here  is the point where the rendering starts.. you can skip until the next comment
             var scene = new THREE.Scene();
             var width = 800;
@@ -174,6 +213,11 @@
             var geometry = new THREE.SphereGeometry(45,0,0);
             var material = new THREE.MeshBasicMaterial( { color: new THREE.Color( 1, 0, 0 ) } );
             var green_material = new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 1, 0 ) } );
+            var blue_material = new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0, 1 ) } );
+            var mix_material = new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 1, 1 ) } );
+            var other_material = new THREE.MeshBasicMaterial( { color: new THREE.Color( 1, 0.5, 0 ) } );
+            var new_material = new THREE.MeshBasicMaterial( { color: new THREE.Color( 0.2, 0.5, 0.2 ) } );
+            var new_material2 = new THREE.MeshBasicMaterial( { color: new THREE.Color( 0.6, 0.1, 0.6 ) } );
             var patient_points = [];
             
             //I assign a random point for each node at first. Also I give a green color to
@@ -183,8 +227,20 @@
             var random_x;
             var random_y;
             for (var i=0;i<n;i++){
-                if (i==6 || i==7 || i==14 || i==39 || i==47 || i==51){
-                    patient_points[i] = new THREE.Mesh( geometry, green_material );
+                if (community.community_of_node[i]==7){
+                    patient_points[i] = new THREE.Mesh( geometry, new_material );
+                }
+                else if(community.community_of_node[i]==64){
+                    patient_points[i] = new THREE.Mesh( geometry, blue_material );
+                }
+                else if(community.community_of_node[i]==29){
+                    patient_points[i] = new THREE.Mesh( geometry, mix_material );
+                }
+                else if(community.community_of_node[i]==48){
+                    patient_points[i] = new THREE.Mesh( geometry, other_material );
+                }
+                else if(community.community_of_node[i]==62){
+                    patient_points[i] = new THREE.Mesh( geometry, new_material2 );
                 }
                 else{
                     patient_points[i] = new THREE.Mesh( geometry, material );
@@ -207,8 +263,8 @@
             var Fa = 0;
             var Fg = 0;
             var distance = 0;
-            var kr = -150;
-            var kg = 0.002;
+            var kr = -300;
+            var kg = 0.003;
             var Ftotal = 0;
             var vector_between_x;
             var vector_between_y;
@@ -271,7 +327,7 @@
                 renderer.render( scene, camera );
             }
             
-            setInterval(render, 1000/30);
+            setInterval(render, 1000/100);
             
             
             
