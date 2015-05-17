@@ -135,7 +135,7 @@
                 edge_between[i] = [];
                 for (var k=i+1;k<n;k++){
                     patient_distance = euclidean_distances[i][k-(i+1)];
-                    if (patient_distance<0.2){
+                    if (patient_distance<0.17){
                         edge_between[i][k] = 1;
                     }
                     else{
@@ -177,7 +177,7 @@
             var community;
             for (var i=0;i<n;i++){
                 community_found=false;
-                console.log(i+": "+community.community_of_node[i]);
+                //console.log(i+": "+community.community_of_node[i]);
                 tmp_community=community.community_of_node[i];
                 for (var k=0;k<number_communities;k++){
                     if (all_communities[k]==tmp_community){
@@ -191,7 +191,13 @@
                 }
                 
             }   
-            console.log(number_communities);
+            console.log(number_communities+" cluster");
+            
+            var materials = [];
+            
+            for (var i=0;i<number_communities;i++){
+                materials[all_communities[i]]=new THREE.MeshBasicMaterial( { color: new THREE.Color( Math.random()+0.3, Math.random()+0.3, Math.random()+0.3 ) } );
+            }
             
             //here  is the point where the rendering starts.. you can skip until the next comment
             var scene = new THREE.Scene();
@@ -204,20 +210,14 @@
             renderer.setSize(width, height);
             
             var scene = new THREE.Scene();
-            var camera_parameter=15;
+            var camera_parameter=30;
             camera = new THREE.OrthographicCamera( width*camera_parameter / - 2, width*camera_parameter / 2, height*camera_parameter / 2, height*camera_parameter / - 2, - 500, 1000 );
             camera.position.x = 0;
             camera.position.y = 0;
        	    camera.position.z = 10;
            
-            var geometry = new THREE.SphereGeometry(45,0,0);
-            var material = new THREE.MeshBasicMaterial( { color: new THREE.Color( 1, 0, 0 ) } );
-            var green_material = new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 1, 0 ) } );
-            var blue_material = new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0, 1 ) } );
-            var mix_material = new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 1, 1 ) } );
-            var other_material = new THREE.MeshBasicMaterial( { color: new THREE.Color( 1, 0.5, 0 ) } );
-            var new_material = new THREE.MeshBasicMaterial( { color: new THREE.Color( 0.2, 0.5, 0.2 ) } );
-            var new_material2 = new THREE.MeshBasicMaterial( { color: new THREE.Color( 0.6, 0.1, 0.6 ) } );
+            var geometry = new THREE.SphereGeometry(65,0,0);
+            
             var patient_points = [];
             
             //I assign a random point for each node at first. Also I give a green color to
@@ -227,24 +227,9 @@
             var random_x;
             var random_y;
             for (var i=0;i<n;i++){
-                if (community.community_of_node[i]==7){
-                    patient_points[i] = new THREE.Mesh( geometry, new_material );
-                }
-                else if(community.community_of_node[i]==64){
-                    patient_points[i] = new THREE.Mesh( geometry, blue_material );
-                }
-                else if(community.community_of_node[i]==29){
-                    patient_points[i] = new THREE.Mesh( geometry, mix_material );
-                }
-                else if(community.community_of_node[i]==48){
-                    patient_points[i] = new THREE.Mesh( geometry, other_material );
-                }
-                else if(community.community_of_node[i]==62){
-                    patient_points[i] = new THREE.Mesh( geometry, new_material2 );
-                }
-                else{
-                    patient_points[i] = new THREE.Mesh( geometry, material );
-                }
+                
+                patient_points[i] = new THREE.Mesh( geometry, materials[community.community_of_node[i]] );
+                
                 random_x = (Math.random() * 750)- 390;
                 random_y = (Math.random() * 750)- 390;
                 patient_points[i].position.x = random_x;
@@ -263,7 +248,7 @@
             var Fa = 0;
             var Fg = 0;
             var distance = 0;
-            var kr = -300;
+            var kr = -800;
             var kg = 0.003;
             var Ftotal = 0;
             var vector_between_x;
@@ -332,9 +317,9 @@
             
             
         </script>
-        <p id="text">"hallo"</p> 
+        <p id="text"></p> 
         <script>
-            document.getElementById("text").innerHTML = "the green dots represent the following patients:</br>patient 6: age "+data.patients[6].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[6].karnofsky_score+", death days to: "+data.patients[6].death_days_to+"</br>patient 7: age "+data.patients[7].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[7].karnofsky_score+", death days to: "+data.patients[7].death_days_to+"</br>patient 14: age "+data.patients[14].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[14].karnofsky_score+", death days to: "+data.patients[14].death_days_to+"</br>patient 39: age "+data.patients[39].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[39].karnofsky_score+", death days to: "+data.patients[39].death_days_to+"</br>patient 47: age "+data.patients[47].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[47].karnofsky_score+", death days to: "+data.patients[47].death_days_to+"</br>patient 51: age "+data.patients[51].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[51].karnofsky_score+", death days to: "+data.patients[51].death_days_to;
+            //document.getElementById("text").innerHTML = "the green dots represent the following patients:</br>patient 6: age "+data.patients[6].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[6].karnofsky_score+", death days to: "+data.patients[6].death_days_to+"</br>patient 7: age "+data.patients[7].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[7].karnofsky_score+", death days to: "+data.patients[7].death_days_to+"</br>patient 14: age "+data.patients[14].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[14].karnofsky_score+", death days to: "+data.patients[14].death_days_to+"</br>patient 39: age "+data.patients[39].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[39].karnofsky_score+", death days to: "+data.patients[39].death_days_to+"</br>patient 47: age "+data.patients[47].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[47].karnofsky_score+", death days to: "+data.patients[47].death_days_to+"</br>patient 51: age "+data.patients[51].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[51].karnofsky_score+", death days to: "+data.patients[51].death_days_to;
         </script>
     </body>
 </html>
