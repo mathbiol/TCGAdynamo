@@ -194,9 +194,14 @@
             console.log(number_communities+" cluster");
             
             var materials = [];
+            var colors = [];
             
             for (var i=0;i<number_communities;i++){
-                materials[all_communities[i]]=new THREE.MeshBasicMaterial( { color: new THREE.Color( Math.random()+0.3, Math.random()+0.3, Math.random()+0.3 ) } );
+                colors[all_communities[i]] = [];
+                colors[all_communities[i]][0]=Math.random()+0.3;
+                colors[all_communities[i]][1]=Math.random()+0.3;
+                colors[all_communities[i]][2]=Math.random()+0.3;
+                materials[all_communities[i]]=new THREE.MeshBasicMaterial( { color: new THREE.Color( colors[all_communities[i]][0], colors[all_communities[i]][1], colors[all_communities[i]][2] ) } );
             }
             
             //here  is the point where the rendering starts.. you can skip until the next comment
@@ -307,6 +312,31 @@
                 }
             }
             
+            canvas.addEventListener('mousedown', mousedown, false);
+            var which_cluster=0;
+            var text="";
+            function mousedown(event){
+                text="";
+                for (var i=0;i<n;i++){
+                    if (community.community_of_node[i]==all_communities[which_cluster]){
+                        patient_points[i].material.color.setRGB(colors[all_communities[which_cluster]][0],colors[all_communities[which_cluster]][1],colors[all_communities[which_cluster]][2]);
+                    }
+                }
+                which_cluster++;
+                which_cluster = which_cluster%number_communities;
+                
+                document.getElementById("text").innerHTML = all_communities[which_cluster];
+                
+                for (var i=0;i<n;i++){
+                    if (community.community_of_node[i]==all_communities[which_cluster]){
+                        patient_points[i].material.color.setRGB(1,0,0);
+                        text=text.concat("</br>patient "+i+": age "+data.patients[i].age_at_initial_pathologic_diagnosis+" karnofsky score "+data.patients[i].karnofsky_score+" death days to "+data.patients[i].death_days_to);
+                    }
+                }
+                document.getElementById("text").innerHTML = text;
+                
+            }
+            
             function render() {
                 update();
                 renderer.render( scene, camera );
@@ -317,7 +347,7 @@
             
             
         </script>
-        <p id="text"></p> 
+        <p id="text"> </p> 
         <script>
             //document.getElementById("text").innerHTML = "the green dots represent the following patients:</br>patient 6: age "+data.patients[6].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[6].karnofsky_score+", death days to: "+data.patients[6].death_days_to+"</br>patient 7: age "+data.patients[7].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[7].karnofsky_score+", death days to: "+data.patients[7].death_days_to+"</br>patient 14: age "+data.patients[14].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[14].karnofsky_score+", death days to: "+data.patients[14].death_days_to+"</br>patient 39: age "+data.patients[39].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[39].karnofsky_score+", death days to: "+data.patients[39].death_days_to+"</br>patient 47: age "+data.patients[47].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[47].karnofsky_score+", death days to: "+data.patients[47].death_days_to+"</br>patient 51: age "+data.patients[51].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[51].karnofsky_score+", death days to: "+data.patients[51].death_days_to;
         </script>
