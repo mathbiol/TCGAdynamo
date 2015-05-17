@@ -211,7 +211,7 @@
   
             var canvas = document.createElement('canvas');
             document.body.appendChild(canvas);
-            var renderer = new THREE.WebGLRenderer({canvas: canvas});
+            var renderer = new THREE.WebGLRenderer({canvas: canvas,  antialiasing: true });
             renderer.setSize(width, height);
             
             var scene = new THREE.Scene();
@@ -221,7 +221,7 @@
             camera.position.y = 0;
        	    camera.position.z = 10;
            
-            var geometry = new THREE.SphereGeometry(65,0,0);
+            var geometry = new THREE.SphereGeometry(125,0,0);
             
             var patient_points = [];
             
