@@ -11,6 +11,7 @@
 			canvas { margin: 0}
         </style>
         <script src="three.min.js"></script>
+        <script src="DAT.GUI.min.js"></script>
     </head>
     <body>
         <script>
@@ -172,6 +173,7 @@
             community.iteration();
             
             var all_communities = [];
+            
             var number_communities = 0;
             var community_found=false;
             var community;
@@ -193,6 +195,16 @@
             }   
             console.log(number_communities+" cluster");
             
+            var nodes_in_community = [];
+            for (var i=0;i<n;i++){
+                nodes_in_community[i]=0;
+            }
+            
+            for (var i=0;i<n;i++){
+                nodes_in_community[community.community_of_node[i]]++;
+            }
+            
+            
             var materials = [];
             var colors = [];
             
@@ -210,18 +222,19 @@
             var height = 800;
   
             var canvas = document.createElement('canvas');
+            
+            
             document.body.appendChild(canvas);
             var renderer = new THREE.WebGLRenderer({canvas: canvas,  antialiasing: true });
             renderer.setSize(width, height);
             
-            var scene = new THREE.Scene();
             var camera_parameter=30;
             camera = new THREE.OrthographicCamera( width*camera_parameter / - 2, width*camera_parameter / 2, height*camera_parameter / 2, height*camera_parameter / - 2, - 500, 1000 );
             camera.position.x = 0;
             camera.position.y = 0;
-       	    camera.position.z = 10;
+       	    camera.position.z = 100;
            
-            var geometry = new THREE.SphereGeometry(125,0,0);
+            var geometry = new THREE.SphereGeometry(120,0,0);
             
             var patient_points = [];
             
@@ -315,21 +328,42 @@
             canvas.addEventListener('mousedown', mousedown, false);
             var which_cluster=0;
             var text="";
+            var was_called_before=0;
+            var min_distance_to=-1;
             function mousedown(event){
-                text="";
+                
+                if (was_called_before>0){
+                    patient_points[min_distance_to].material.color.setRGB(colors[community.community_of_node[min_distance_to]][0],colors[community.community_of_node[min_distance_to]][1],colors[community.community_of_node[min_distance_to]][2]);
+                }
+                was_called_before++;
+                var mouse_x = event.offsetX*camera_parameter-((width*camera_parameter)/2);
+                var mouse_y = event.offsetY*camera_parameter-((width*camera_parameter)/2);
+                mouse_y=mouse_y*-1;
+                var min_distance = Number.POSITIVE_INFINITY;
+                var temp_distance;
                 for (var i=0;i<n;i++){
-                    if (community.community_of_node[i]==all_communities[which_cluster]){
-                        patient_points[i].material.color.setRGB(colors[all_communities[which_cluster]][0],colors[all_communities[which_cluster]][1],colors[all_communities[which_cluster]][2]);
+                    temp_distance=Math.sqrt(Math.pow(patient_points[i].position.x-mouse_x,2)+Math.pow(patient_points[i].position.y-mouse_y,2));
+                    
+                    if (temp_distance<min_distance){
+                        min_distance=temp_distance;
+                        min_distance_to=i;
                     }
                 }
-                which_cluster++;
-                which_cluster = which_cluster%number_communities;
                 
+                console.log("min distance to "+min_distance_to);
+                console.log("community of "+min_distance_to+": "+community.community_of_node[min_distance_to]);
+                console.log("pos :"+patient_points[min_distance_to].position.x+"; "+patient_points[min_distance_to].position.y);
+               
+                patient_points[min_distance_to].material.color.setRGB(1,0,0);
+                
+                which_cluster=community.community_of_node[min_distance_to];
+                
+                text="";
                 document.getElementById("text").innerHTML = all_communities[which_cluster];
                 
                 for (var i=0;i<n;i++){
-                    if (community.community_of_node[i]==all_communities[which_cluster]){
-                        patient_points[i].material.color.setRGB(1,0,0);
+                    if (community.community_of_node[i]==which_cluster){
+                        //patient_points[i].material.color.setRGB(1,0,0);
                         text=text.concat("</br>patient "+i+": age "+data.patients[i].age_at_initial_pathologic_diagnosis+" karnofsky score "+data.patients[i].karnofsky_score+" death days to "+data.patients[i].death_days_to);
                     }
                 }
@@ -337,17 +371,157 @@
                 
             }
             
+            function compute_parzen(which_attribute){
+                delete scene;
+                scene = new THREE.Scene();
+                var boxesAroundPoint=20;
+                var kernel = [];
+                for (var i=0;i<boxesAroundPoint;i++){
+                    kernel[i] = [];
+                }
+                var ycoord=-boxesAroundPoint/2+0.5;
+                var xcoord=-boxesAroundPoint/2+0.5;
+                var gamma=4;
+                var row=0;
+                var coloumn=0;
+                for (var i=0;i<boxesAroundPoint;i++){
+                   xcoord=-boxesAroundPoint/2+0.5;
+                   column=0;
+                    for (var k=0;k<boxesAroundPoint;k++){
+                        value=(1/(2*Math.PI*Math.pow(gamma,2)))*Math.exp(-((Math.pow(xcoord,2)+Math.pow(ycoord,2))/(2*Math.pow(gamma,2))));
+                        kernel[row][column]=value;
+                        xcoord+=1;
+                        column++;
+                    }
+                    row++;
+                    ycoord+=1;
+                }
+                var numberBoxesPerRow=200;
+                var stepSize=(width*camera_parameter)/numberBoxesPerRow;
+            
+                var allCells = [];
+                for (var i=0;i<numberBoxesPerRow;i++){
+                    allCells[i]=[];
+                    for (var k=0;k<numberBoxesPerRow;k++){
+                        allCells[i][k]=0;
+                    }
+                }
+                
+                
+                var max=0;
+                for (var p=0;p<patient_points.length;p++){
+                    var startx=Math.floor(((patient_points[p].position.x+((width*camera_parameter)/2))-(stepSize*boxesAroundPoint/2))/stepSize);
+                    var starty=Math.floor(((patient_points[p].position.y+((width*camera_parameter)/2))-(stepSize*boxesAroundPoint/2))/stepSize);
+                    var tempx=startx;
+                    var tempy=starty;
+                    
+                    
+                    for (var i=0;i<boxesAroundPoint;i++){
+                        tempx=startx;
+                        for (var k=0;k<boxesAroundPoint;k++){
+                            if (tempx>0 && tempx<numberBoxesPerRow && tempy>0 && tempy<numberBoxesPerRow ){
+                                if (which_attribute==1){
+                                    allCells[tempx][tempy]+=kernel[i][k]*(patient_vectors[p].age_quantile/nodes_in_community[community.community_of_node[p]]);
+                                
+                                }
+                                else{
+                                    allCells[tempx][tempy]+=kernel[i][k]*(patient_vectors[p].death_days_to_quantile/nodes_in_community[community.community_of_node[p]]);    
+                                }
+                                
+                                if (allCells[tempx][tempy]>max){
+                                    max=allCells[tempx][tempy];
+                                }
+                            }
+                            tempx++;
+                            
+                        }
+                    tempy++;
+                    }
+                }
+                console.log("max: "+max);
+                
+                var geometry = new THREE.BoxGeometry(stepSize,stepSize,0);
+                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 1, 0, 0 ) } );
+                var box = new THREE.Mesh( geometry, material );
+                
+                var scaled_value=0;
+                
+                for (var i=0;i<numberBoxesPerRow;i++){
+                    for (var k=0;k<numberBoxesPerRow;k++){
+                        if (allCells[i][k]!=0){
+                            scaled_value=allCells[i][k]/max;
+                            
+                            if (scaled_value<0.1){
+                                b = scaled_value/0.1;
+                                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color(0 , 0, b ) } );
+                                var box = new THREE.Mesh( geometry, material );
+                                box.position.x=i*stepSize+0.5*stepSize-(width*camera_parameter)/2;
+                                box.position.y=k*stepSize+0.5*stepSize-(width*camera_parameter)/2;
+                                scene.add(box);
+                            }
+                            else if(scaled_value<0.4){
+                                g = (scaled_value-0.1)/0.3;
+                                b = (-scaled_value+0.4)/0.3;
+                                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color(0 , g, b ) } );
+                                var box = new THREE.Mesh( geometry, material );
+                                box.position.x=i*stepSize+0.5*stepSize-(width*camera_parameter)/2;
+                                box.position.y=k*stepSize+0.5*stepSize-(width*camera_parameter)/2;
+                                scene.add(box);
+                            }
+                            else{
+                                r = (scaled_value-0.4)/0.6;
+                                g = (-scaled_value+1)/0.6;
+                                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color(r , g, 0 ) } );
+                                var box = new THREE.Mesh( geometry, material );
+                                box.position.x=i*stepSize+0.5*stepSize-(width*camera_parameter)/2;
+                                box.position.y=k*stepSize+0.5*stepSize-(width*camera_parameter)/2;
+                                scene.add(box);
+                            }
+                            
+                        }
+                    }
+                }
+                
+                
+                for (var i=0;i<patient_points.length;i++){
+                    //scene.add(patient_points[i]);
+                }
+            }
+            
+            function showDots(){
+                
+                scene = new THREE.Scene();
+                for (var i=0;i<patient_points.length;i++){
+                    scene.add(patient_points[i]);
+                }
+                
+            }
+            
+            function parzen_age(){
+                compute_parzen(1);
+            }
+            
+            function parzen_survival(){
+                compute_parzen(2);
+            }
+            
+            var gui = new dat.GUI();
+            gui.add(this, 'parzen_age').name("age distri");
+            gui.add(this, 'parzen_survival').name("survival distr");
+            gui.add(this, 'showDots').name("show dots");
+            
             function render() {
                 update();
                 renderer.render( scene, camera );
             }
             
-            setInterval(render, 1000/100);
+            setInterval(render, 1000/200);
             
             
             
         </script>
         <p id="text"> </p> 
+        
         <script>
             //document.getElementById("text").innerHTML = "the green dots represent the following patients:</br>patient 6: age "+data.patients[6].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[6].karnofsky_score+", death days to: "+data.patients[6].death_days_to+"</br>patient 7: age "+data.patients[7].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[7].karnofsky_score+", death days to: "+data.patients[7].death_days_to+"</br>patient 14: age "+data.patients[14].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[14].karnofsky_score+", death days to: "+data.patients[14].death_days_to+"</br>patient 39: age "+data.patients[39].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[39].karnofsky_score+", death days to: "+data.patients[39].death_days_to+"</br>patient 47: age "+data.patients[47].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[47].karnofsky_score+", death days to: "+data.patients[47].death_days_to+"</br>patient 51: age "+data.patients[51].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[51].karnofsky_score+", death days to: "+data.patients[51].death_days_to;
         </script>
