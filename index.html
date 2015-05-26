@@ -16,6 +16,7 @@
     <body>
         <script>
             
+            
             //I genereated a json file which contains a subset of the complete patient list
             //this json file contains 50 patients and for each patient I extracted the following attributes:
             //      -bcr patient uuid
@@ -107,11 +108,15 @@
             
             //now I go over all patient pairs and compute the euclidean distance between the patients
             var euclidean_distances = [];
+            
+            var age_weight=1.0;
+            var k_weight=1.0;
+            var survival_weight=1.0;
             function compute_euclidean_distance(patient_a, patient_b){
                 var age_quantile_diff = patient_vectors[patient_a].age_quantile-patient_vectors[patient_b].age_quantile;
                 var karnofsky_score_diff = patient_vectors[patient_a].karnofsky_score_quantile-patient_vectors[patient_b].karnofsky_score_quantile;
                 var death_days_to_diff = patient_vectors[patient_a].death_days_to_quantile-patient_vectors[patient_b].death_days_to_quantile;
-                var sum = age_quantile_diff*age_quantile_diff+karnofsky_score_diff*karnofsky_score_diff+death_days_to_diff*death_days_to_diff;
+                var sum = age_weight*age_quantile_diff*age_quantile_diff+k_weight*karnofsky_score_diff*karnofsky_score_diff+survival_weight*death_days_to_diff*death_days_to_diff;
                 
                 sum = Math.sqrt(sum);
                 return(sum);
@@ -132,6 +137,7 @@
             var patient_distance;
             var edge_between = [];
             var node_degree = [];
+            var similarity_threshold=0.17;
             for (var i=0;i<n;i++){
                 edge_between[i] = [];
                 for (var k=i+1;k<n;k++){
@@ -157,7 +163,7 @@
                 node_degree[i]=degree_counter;
             }
             
-            var graph = new graph(data.patients.length, edge_between);
+            var graph = new Graph(data.patients.length, edge_between);
             
             for (var i=0;i<n;i++){
                 for (var k=i+1;k<n;k++){
@@ -168,7 +174,7 @@
             }
             graph.compute_weights();
             graph.compute_node_neighbors();
-            community = new community(graph);
+            var community = new Community(graph);
             community.modularity();
             community.iteration();
             
@@ -176,7 +182,7 @@
             
             var number_communities = 0;
             var community_found=false;
-            var community;
+            var tmp_community;
             for (var i=0;i<n;i++){
                 community_found=false;
                 //console.log(i+": "+community.community_of_node[i]);
@@ -203,8 +209,6 @@
             for (var i=0;i<n;i++){
                 nodes_in_community[community.community_of_node[i]]++;
             }
-            
-            
             var materials = [];
             var colors = [];
             
@@ -415,6 +419,7 @@
                     var tempx=startx;
                     var tempy=starty;
                     
+                                    
                     
                     for (var i=0;i<boxesAroundPoint;i++){
                         tempx=startx;
@@ -505,10 +510,104 @@
                 compute_parzen(2);
             }
             
+            function recompute(){
+                delete scene;
+                scene = new THREE.Scene();
+                console.log("computing..");
+                
+                for (var i=0;i<n;i++){
+                    for (var k=i+1;k<n;k++){
+                        edge_between[i][k]=0;
+                    }
+                }
+                
+                for (var i=0;i<n;i++){
+                    edge_between[i] = [];
+                    for (var k=i+1;k<n;k++){
+                        patient_distance = euclidean_distances[i][k-(i+1)];
+                        if (patient_distance<similarity_threshold){
+                            edge_between[i][k] = 1;
+                        }
+                        else{
+                            edge_between[i][k] = 0;
+                        }    
+                    }
+                }
+                
+                graph = new Graph(data.patients.length, edge_between);
+                
+                for (var i=0;i<n;i++){
+                    for (var k=i+1;k<n;k++){
+                        if (edge_between[i][k]==1){
+                            graph.add_edge(i,k);
+                        }
+                    }
+                }
+                graph.compute_weights();
+                graph.compute_node_neighbors();
+                community = new Community(graph);
+                
+                community.modularity();
+                community.iteration();
+                number_communities=0;
+                for (var i=0;i<n;i++){
+                    community_found=false;
+                    //console.log(i+": "+community.community_of_node[i]);
+                    tmp_community=community.community_of_node[i];
+                    for (var k=0;k<number_communities;k++){
+                        if (all_communities[k]==tmp_community){
+                            community_found=true;
+                        }
+                    }
+                    if (!community_found){
+                        all_communities[number_communities]=tmp_community;
+                        number_communities++;
+                   // console.log("its new.. got "+number_communities);
+                    }
+                }
+                console.log(number_communities+" communites");
+                
+                for (var i=0;i<number_communities;i++){
+                    nodes_in_community[i]=0;
+                }
+            
+                for (var i=0;i<n;i++){
+                    nodes_in_community[community.community_of_node[i]]++;
+                }
+                
+                for (var i=0;i<number_communities;i++){
+                    colors[all_communities[i]] = [];
+                    colors[all_communities[i]][0]=Math.random()+0.3;
+                    colors[all_communities[i]][1]=Math.random()+0.3;
+                    colors[all_communities[i]][2]=Math.random()+0.3;
+                    materials[all_communities[i]]=new THREE.MeshBasicMaterial( { color: new THREE.Color( colors[all_communities[i]][0], colors[all_communities[i]][1], colors[all_communities[i]][2] ) } );
+                }
+                
+                var oldx;
+                var oldy;
+                     
+                for (var i=0;i<n;i++){
+                    oldx=patient_points[i].position.x;
+                    oldy=patient_points[i].position.y;
+                    scene.remove(patient_points[i]);
+                    patient_points[i] = new THREE.Mesh( geometry, materials[community.community_of_node[i]] );
+                    patient_points[i].position.x=oldx;
+                    patient_points[i].position.y=oldy;
+                    scene.add(patient_points[i]);
+                   
+                }
+            }
+            
             var gui = new dat.GUI();
             gui.add(this, 'parzen_age').name("age distri");
             gui.add(this, 'parzen_survival').name("survival distr");
             gui.add(this, 'showDots').name("show dots");
+            
+            gui.add(this, 'similarity_threshold',0,1).name("similarity thresh");
+            gui.add(this, 'recompute').name("recompute");
+            
+            
+            
             
             function render() {
                 update();

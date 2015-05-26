@@ -1,4 +1,4 @@
-community = function(graph){
+Community = function(graph){
     
     this.graph = graph;
     this.community_of_node = [];
@@ -59,7 +59,7 @@ community = function(graph){
             }
             
         }
-        console.log(this.modularity());
+        //console.log(this.modularity());
     }while(improvement==true);
         
         

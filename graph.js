@@ -1,4 +1,4 @@
-graph = function(nnodes){
+Graph = function(nnodes){
    
     this.nnodes = nnodes;
     this.nedges = 0;
