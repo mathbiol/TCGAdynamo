@@ -209,6 +209,47 @@
             for (var i=0;i<n;i++){
                 nodes_in_community[community.community_of_node[i]]++;
             }
+            
+            
+            
+            var nodes_in_community_sorted = nodes_in_community.slice(0);
+            
+            
+            nodes_in_community_sorted.sort(compare_values);
+                
+            var nodes_in_community_ranks = {};
+            
+            temp_index=0;
+            for (var i=0;i<n;i++){
+                //console.log(i+":"+nodes_in_community[i]);
+                if (nodes_in_community_sorted[i]!=0){
+                    temp_index=i;
+                    break;
+                }
+            }
+            for (var i=temp_index;i<n;i++){
+                //console.log(i+": "+nodes_in_community[i]);
+            }
+            counter=1;
+            nodes_in_community_ranks[nodes_in_community_sorted[temp_index]]=counter;
+            for (var i=temp_index+1;i<n;i++){
+                if (nodes_in_community_sorted[i]>nodes_in_community_sorted[i-1]){
+                    counter++;
+                    nodes_in_community_ranks[nodes_in_community_sorted[i]]=counter;
+                }
+            }
+            
+            console.log(Object.keys(nodes_in_community_ranks));
+            
+            for (key in Object.keys(nodes_in_community_ranks))
+               // console.log(Object.keys(nodes_in_community_ranks)[key]+": "+nodes_in_community_ranks[Object.keys(nodes_in_community_ranks)[key]]);
+                   
+            
+            
+            for (var i=0;i<n;i++){
+                console.log(i+": "+community.community_of_node[i]+": "+nodes_in_community_ranks[nodes_in_community[community.community_of_node[i]]]);        
+            }
+            
             var materials = [];
             var colors = [];
             
@@ -367,11 +408,101 @@
                 
                 for (var i=0;i<n;i++){
                     if (community.community_of_node[i]==which_cluster){
-                        //patient_points[i].material.color.setRGB(1,0,0);
+                        patient_points[i].material.color.setRGB(1,0,0);
                         text=text.concat("</br>patient "+i+": age "+data.patients[i].age_at_initial_pathologic_diagnosis+" karnofsky score "+data.patients[i].karnofsky_score+" death days to "+data.patients[i].death_days_to);
                     }
                 }
                 document.getElementById("text").innerHTML = text;
+                
+            }
+            
+            function scale_patient_color_age(){
+                
+                for (var i=0;i<n;i++){
+                    var scaled_value=patient_vectors[i].age_quantile;
+                    if (scaled_value<0.3){
+                                b = scaled_value/0.3;
+                                oldx=patient_points[i].position.x;
+                                oldy=patient_points[i].position.y;
+                                scene.remove(patient_points[i]);
+                                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0, b ) } );
+                                patient_points[i] = new THREE.Mesh( geometry, material);
+                                patient_points[i].position.x=oldx;
+                                patient_points[i].position.y=oldy;
+                                scene.add(patient_points[i]);
+                            }
+                            else if(scaled_value<0.6){
+                                g = (scaled_value-0.3)/0.3;
+                                b = (-scaled_value+0.6)/0.3;
+                                oldx=patient_points[i].position.x;
+                                oldy=patient_points[i].position.y;
+                                scene.remove(patient_points[i]);
+                                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, g, b ) } );
+                                patient_points[i] = new THREE.Mesh( geometry, material);
+                                patient_points[i].position.x=oldx;
+                                patient_points[i].position.y=oldy;
+                                scene.add(patient_points[i]);
+                               
+                            }
+                            else{
+                                r = (scaled_value-0.6)/0.4;
+                                g = (-scaled_value+1)/0.4;
+                                oldx=patient_points[i].position.x;
+                                oldy=patient_points[i].position.y;
+                                scene.remove(patient_points[i]);
+                                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( r, g, 0 ) } );
+                                patient_points[i] = new THREE.Mesh( geometry, material);
+                                patient_points[i].position.x=oldx;
+                                patient_points[i].position.y=oldy;
+                                scene.add(patient_points[i]);
+                            }
+                    
+                }
+                
+            }
+            
+            function scale_patient_color_survival(){
+                
+                for (var i=0;i<n;i++){
+                    var scaled_value=patient_vectors[i].death_days_to_quantile;
+                    if (scaled_value<0.3){
+                                b = scaled_value/0.3;
+                                oldx=patient_points[i].position.x;
+                                oldy=patient_points[i].position.y;
+                                scene.remove(patient_points[i]);
+                                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0, b ) } );
+                                patient_points[i] = new THREE.Mesh( geometry, material);
+                                patient_points[i].position.x=oldx;
+                                patient_points[i].position.y=oldy;
+                                scene.add(patient_points[i]);
+                            }
+                            else if(scaled_value<0.6){
+                                g = (scaled_value-0.3)/0.3;
+                                b = (-scaled_value+0.6)/0.3;
+                                oldx=patient_points[i].position.x;
+                                oldy=patient_points[i].position.y;
+                                scene.remove(patient_points[i]);
+                                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, g, b ) } );
+                                patient_points[i] = new THREE.Mesh( geometry, material);
+                                patient_points[i].position.x=oldx;
+                                patient_points[i].position.y=oldy;
+                                scene.add(patient_points[i]);
+                               
+                            }
+                            else{
+                                r = (scaled_value-0.6)/0.4;
+                                g = (-scaled_value+1)/0.4;
+                                oldx=patient_points[i].position.x;
+                                oldy=patient_points[i].position.y;
+                                scene.remove(patient_points[i]);
+                                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( r, g, 0 ) } );
+                                patient_points[i] = new THREE.Mesh( geometry, material);
+                                patient_points[i].position.x=oldx;
+                                patient_points[i].position.y=oldy;
+                                scene.add(patient_points[i]);
+                            }
+                    
+                }
                 
             }
             
@@ -404,10 +535,13 @@
                 var stepSize=(width*camera_parameter)/numberBoxesPerRow;
             
                 var allCells = [];
+                var allCellsCounter = [];
                 for (var i=0;i<numberBoxesPerRow;i++){
                     allCells[i]=[];
+                    allCellsCounter[i] = [];
                     for (var k=0;k<numberBoxesPerRow;k++){
                         allCells[i][k]=0;
+                        allCellsCounter[i][k]=0;
                     }
                 }
                 
@@ -419,7 +553,7 @@
                     var tempx=startx;
                     var tempy=starty;
                     
-                                    
+                        console.log(nodes_in_community_ranks[nodes_in_community[community.community_of_node[p]]]);   
                     
                     for (var i=0;i<boxesAroundPoint;i++){
                         tempx=startx;
@@ -427,10 +561,12 @@
                             if (tempx>0 && tempx<numberBoxesPerRow && tempy>0 && tempy<numberBoxesPerRow ){
                                 if (which_attribute==1){
                                     allCells[tempx][tempy]+=kernel[i][k]*(patient_vectors[p].age_quantile/nodes_in_community[community.community_of_node[p]]);
-                                
+                                    //allCells[tempx][tempy]+=kernel[i][k]*(patient_vectors[p].age_quantile);
+                                    allCellsCounter[tempx][tempy]++;
                                 }
                                 else{
-                                    allCells[tempx][tempy]+=kernel[i][k]*(patient_vectors[p].death_days_to_quantile/nodes_in_community[community.community_of_node[p]]);    
+                                    allCells[tempx][tempy]+=kernel[i][k]*(patient_vectors[p].age_quantile/nodes_in_community[community.community_of_node[p]]);   
+                                    allCellsCounter[tempx][tempy]++;
                                 }
                                 
                                 if (allCells[tempx][tempy]>max){
@@ -575,6 +711,8 @@
                     nodes_in_community[community.community_of_node[i]]++;
                 }
                 
+                
+                
                 for (var i=0;i<number_communities;i++){
                     colors[all_communities[i]] = [];
                     colors[all_communities[i]][0]=Math.random()+0.3;
@@ -602,11 +740,10 @@
             gui.add(this, 'parzen_age').name("age distri");
             gui.add(this, 'parzen_survival').name("survival distr");
             gui.add(this, 'showDots').name("show dots");
-            
             gui.add(this, 'similarity_threshold',0,1).name("similarity thresh");
             gui.add(this, 'recompute').name("recompute");
-            
-            
+            gui.add(this, 'scale_patient_color_survival').name("color survival");
+            gui.add(this, 'scale_patient_color_age').name("color age");
             
             
             function render() {
