@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+    <head>
+        <title>GSoC Segments</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="three.min.js"></script>
+        <script type="text/javascript" src="segment_data.js"></script>
+    </head>
+    <body>
+        <script>
+            
+            
+            var data = JSON.parse(segments);
+            console.log("data contains "+data.patients.length+" patients");
+            
+            var segment_starts = [];
+            var segment_ends = [];
+            segment_starts[0] = 554267;
+            segment_starts[1] = 20340;
+            segment_starts[2] = 39065;
+            segment_starts[3] = 41412;
+            segment_starts[4] = 75148;
+            segment_starts[5] = 97633;
+            segment_starts[6] = 140212;
+            segment_starts[7] = 176476;
+            segment_starts[8] = 153130;
+            segment_starts[9] = 126360;
+            segment_starts[10] = 192957;
+            segment_starts[11] = 59838;
+            segment_starts[12] = 18065952;
+            segment_starts[13] = 18149472;
+            segment_starts[14] = 18362554;
+            segment_starts[15] = 36765;
+            segment_starts[16] = 29168;
+            segment_starts[17] = 4315;
+            segment_starts[18] = 210394;
+            segment_starts[19] = 18579;
+            segment_starts[20] = 9896629;
+            segment_starts[21] = 14884297;
+            
+            segment_ends[0] = 247185355;
+            segment_ends[1] = 242717015;
+            segment_ends[2] = 199379565;
+            segment_ends[3] = 191133608;
+            segment_ends[4] = 180644809;
+            segment_ends[5] = 170762954;
+            segment_ends[6] = 158811267;
+            segment_ends[7] = 146264845;
+            segment_ends[8] = 140241875;
+            segment_ends[9] = 135286022;
+            segment_ends[10] = 134432264;
+            segment_ends[11] = 132289089;
+            segment_ends[12] = 114114512;
+            segment_ends[13] = 106349755;
+            segment_ends[14] = 100282818;
+            segment_ends[15] = 88675834;
+            segment_ends[16] = 78626719;
+            segment_ends[17] = 76110963;
+            segment_ends[18] = 63784326;
+            segment_ends[19] = 62379058;
+            segment_ends[20] = 46914685;
+            segment_ends[21] = 49565815;
+            
+            var segment_length = [];
+            
+            for (var i=0;i<22;i++){
+                segment_length[i] = segment_ends[i]-segment_starts[i];
+                segment_length[i] = segment_length[i]/(segment_ends[0]-segment_starts[0]);
+            }
+            
+            var sum = 0;
+            for (var i=0;i<22;i++){
+                sum = sum+segment_length[i];
+            }
+            
+            var genome_length_display = 1200;
+            var segment_length_display = [];
+            var segment_start_display = [];
+            for (var i=0;i<22;i++){
+                segment_length_display[i]=segment_length[i]*(genome_length_display/sum);
+            }
+            
+            var scene = new THREE.Scene();
+            var width = 1400;
+            var height = 1000;
+            var canvas = document.createElement('canvas');
+            document.body.appendChild(canvas);
+            var renderer = new THREE.WebGLRenderer({canvas: canvas,  antialiasing: true });
+            
+            renderer.setSize(width, height);
+            
+            var camera_parameter=1;
+            camera = new THREE.OrthographicCamera( width*camera_parameter / - 2, width*camera_parameter / 2, height*camera_parameter / 2, height*camera_parameter / - 2, - 500, 1000 );
+            camera.position.x = 0;
+            camera.position.y = 0;
+       	    camera.position.z = 1;
+            
+            var material = new THREE.LineBasicMaterial({ color: new THREE.Color( 0, 0, 1 ) });
+            var geometry = new THREE.Geometry();
+            
+            var temp_x=(-genome_length_display/2);
+            geometry.vertices.push(new THREE.Vector3(temp_x, -height/2+20, 0));
+            for (var i=0;i<22;i++){
+                segment_start_display[i]=temp_x;
+                
+                
+                geometry.vertices.push(new THREE.Vector3(temp_x, -height/2+20, 0));
+                geometry_sep = new THREE.Geometry();
+                geometry_sep.vertices.push(new THREE.Vector3(temp_x,-height/2+30,0));
+                geometry_sep.vertices.push(new THREE.Vector3(temp_x,-height/2+10,0));
+                var line_sep = new THREE.Line(geometry_sep, material);
+                scene.add(line_sep);
+                temp_x += segment_length_display[i];
+            }
+            segment_start_display[i]=temp_x;
+            geometry.vertices.push(new THREE.Vector3(temp_x, -height/2+20, 0));
+            geometry_sep = new THREE.Geometry();
+            geometry_sep.vertices.push(new THREE.Vector3(temp_x,-height/2+30,0));
+            geometry_sep.vertices.push(new THREE.Vector3(temp_x,-height/2+10,0));
+            var line_sep = new THREE.Line(geometry_sep, material);
+            scene.add(line_sep);
+            
+            var line = new THREE.Line(geometry, material);
+         
+            scene.add(line);
+            
+            function map_segment_to_display(chromosome, segment_start, segment_end){
+                
+                var segment_length = segment_end-segment_start;
+                segment_length = (segment_length/(segment_ends[0]-segment_starts[0]))*(genome_length_display/sum);
+                
+                var offset_length = segment_start-segment_starts[chromosome-1];
+                offset_length = (offset_length/(segment_ends[0]-segment_starts[0]))*(genome_length_display/sum);
+                
+                var start_display = segment_start_display[chromosome-1]+offset_length;
+                var end_display = segment_start_display[chromosome-1]+offset_length+segment_length;
+                
+                var return_this = [];
+                return_this[0] = start_display;
+                return_this[1] = end_display;
+                
+                return (return_this);
+            }
+            
+            function add_segment(chromosome, segment_start, segment_end, y_value, value){
+                
+                start_end = map_segment_to_display(chromosome, segment_start, segment_end);
+                var material;
+                if (value>0){
+                    material = new THREE.LineBasicMaterial({ color: new THREE.Color( 1, 0, 0 ) });
+                }
+                else{
+                    material = new THREE.LineBasicMaterial({ color: new THREE.Color( 0, 0, 1 ) });
+                }
+                    var geometry = new THREE.Geometry();
+                geometry.vertices.push(new THREE.Vector3(start_end[0],y_value,0));
+                geometry.vertices.push(new THREE.Vector3(start_end[1],y_value,0));
+                var line = new THREE.Line(geometry, material);
+                scene.add(line);
+            }
+            
+            var space_per_patient = (height-60)/data.patients.length;
+           
+            function draw_patient_segments(p){
+                // -height/2+30
+                // height/2-30
+                // height-60
+                var y_value = (-height/2+40)+p*space_per_patient+(1/2)*space_per_patient;
+                var n_chromosomes = data.patients[p].length;
+                //console.log(y_value);
+                //console.log(data.patients[p][4][0].start);
+                
+                for (var i=0;i<n_chromosomes;i++){
+                    //console.log(i+": "+data.patients[p][i].length);
+                    for (var k=0;k<(data.patients[p][i].length);k++){
+                        add_segment(data.patients[p][i][k].chromosome, data.patients[p][i][k].start, data.patients[p][i][k].end, y_value,data.patients[p][i][k].segment_mean);
+                        
+                    }
+                }
+                
+            }
+            
+            for (var i=0;i<200;i++){
+                console.log("drawing segments of patient "+i);
+                draw_patient_segments(i);
+            }
+            console.log("done");
+            //console.log(segment_ends[4]-segment_starts[4]);
+            //add_segment(4, 70299544, 190749362,0);
+            
+            function render() {
+                renderer.render( scene, camera );
+            }
+            
+            render();
+            
+        </script>
+        <div></div>
+    </body>
+</html>
