@@ -1,161 +1,119 @@
+<!DOCTYPE html>
+
 <html>
     <head>
-        <title>GSoC Baseline Study</title>
+        <title>GSoC_RPPA</title>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <script type="text/javascript" src="patient_data.js"></script>
-        <script type="text/javascript" src="graph.js"></script>
-        <script type="text/javascript" src="community_detection.js"></script>
-        <style>
-			body { margin: 0}
-			canvas { margin: 0}
-        </style>
         <script src="three.min.js"></script>
+        <script type="text/javascript" src="RPPA_data.js"></script>
         <script src="DAT.GUI.min.js"></script>
     </head>
     <body>
         <script>
+            var data = JSON.parse(RPPA_profiles);
             
+            console.log(data.patients[0].proteins.length);
+            var n_patients = data.patients.length;
+            var n_features = data.patients[0].proteins.length;
             
-            //I genereated a json file which contains a subset of the complete patient list
-            //this json file contains 50 patients and for each patient I extracted the following attributes:
-            //      -bcr patient uuid
-            //      -age at initial pathologic diagnosis
-            //      -karnofksy score
-            //      -histological type
-            //      -death days to
-            //      -last contact days to
-            //      -vital status
-            //      -birth days to 
-            //      -gender
-            //In this first experiment I only use "age", "karnofsky score" and "death days to"
-            var data = JSON.parse(patients);
-            console.log("data contains "+data.patients.length+" patients");
-            var n = data.patients.length;
-            
-            //first I parse the json file to extract the attributes for each patient
-            //into arrays
-            var all_ages = [];
-            var all_karnofsky_scores = [];
-            var all_death_days_to = [];
-            function get_all_values(){
-                data.patients.forEach(function(patient, i){
-                    all_ages[i]=parseInt(data.patients[i].age_at_initial_pathologic_diagnosis);
-                    all_karnofsky_scores[i]=parseInt(data.patients[i].karnofsky_score);
-                    all_death_days_to[i]=parseInt(data.patients[i].death_days_to);
-                });
+            //reads in a features x patients matrix where the features are the proteins
+            //and the values are the RPPA values
+            var features = [];
+            for (var i=0;i<n_features;i++){
+                features[i] = [];
+                for (var k=0;k<n_patients;k++){
+                    features[i][k] = parseFloat(data.patients[k].proteins[i].value);
+                }
             }
-            get_all_values();
             
-            //now I sort the values and create a "rank map" (see create_rank_maps()) which I use afterwards 
-            //to compute the quantile vectors (see compute_quantile_vectors())
             function compare_values(a,b){
                 return a-b;
             }
-            all_ages.sort(compare_values);
-            all_karnofsky_scores.sort(compare_values);
-            all_death_days_to.sort(compare_values);
             
-            var ages_ranks = {};
-            var karnofsky_score_ranks = {};
-            var death_days_to_ranks = {};
-            function create_rank_maps(){
+            function compute_quantile_features(){
+                var quantile_features = [];
+                
+                var temp = [];
+                var ranks = {};
                 var counter = 1;
-                ages_ranks[all_ages[0]]=1;
-                for (var i=1;i<n;i++){
-                    if (all_ages[i]>all_ages[i-1]){
-                        counter++;
-                        ages_ranks[all_ages[i]]=counter;
+                for (var i=0;i<n_features;i++){
+                    
+                    for (var k=0;k<n_patients;k++){
+                        temp[k] = features[i][k];
+                    }
+                    temp.sort(compare_values);
+                    counter=1;
+                    ranks = {};
+                    ranks[temp[0]]=1;
+                    for (var k=0;k<n_patients;k++){
+                        if (temp[k]>temp[k-1]){
+                            counter++;
+                            ranks[temp[k]]=counter;
+                        }
+                    }
+                    
+                    quantile_features[i] = [];
+                    for (var k=0; k<n_patients;k++){
+                        quantile_features[i][k]=ranks[features[i][k]]/(Object.keys(ranks).length+1);
+                        
                     }
                 }
-                counter=1;
-                karnofsky_score_ranks[all_karnofsky_scores[0]]=1;
-                for (var i=1;i<n;i++){
-                    if (all_karnofsky_scores[i]>all_karnofsky_scores[i-1]){
-                        counter++;
-                        karnofsky_score_ranks[all_karnofsky_scores[i]]=counter;
-                    }
-                }
-                counter=1;
-                death_days_to_ranks[all_death_days_to[0]]=1;
-                for (var i=1;i<n;i++){
-                    if (all_death_days_to[i]>all_death_days_to[i-1]){
-                        counter++;
-                        death_days_to_ranks[all_death_days_to[i]]=counter;
-                    }
-                }
+                return (quantile_features);
             }
-            create_rank_maps();
-           
-            var patient_vectors = [];
-            function compute_quantile_vectors(){
-                
-                var age_quantile;
-                var karnofsky_score_quantile;
-                var death_days_to_quantile;
-                data.patients.forEach(function(patient, i){
-                    
-                    age_quantile = ages_ranks[parseInt(patient.age_at_initial_pathologic_diagnosis)]/(Object.keys(ages_ranks).length+1);
-                    karnofsky_score_quantile = karnofsky_score_ranks[parseInt(patient.karnofsky_score)]/(Object.keys(karnofsky_score_ranks).length+1);
-                    death_days_to_quantile = death_days_to_ranks[parseInt(patient.death_days_to)]/(Object.keys(death_days_to_ranks).length+1);
-                    
-                    patient_vectors[i] = {age_quantile: age_quantile, karnofsky_score_quantile: karnofsky_score_quantile, death_days_to_quantile: death_days_to_quantile};
-                    
-                });
-                
+            
+            var quantile_features = compute_quantile_features();
+            
+            
+            params = {}
+            
+            var gui = new dat.GUI();
+            for (var i=0;i<n_features;i++){
+                params[data.patients[0].proteins[i].ID]=true;
+                gui.add(params,data.patients[0].proteins[i].ID);
             }
-            compute_quantile_vectors();
             
-            //now I go over all patient pairs and compute the euclidean distance between the patients
-            var euclidean_distances = [];
-            
-            var age_weight=1.0;
-            var k_weight=1.0;
-            var survival_weight=1.0;
-            function compute_euclidean_distance(patient_a, patient_b){
-                var age_quantile_diff = patient_vectors[patient_a].age_quantile-patient_vectors[patient_b].age_quantile;
-                var karnofsky_score_diff = patient_vectors[patient_a].karnofsky_score_quantile-patient_vectors[patient_b].karnofsky_score_quantile;
-                var death_days_to_diff = patient_vectors[patient_a].death_days_to_quantile-patient_vectors[patient_b].death_days_to_quantile;
-                var sum = age_weight*age_quantile_diff*age_quantile_diff+k_weight*karnofsky_score_diff*karnofsky_score_diff+survival_weight*death_days_to_diff*death_days_to_diff;
+            function compute_euclidean_distance(index_a, index_b){
+                var sum=0;
+                for (var i=0;i<n_features;i++){
+                    if (params[data.patients[0].proteins[i].ID]==true){
+                        sum = sum+Math.pow(quantile_features[i][index_a]-quantile_features[i][index_b],2);
+                    }
+                }
+                sum=Math.sqrt(sum);
                 
-                sum = Math.sqrt(sum);
                 return(sum);
             }
             
-            for (var i=0;i<n-1;i++){
+            var euclidean_distances = [];
+            
+            for (var i=0;i<n_patients-1;i++){
                 euclidean_distances[i] = [];
-                for (var k=i+1;k<n;k++){
-                   euclidean_distances[i][k-(i+1)]=compute_euclidean_distance(i,k);
+                for (var k=i+1;k<n_patients;k++){
+                    euclidean_distances[i][k] = compute_euclidean_distance(i,k);
                 }
             }
             
-            
-            //next I go over all patient pairs again and check if the patients are similar (for example distance<0.2)
-            //or not. If they are similar I set an edge between them which I use later to compute the forces
-            //for the graph layout. Also I compute the degree of each patient node which is also used
-            //for the force computation.
-            var patient_distance;
             var edge_between = [];
-            var node_degree = [];
-            var similarity_threshold=0.17;
-            for (var i=0;i<n;i++){
+            
+            for (var i=0;i<n_patients;i++){
                 edge_between[i] = [];
-                for (var k=i+1;k<n;k++){
+                for (var k=i+1;k<n_patients;k++){
                     patient_distance = euclidean_distances[i][k-(i+1)];
-                    if (patient_distance<0.17){
+                    if (patient_distance<4){
                         edge_between[i][k] = 1;
                     }
                     else{
                         edge_between[i][k] = 0;
-                    }
-                        
+                    }    
                 }
             }
             
             var degree_counter=0;
-            for (var i=0;i<n;i++){
+            var node_degree=[];
+            for (var i=0;i<n_patients;i++){
                 degree_counter=0;
-                for (var k=i+1;k<n;k++){
+                for (var k=i+1;k<n_patients;k++){
                     if (edge_between[i][k]==1){
                         degree_counter++;
                     }
@@ -163,113 +121,13 @@
                 node_degree[i]=degree_counter;
             }
             
-            var graph = new Graph(data.patients.length, edge_between);
-            
-            for (var i=0;i<n;i++){
-                for (var k=i+1;k<n;k++){
-                    if (edge_between[i][k]==1){
-                        graph.add_edge(i,k);
-                    }
-                }
-            }
-            graph.compute_weights();
-            graph.compute_node_neighbors();
-            var community = new Community(graph);
-            community.modularity();
-            community.iteration();
-            
-            var all_communities = [];
-            
-            var number_communities = 0;
-            var community_found=false;
-            var tmp_community;
-            for (var i=0;i<n;i++){
-                community_found=false;
-                //console.log(i+": "+community.community_of_node[i]);
-                tmp_community=community.community_of_node[i];
-                for (var k=0;k<number_communities;k++){
-                    if (all_communities[k]==tmp_community){
-                        community_found=true;
-                    }
-                }
-                if (!community_found){
-                    all_communities[number_communities]=tmp_community;
-                    number_communities++;
-                   // console.log("its new.. got "+number_communities);
-                }
-                
-            }   
-            console.log(number_communities+" cluster");
-            
-            var nodes_in_community = [];
-            for (var i=0;i<n;i++){
-                nodes_in_community[i]=0;
-            }
-            
-            for (var i=0;i<n;i++){
-                nodes_in_community[community.community_of_node[i]]++;
-            }
-            
-            
-            
-            var nodes_in_community_sorted = nodes_in_community.slice(0);
-            
-            
-            nodes_in_community_sorted.sort(compare_values);
-                
-            var nodes_in_community_ranks = {};
-            
-            temp_index=0;
-            for (var i=0;i<n;i++){
-                //console.log(i+":"+nodes_in_community[i]);
-                if (nodes_in_community_sorted[i]!=0){
-                    temp_index=i;
-                    break;
-                }
-            }
-            for (var i=temp_index;i<n;i++){
-                //console.log(i+": "+nodes_in_community[i]);
-            }
-            counter=1;
-            nodes_in_community_ranks[nodes_in_community_sorted[temp_index]]=counter;
-            for (var i=temp_index+1;i<n;i++){
-                if (nodes_in_community_sorted[i]>nodes_in_community_sorted[i-1]){
-                    counter++;
-                    nodes_in_community_ranks[nodes_in_community_sorted[i]]=counter;
-                }
-            }
-            
-            console.log(Object.keys(nodes_in_community_ranks));
-            
-            for (key in Object.keys(nodes_in_community_ranks))
-               // console.log(Object.keys(nodes_in_community_ranks)[key]+": "+nodes_in_community_ranks[Object.keys(nodes_in_community_ranks)[key]]);
-                   
-            
-            
-            for (var i=0;i<n;i++){
-                console.log(i+": "+community.community_of_node[i]+": "+nodes_in_community_ranks[nodes_in_community[community.community_of_node[i]]]);        
-            }
-            
-            var materials = [];
-            var colors = [];
-            
-            for (var i=0;i<number_communities;i++){
-                colors[all_communities[i]] = [];
-                colors[all_communities[i]][0]=Math.random()+0.3;
-                colors[all_communities[i]][1]=Math.random()+0.3;
-                colors[all_communities[i]][2]=Math.random()+0.3;
-                materials[all_communities[i]]=new THREE.MeshBasicMaterial( { color: new THREE.Color( colors[all_communities[i]][0], colors[all_communities[i]][1], colors[all_communities[i]][2] ) } );
-            }
-            
-            //here  is the point where the rendering starts.. you can skip until the next comment
             var scene = new THREE.Scene();
             var width = 800;
             var height = 800;
-  
+            
             var canvas = document.createElement('canvas');
-            
-            
             document.body.appendChild(canvas);
+            
             var renderer = new THREE.WebGLRenderer({canvas: canvas,  antialiasing: true });
             renderer.setSize(width, height);
             
@@ -278,21 +136,16 @@
             camera.position.x = 0;
             camera.position.y = 0;
        	    camera.position.z = 100;
-           
-            var geometry = new THREE.SphereGeometry(120,0,0);
+            
+            var geometry = new THREE.SphereGeometry(150,0,0);
+            var material = new THREE.MeshBasicMaterial( { color: new THREE.Color( 0,0,1 )} );
             
             var patient_points = [];
             
-            //I assign a random point for each node at first. Also I give a green color to
-            //the patients 6,7,14,39 and 47 (this is just a random group of similar patients
-            //to illustrate the clustering  )
-            
             var random_x;
             var random_y;
-            for (var i=0;i<n;i++){
-                
-                patient_points[i] = new THREE.Mesh( geometry, materials[community.community_of_node[i]] );
-                
+            for (var i=0;i<n_patients;i++){
+                patient_points[i] = new THREE.Mesh( geometry, material );
                 random_x = (Math.random() * 750)- 390;
                 random_y = (Math.random() * 750)- 390;
                 patient_points[i].position.x = random_x;
@@ -300,19 +153,12 @@
                 scene.add(patient_points[i]);
             }
             
-            
-            var counter=0;
-            //in the update step I calculate the repulsion force Fr for each pair of nodes
-            //If there is an edge between two nodes (which means that the two patients
-            //are similar) I also compute the attraction force Fa. Finally I go over all nodes
-            //again and compute a gravity which pulls the node to the center of the plane
-            //so that the nodes dont float away
             var Fr = 0;
             var Fa = 0;
             var Fg = 0;
             var distance = 0;
             var kr = -800;
-            var kg = 0.003;
+            var kg = 0.008;
             var Ftotal = 0;
             var vector_between_x;
             var vector_between_y;
@@ -322,9 +168,9 @@
             var velocity;
             function update(){
                 //go over all nodes..
-                for (var i=0;i<n;i++){
+                for (var i=0;i<n_patients;i++){
                     //..and for each  node over all other nodes 
-                    for (var k=i+1;k<n;k++){
+                    for (var k=i+1;k<n_patients;k++){
                         
                             
                             distance = Math.sqrt(Math.pow((patient_points[i].position.x-patient_points[k].position.x),2)+Math.pow((patient_points[i].position.y-patient_points[k].position.y),2));
@@ -355,7 +201,7 @@
                     }
                 }
                 //finally go over all nodes and compute the gravity
-                for (var i=0;i<n;i++){
+                for (var i=0;i<n_patients;i++){
                     gravity_vector_x=-patient_points[i].position.x;
                     gravity_vector_y=-patient_points[i].position.y;
                     
@@ -370,398 +216,55 @@
                 }
             }
             
-            canvas.addEventListener('mousedown', mousedown, false);
-            var which_cluster=0;
-            var text="";
-            var was_called_before=0;
-            var min_distance_to=-1;
-            function mousedown(event){
-                
-                if (was_called_before>0){
-                    patient_points[min_distance_to].material.color.setRGB(colors[community.community_of_node[min_distance_to]][0],colors[community.community_of_node[min_distance_to]][1],colors[community.community_of_node[min_distance_to]][2]);
-                }
-                was_called_before++;
-                var mouse_x = event.offsetX*camera_parameter-((width*camera_parameter)/2);
-                var mouse_y = event.offsetY*camera_parameter-((width*camera_parameter)/2);
-                mouse_y=mouse_y*-1;
-                var min_distance = Number.POSITIVE_INFINITY;
-                var temp_distance;
-                for (var i=0;i<n;i++){
-                    temp_distance=Math.sqrt(Math.pow(patient_points[i].position.x-mouse_x,2)+Math.pow(patient_points[i].position.y-mouse_y,2));
-                    
-                    if (temp_distance<min_distance){
-                        min_distance=temp_distance;
-                        min_distance_to=i;
-                    }
-                }
-                
-                console.log("min distance to "+min_distance_to);
-                console.log("community of "+min_distance_to+": "+community.community_of_node[min_distance_to]);
-                console.log("pos :"+patient_points[min_distance_to].position.x+"; "+patient_points[min_distance_to].position.y);
-               
-                patient_points[min_distance_to].material.color.setRGB(1,0,0);
-                
-                which_cluster=community.community_of_node[min_distance_to];
-                
-                text="";
-                document.getElementById("text").innerHTML = all_communities[which_cluster];
-                
-                for (var i=0;i<n;i++){
-                    if (community.community_of_node[i]==which_cluster){
-                        patient_points[i].material.color.setRGB(1,0,0);
-                        text=text.concat("</br>patient "+i+": age "+data.patients[i].age_at_initial_pathologic_diagnosis+" karnofsky score "+data.patients[i].karnofsky_score+" death days to "+data.patients[i].death_days_to);
-                    }
-                }
-                document.getElementById("text").innerHTML = text;
-                
-            }
-            
-            function scale_patient_color_age(){
-                
-                for (var i=0;i<n;i++){
-                    var scaled_value=patient_vectors[i].age_quantile;
-                    if (scaled_value<0.3){
-                                b = scaled_value/0.3;
-                                oldx=patient_points[i].position.x;
-                                oldy=patient_points[i].position.y;
-                                scene.remove(patient_points[i]);
-                                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0, b ) } );
-                                patient_points[i] = new THREE.Mesh( geometry, material);
-                                patient_points[i].position.x=oldx;
-                                patient_points[i].position.y=oldy;
-                                scene.add(patient_points[i]);
-                            }
-                            else if(scaled_value<0.6){
-                                g = (scaled_value-0.3)/0.3;
-                                b = (-scaled_value+0.6)/0.3;
-                                oldx=patient_points[i].position.x;
-                                oldy=patient_points[i].position.y;
-                                scene.remove(patient_points[i]);
-                                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, g, b ) } );
-                                patient_points[i] = new THREE.Mesh( geometry, material);
-                                patient_points[i].position.x=oldx;
-                                patient_points[i].position.y=oldy;
-                                scene.add(patient_points[i]);
-                               
-                            }
-                            else{
-                                r = (scaled_value-0.6)/0.4;
-                                g = (-scaled_value+1)/0.4;
-                                oldx=patient_points[i].position.x;
-                                oldy=patient_points[i].position.y;
-                                scene.remove(patient_points[i]);
-                                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( r, g, 0 ) } );
-                                patient_points[i] = new THREE.Mesh( geometry, material);
-                                patient_points[i].position.x=oldx;
-                                patient_points[i].position.y=oldy;
-                                scene.add(patient_points[i]);
-                            }
-                    
-                }
-                
-            }
-            
-            function scale_patient_color_survival(){
-                
-                for (var i=0;i<n;i++){
-                    var scaled_value=patient_vectors[i].death_days_to_quantile;
-                    if (scaled_value<0.3){
-                                b = scaled_value/0.3;
-                                oldx=patient_points[i].position.x;
-                                oldy=patient_points[i].position.y;
-                                scene.remove(patient_points[i]);
-                                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0, b ) } );
-                                patient_points[i] = new THREE.Mesh( geometry, material);
-                                patient_points[i].position.x=oldx;
-                                patient_points[i].position.y=oldy;
-                                scene.add(patient_points[i]);
-                            }
-                            else if(scaled_value<0.6){
-                                g = (scaled_value-0.3)/0.3;
-                                b = (-scaled_value+0.6)/0.3;
-                                oldx=patient_points[i].position.x;
-                                oldy=patient_points[i].position.y;
-                                scene.remove(patient_points[i]);
-                                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, g, b ) } );
-                                patient_points[i] = new THREE.Mesh( geometry, material);
-                                patient_points[i].position.x=oldx;
-                                patient_points[i].position.y=oldy;
-                                scene.add(patient_points[i]);
-                               
-                            }
-                            else{
-                                r = (scaled_value-0.6)/0.4;
-                                g = (-scaled_value+1)/0.4;
-                                oldx=patient_points[i].position.x;
-                                oldy=patient_points[i].position.y;
-                                scene.remove(patient_points[i]);
-                                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( r, g, 0 ) } );
-                                patient_points[i] = new THREE.Mesh( geometry, material);
-                                patient_points[i].position.x=oldx;
-                                patient_points[i].position.y=oldy;
-                                scene.add(patient_points[i]);
-                            }
-                    
-                }
-                
-            }
-            
-            function compute_parzen(which_attribute){
-                delete scene;
-                scene = new THREE.Scene();
-                var boxesAroundPoint=20;
-                var kernel = [];
-                for (var i=0;i<boxesAroundPoint;i++){
-                    kernel[i] = [];
-                }
-                var ycoord=-boxesAroundPoint/2+0.5;
-                var xcoord=-boxesAroundPoint/2+0.5;
-                var gamma=4;
-                var row=0;
-                var coloumn=0;
-                for (var i=0;i<boxesAroundPoint;i++){
-                   xcoord=-boxesAroundPoint/2+0.5;
-                   column=0;
-                    for (var k=0;k<boxesAroundPoint;k++){
-                        value=(1/(2*Math.PI*Math.pow(gamma,2)))*Math.exp(-((Math.pow(xcoord,2)+Math.pow(ycoord,2))/(2*Math.pow(gamma,2))));
-                        kernel[row][column]=value;
-                        xcoord+=1;
-                        column++;
-                    }
-                    row++;
-                    ycoord+=1;
-                }
-                var numberBoxesPerRow=200;
-                var stepSize=(width*camera_parameter)/numberBoxesPerRow;
-            
-                var allCells = [];
-                var allCellsCounter = [];
-                for (var i=0;i<numberBoxesPerRow;i++){
-                    allCells[i]=[];
-                    allCellsCounter[i] = [];
-                    for (var k=0;k<numberBoxesPerRow;k++){
-                        allCells[i][k]=0;
-                        allCellsCounter[i][k]=0;
-                    }
-                }
-                
-                
-                var max=0;
-                for (var p=0;p<patient_points.length;p++){
-                    var startx=Math.floor(((patient_points[p].position.x+((width*camera_parameter)/2))-(stepSize*boxesAroundPoint/2))/stepSize);
-                    var starty=Math.floor(((patient_points[p].position.y+((width*camera_parameter)/2))-(stepSize*boxesAroundPoint/2))/stepSize);
-                    var tempx=startx;
-                    var tempy=starty;
-                    
-                        console.log(nodes_in_community_ranks[nodes_in_community[community.community_of_node[p]]]);   
-                    
-                    for (var i=0;i<boxesAroundPoint;i++){
-                        tempx=startx;
-                        for (var k=0;k<boxesAroundPoint;k++){
-                            if (tempx>0 && tempx<numberBoxesPerRow && tempy>0 && tempy<numberBoxesPerRow ){
-                                if (which_attribute==1){
-                                    allCells[tempx][tempy]+=kernel[i][k]*(patient_vectors[p].age_quantile/nodes_in_community[community.community_of_node[p]]);
-                                    //allCells[tempx][tempy]+=kernel[i][k]*(patient_vectors[p].age_quantile);
-                                    allCellsCounter[tempx][tempy]++;
-                                }
-                                else{
-                                    allCells[tempx][tempy]+=kernel[i][k]*(patient_vectors[p].age_quantile/nodes_in_community[community.community_of_node[p]]);   
-                                    allCellsCounter[tempx][tempy]++;
-                                }
-                                
-                                if (allCells[tempx][tempy]>max){
-                                    max=allCells[tempx][tempy];
-                                }
-                            }
-                            tempx++;
-                            
-                        }
-                    tempy++;
-                    }
-                }
-                console.log("max: "+max);
-                
-                var geometry = new THREE.BoxGeometry(stepSize,stepSize,0);
-                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 1, 0, 0 ) } );
-                var box = new THREE.Mesh( geometry, material );
-                
-                var scaled_value=0;
-                
-                for (var i=0;i<numberBoxesPerRow;i++){
-                    for (var k=0;k<numberBoxesPerRow;k++){
-                        if (allCells[i][k]!=0){
-                            scaled_value=allCells[i][k]/max;
-                            
-                            if (scaled_value<0.1){
-                                b = scaled_value/0.1;
-                                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color(0 , 0, b ) } );
-                                var box = new THREE.Mesh( geometry, material );
-                                box.position.x=i*stepSize+0.5*stepSize-(width*camera_parameter)/2;
-                                box.position.y=k*stepSize+0.5*stepSize-(width*camera_parameter)/2;
-                                scene.add(box);
-                            }
-                            else if(scaled_value<0.4){
-                                g = (scaled_value-0.1)/0.3;
-                                b = (-scaled_value+0.4)/0.3;
-                                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color(0 , g, b ) } );
-                                var box = new THREE.Mesh( geometry, material );
-                                box.position.x=i*stepSize+0.5*stepSize-(width*camera_parameter)/2;
-                                box.position.y=k*stepSize+0.5*stepSize-(width*camera_parameter)/2;
-                                scene.add(box);
-                            }
-                            else{
-                                r = (scaled_value-0.4)/0.6;
-                                g = (-scaled_value+1)/0.6;
-                                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color(r , g, 0 ) } );
-                                var box = new THREE.Mesh( geometry, material );
-                                box.position.x=i*stepSize+0.5*stepSize-(width*camera_parameter)/2;
-                                box.position.y=k*stepSize+0.5*stepSize-(width*camera_parameter)/2;
-                                scene.add(box);
-                            }
-                            
-                        }
-                    }
-                }
-                
-                
-                for (var i=0;i<patient_points.length;i++){
-                    //scene.add(patient_points[i]);
-                }
-            }
-            
-            function showDots(){
-                
-                scene = new THREE.Scene();
-                for (var i=0;i<patient_points.length;i++){
-                    scene.add(patient_points[i]);
-                }
-                
-            }
-            
-            function parzen_age(){
-                compute_parzen(1);
-            }
-            
-            function parzen_survival(){
-                compute_parzen(2);
-            }
-            
-            function recompute(){
-                delete scene;
-                scene = new THREE.Scene();
-                console.log("computing..");
-                
-                for (var i=0;i<n;i++){
-                    for (var k=i+1;k<n;k++){
-                        edge_between[i][k]=0;
-                    }
-                }
-                
-                for (var i=0;i<n;i++){
-                    edge_between[i] = [];
-                    for (var k=i+1;k<n;k++){
-                        patient_distance = euclidean_distances[i][k-(i+1)];
-                        if (patient_distance<similarity_threshold){
-                            edge_between[i][k] = 1;
-                        }
-                        else{
-                            edge_between[i][k] = 0;
-                        }    
-                    }
-                }
-                
-                graph = new Graph(data.patients.length, edge_between);
-                
-                for (var i=0;i<n;i++){
-                    for (var k=i+1;k<n;k++){
-                        if (edge_between[i][k]==1){
-                            graph.add_edge(i,k);
-                        }
-                    }
-                }
-                graph.compute_weights();
-                graph.compute_node_neighbors();
-                community = new Community(graph);
-                
-                community.modularity();
-                community.iteration();
-                number_communities=0;
-                for (var i=0;i<n;i++){
-                    community_found=false;
-                    //console.log(i+": "+community.community_of_node[i]);
-                    tmp_community=community.community_of_node[i];
-                    for (var k=0;k<number_communities;k++){
-                        if (all_communities[k]==tmp_community){
-                            community_found=true;
-                        }
-                    }
-                    if (!community_found){
-                        all_communities[number_communities]=tmp_community;
-                        number_communities++;
-                   // console.log("its new.. got "+number_communities);
-                    }
-                }
-                console.log(number_communities+" communites");
-                
-                for (var i=0;i<n;i++){
-                    nodes_in_community[i]=0;
-                }
-            
-                for (var i=0;i<n;i++){
-                    nodes_in_community[community.community_of_node[i]]++;
-                }
-                
-                
-                
-                for (var i=0;i<number_communities;i++){
-                    colors[all_communities[i]] = [];
-                    colors[all_communities[i]][0]=Math.random()+0.3;
-                    colors[all_communities[i]][1]=Math.random()+0.3;
-                    colors[all_communities[i]][2]=Math.random()+0.3;
-                    materials[all_communities[i]]=new THREE.MeshBasicMaterial( { color: new THREE.Color( colors[all_communities[i]][0], colors[all_communities[i]][1], colors[all_communities[i]][2] ) } );
-                }
-                
-                var oldx;
-                var oldy;
-                     
-                for (var i=0;i<n;i++){
-                    oldx=patient_points[i].position.x;
-                    oldy=patient_points[i].position.y;
-                    scene.remove(patient_points[i]);
-                    patient_points[i] = new THREE.Mesh( geometry, materials[community.community_of_node[i]] );
-                    patient_points[i].position.x=oldx;
-                    patient_points[i].position.y=oldy;
-                    scene.add(patient_points[i]);
-                   
-                }
-            }
-            
-            var gui = new dat.GUI();
-            gui.add(this, 'parzen_age').name("age distri");
-            gui.add(this, 'parzen_survival').name("survival distr");
-            gui.add(this, 'showDots').name("show dots");
-            gui.add(this, 'similarity_threshold',0,1).name("similarity thresh");
-            gui.add(this, 'recompute').name("recompute");
-            gui.add(this, 'scale_patient_color_survival').name("color survival");
-            gui.add(this, 'scale_patient_color_age').name("color age");
-            
-            
-            function render() {
+            function render(){
                 update();
                 renderer.render( scene, camera );
             }
             
+            function recompute(){
+                
+                for (var i=0;i<n_patients-1;i++){
+                    for (var k=i+1;k<n_patients;k++){
+                        euclidean_distances[i][k] = compute_euclidean_distance(i,k);
+                    } 
+                }
+                
+                for (var i=0;i<n_patients;i++){
+                    for (var k=i+1;k<n_patients;k++){
+                        patient_distance = euclidean_distances[i][k-(i+1)];
+                        if (patient_distance<4){
+                            edge_between[i][k] = 1;
+                        }
+                        else{
+                            edge_between[i][k] = 0;
+                        }  
+                }
+            }
+            
+            var degree_counter=0;
+            for (var i=0;i<n_patients;i++){
+                degree_counter=0;
+                for (var k=i+1;k<n_patients;k++){
+                    if (edge_between[i][k]==1){
+                        degree_counter++;
+                    }
+                }
+                node_degree[i]=degree_counter;
+            }
+                
+            }
+            
+            
+            
+            var gui = new dat.GUI();
+            for (var i=0;i<n_features;i++){
+                //gui.add(this, data.patients[0].proteins[i].ID);
+            }
+            gui.add(this,'recompute');
             setInterval(render, 1000/200);
-            
-            
-            
+            render();
         </script>
-        <p id="text"> </p> 
         
-        <script>
-            //document.getElementById("text").innerHTML = "the green dots represent the following patients:</br>patient 6: age "+data.patients[6].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[6].karnofsky_score+", death days to: "+data.patients[6].death_days_to+"</br>patient 7: age "+data.patients[7].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[7].karnofsky_score+", death days to: "+data.patients[7].death_days_to+"</br>patient 14: age "+data.patients[14].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[14].karnofsky_score+", death days to: "+data.patients[14].death_days_to+"</br>patient 39: age "+data.patients[39].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[39].karnofsky_score+", death days to: "+data.patients[39].death_days_to+"</br>patient 47: age "+data.patients[47].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[47].karnofsky_score+", death days to: "+data.patients[47].death_days_to+"</br>patient 51: age "+data.patients[51].age_at_initial_pathologic_diagnosis+", karnofsky score: "+data.patients[51].karnofsky_score+", death days to: "+data.patients[51].death_days_to;
-
-        </script>
-	<a href="segments.html">see mapping of cnv segments</a>
+        <div></div>
     </body>
 </html>
