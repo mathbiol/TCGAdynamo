@@ -109,8 +109,8 @@
                     }
                 }
                 sum=Math.sqrt(sum);
-                console.log(sum);
                 
+                //console.log(sum);
                 return(sum);
             }
             
@@ -120,9 +120,10 @@
             for (var i=0;i<n_patients-1;i++){
                 euclidean_distances[i] = [];
                 for (var k=i+1;k<n_patients;k++){
-                    euclidean_distances[i][k] = compute_euclidean_distance(i,k);
+                    euclidean_distances[i][k-(i+1)] = compute_euclidean_distance(i,k);
                 }
             }
+            
             
             var edge_between = [];
             
@@ -130,7 +131,7 @@
                 edge_between[i] = [];
                 for (var k=i+1;k<n_patients;k++){
                     patient_distance = euclidean_distances[i][k-(i+1)];
-                    if (patient_distance<16){
+                    if (patient_distance<5){
                         edge_between[i][k] = 0;
                     }
                     else{
@@ -138,7 +139,6 @@
                     }    
                 }
             }
-            
             
             for (var i=0;i<n_patients;i++){
                 min =1000;
@@ -149,22 +149,27 @@
                 for (var k=i+1;k<n_patients;k++){
                     patient_distance = euclidean_distances[i][k-(i+1)];
                     
-                    if (counter_in_best<3){
+                    if (counter_in_best<2){
                         best_k[counter_in_best]=patient_distance;
                         indexes[counter_in_best]=k;
                         counter_in_best++;
                     }
                     else{
-                        for (var j=0;j<3;j++){
+                        for (var j=0;j<2;j++){
                             if (patient_distance<best_k[j]){
                                 best_k[j]=patient_distance;
                                 indexes[j]=k;
+                                break;
                             }
                         }
                     }
                 }
-                for (var j=0;j<3;j++)
+                console.log(i+": ");
+                for (var j=0;j<2;j++){
                     edge_between[i][indexes[j]] = 1;
+                    console.log(indexes[j]);
+                    console.log()
+                }
             }
             
             var degree_counter=0;
