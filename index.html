@@ -6,16 +6,20 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <script src="three.min.js"></script>
+        <script type="text/javascript" src="patient_data.js"></script>
         <script type="text/javascript" src="RPPA_data.js"></script>
+        
+        <script type="text/javascript" src="weights.js"></script>
         <script src="DAT.GUI.min.js"></script>
     </head>
     <body>
         <script>
-            var data = JSON.parse(RPPA_profiles);
+            var data = JSON.parse(patient_data);
             
-            console.log(data.patients[0].proteins.length);
             var n_patients = data.patients.length;
             var n_features = data.patients[0].proteins.length;
+            
+            console.log(n_patients);
             
             //reads in a features x patients matrix where the features are the proteins
             //and the values are the RPPA values
@@ -30,6 +34,30 @@
             function compare_values(a,b){
                 return a-b;
             }
+            
+            var survival = [];
+            for (var i=0;i<n_patients;i++){
+                survival[i] = parseInt(data.patients[i].clinical.death_days_to);
+               
+            }
+            survival.sort(compare_values);
+            var survival_ranks = {};
+            var counter = 1;
+            survival_ranks[survival[0]]=1;
+            for (var i=1;i<n_patients;i++){
+                if (survival[i]>survival[i-1]){
+                    counter++;
+                    survival_ranks[survival[i]]=counter;
+                }
+            }
+            
+            var survival_quantile = [];
+            for (var i=0;i<n_patients;i++){
+                survival_quantile[i] = survival_ranks[parseInt(data.patients[i].clinical.death_days_to)]/(Object.keys(survival_ranks).length+1);
+                
+            }
+            
+            
             
             function compute_quantile_features(){
                 var quantile_features = [];
@@ -77,13 +105,15 @@
                 var sum=0;
                 for (var i=0;i<n_features;i++){
                     if (params[data.patients[0].proteins[i].ID]==true){
-                        sum = sum+Math.pow(quantile_features[i][index_a]-quantile_features[i][index_b],2);
+                        sum = sum+Math.pow(1*(features[i][index_a]-features[i][index_b]),2);
                     }
                 }
                 sum=Math.sqrt(sum);
+                console.log(sum);
                 
                 return(sum);
             }
+            
             
             var euclidean_distances = [];
             
@@ -100,13 +130,41 @@
                 edge_between[i] = [];
                 for (var k=i+1;k<n_patients;k++){
                     patient_distance = euclidean_distances[i][k-(i+1)];
-                    if (patient_distance<4){
-                        edge_between[i][k] = 1;
+                    if (patient_distance<10){
+                        edge_between[i][k] = 0;
                     }
                     else{
                         edge_between[i][k] = 0;
                     }    
                 }
+            }
+            
+            
+            for (var i=0;i<n_patients;i++){
+                min =1000;
+                index = -1;
+                best_k = [];
+                indexes = [];
+                counter_in_best = 0;
+                for (var k=i+1;k<n_patients;k++){
+                    patient_distance = euclidean_distances[i][k-(i+1)];
+                    
+                    if (counter_in_best<2){
+                        best_k[counter_in_best]=patient_distance;
+                        indexes[counter_in_best]=k;
+                        counter_in_best++;
+                    }
+                    else{
+                        for (var j=0;j<2;j++){
+                            if (patient_distance<best_k[j]){
+                                best_k[j]=patient_distance;
+                                indexes[j]=k;
+                            }
+                        }
+                    }
+                }
+                for (var j=0;j<2;j++)
+                    edge_between[i][indexes[j]] = 1;
             }
             
             var degree_counter=0;
@@ -142,16 +200,60 @@
             
             var patient_points = [];
             
-            var random_x;
-            var random_y;
+                
             for (var i=0;i<n_patients;i++){
-                patient_points[i] = new THREE.Mesh( geometry, material );
-                random_x = (Math.random() * 750)- 390;
-                random_y = (Math.random() * 750)- 390;
-                patient_points[i].position.x = random_x;
-                patient_points[i].position.y = random_y;
-                scene.add(patient_points[i]);
+                var scaled_value=survival_quantile[i];
+                
+                if (scaled_value<0.3){
+                    b = scaled_value/0.3;
+                    var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0, b ) } );
+                    patient_points[i] = new THREE.Mesh( geometry, material);
+                    random_x = (Math.random() * 750)- 390;
+                    if (survival[i]>480){
+                        random_y = (Math.random() * 750)+1390;
+                    }
+                    else{
+                        random_y = (Math.random() * 750)-1390;  
+                    }
+                    patient_points[i].position.x = random_x;
+                    patient_points[i].position.y = random_y;
+                    scene.add(patient_points[i]);
+                }
+                else if(scaled_value<0.6){
+                    g = (scaled_value-0.3)/0.3;
+                    b = (-scaled_value+0.6)/0.3;
+                    var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, g, b ) } );
+                    patient_points[i] = new THREE.Mesh( geometry, material);
+                    random_x = (Math.random() * 750)- 390;
+                    if (survival[i]>480){
+                        random_y = (Math.random() * 750)+1090;
+                    }
+                    else{
+                        random_y = (Math.random() * 750)-1390;
+                    }
+                    patient_points[i].position.x = random_x;
+                    patient_points[i].position.y = random_y;
+                    scene.add(patient_points[i]);
+                }
+                else{
+                    r = (scaled_value-0.6)/0.4;
+                    g = (-scaled_value+1)/0.4;
+                    var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( r, g, 0 ) } );
+                    patient_points[i] = new THREE.Mesh( geometry, material);
+                    random_x = (Math.random() * 750)- 390;
+                    if (survival[i]>480){
+                        random_y = (Math.random() * 750)+1390;
+                    }
+                    else{
+                        random_y = (Math.random() * 750)-1390;  
+                    }
+                    patient_points[i].position.x = random_x;
+                    patient_points[i].position.y = random_y;
+                    scene.add(patient_points[i]);
+                }
             }
+                
+            
             
             var Fr = 0;
             var Fa = 0;
