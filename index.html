@@ -130,7 +130,7 @@
                 edge_between[i] = [];
                 for (var k=i+1;k<n_patients;k++){
                     patient_distance = euclidean_distances[i][k-(i+1)];
-                    if (patient_distance<10){
+                    if (patient_distance<16){
                         edge_between[i][k] = 0;
                     }
                     else{
@@ -149,13 +149,13 @@
                 for (var k=i+1;k<n_patients;k++){
                     patient_distance = euclidean_distances[i][k-(i+1)];
                     
-                    if (counter_in_best<2){
+                    if (counter_in_best<3){
                         best_k[counter_in_best]=patient_distance;
                         indexes[counter_in_best]=k;
                         counter_in_best++;
                     }
                     else{
-                        for (var j=0;j<2;j++){
+                        for (var j=0;j<3;j++){
                             if (patient_distance<best_k[j]){
                                 best_k[j]=patient_distance;
                                 indexes[j]=k;
@@ -163,7 +163,7 @@
                         }
                     }
                 }
-                for (var j=0;j<2;j++)
+                for (var j=0;j<3;j++)
                     edge_between[i][indexes[j]] = 1;
             }
             
@@ -201,57 +201,87 @@
             var patient_points = [];
             
                 
-            for (var i=0;i<n_patients;i++){
-                var scaled_value=survival_quantile[i];
-                
-                if (scaled_value<0.3){
-                    b = scaled_value/0.3;
-                    var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0, b ) } );
+//            for (var i=0;i<n_patients;i++){
+//                var scaled_value=survival_quantile[i];
+//                
+//                if (scaled_value<0.3){
+//                    b = scaled_value/0.3;
+//                    var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0, b ) } );
+//                    patient_points[i] = new THREE.Mesh( geometry, material);
+//                    random_x = (Math.random() * 750)- 390;
+//                    if (survival[i]>480){
+//                        random_y = (Math.random() * 750);
+//                    }
+//                    else{
+//                        random_y = (Math.random() * 750);
+//                    }
+//                    patient_points[i].position.x = random_x;
+//                    patient_points[i].position.y = random_y;
+//                    scene.add(patient_points[i]);
+//                }
+//                else if(scaled_value<0.6){
+//                    g = (scaled_value-0.3)/0.3;
+//                    b = (-scaled_value+0.6)/0.3;
+//                    var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, g, b ) } );
+//                    patient_points[i] = new THREE.Mesh( geometry, material);
+//                    random_x = (Math.random() * 750)- 390;
+//                    if (survival[i]>480){
+//                        random_y = (Math.random() * 750);
+//                    }
+//                    else{
+//                        random_y = (Math.random() * 750);
+//                    }
+//                    patient_points[i].position.x = random_x;
+//                    patient_points[i].position.y = random_y;
+//                    scene.add(patient_points[i]);
+//                }
+//                else{
+//                    r = (scaled_value-0.6)/0.4;
+//                    g = (-scaled_value+1)/0.4;
+//                    var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( r, g, 0 ) } );
+//                    patient_points[i] = new THREE.Mesh( geometry, material);
+//                    random_x = (Math.random() * 750)- 390;
+//                    if (survival[i]>480){
+//                        random_y = (Math.random() * 750);
+//                    }
+//                    else{
+//                        random_y = (Math.random() * 750); 
+//                    }
+//                    patient_points[i].position.x = random_x;
+//                    patient_points[i].position.y = random_y;
+//                    scene.add(patient_points[i]);
+//                }
+//            }
+
+              for (var i=0;i<n_patients;i++){
+                  
+                   
+                   if (survival[i]<486){
+                    var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 1,0  ) } );
                     patient_points[i] = new THREE.Mesh( geometry, material);
                     random_x = (Math.random() * 750)- 390;
-                    if (survival[i]>480){
-                        random_y = (Math.random() * 750)+1390;
-                    }
-                    else{
-                        random_y = (Math.random() * 750)-1390;  
-                    }
+                    random_y = (Math.random() * 750);
+                  
                     patient_points[i].position.x = random_x;
                     patient_points[i].position.y = random_y;
                     scene.add(patient_points[i]);
-                }
-                else if(scaled_value<0.6){
-                    g = (scaled_value-0.3)/0.3;
-                    b = (-scaled_value+0.6)/0.3;
-                    var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, g, b ) } );
+                   
+                   }
+                   else{
+                       
+                    var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 1, 0,0  ) } );
                     patient_points[i] = new THREE.Mesh( geometry, material);
                     random_x = (Math.random() * 750)- 390;
-                    if (survival[i]>480){
-                        random_y = (Math.random() * 750)+1090;
-                    }
-                    else{
-                        random_y = (Math.random() * 750)-1390;
-                    }
+                    random_y = (Math.random() * 750);
+                  
                     patient_points[i].position.x = random_x;
                     patient_points[i].position.y = random_y;
                     scene.add(patient_points[i]);
-                }
-                else{
-                    r = (scaled_value-0.6)/0.4;
-                    g = (-scaled_value+1)/0.4;
-                    var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( r, g, 0 ) } );
-                    patient_points[i] = new THREE.Mesh( geometry, material);
-                    random_x = (Math.random() * 750)- 390;
-                    if (survival[i]>480){
-                        random_y = (Math.random() * 750)+1390;
-                    }
-                    else{
-                        random_y = (Math.random() * 750)-1390;  
-                    }
-                    patient_points[i].position.x = random_x;
-                    patient_points[i].position.y = random_y;
-                    scene.add(patient_points[i]);
-                }
-            }
+                   
+                       
+                   }
+                  
+              }  
                 
             
             
