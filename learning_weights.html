@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+    <head>
+        <title>TODO supply a title</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script type="text/javascript" src="fminsearch.js"></script>
+        <script type="text/javascript" src="patient_data.js"></script>
+    </head>
+    <body>
+        <script>
+            
+            compare_values = function(a,b){
+                return a-b;
+            }
+            
+            get_survival_median = function(survival){
+                
+                survival = survival.sort(compare_values);
+                
+                if (survival.length%2==0){
+                    var median = (survival[(survival.length/2)-1]+survival[survival.length/2])/2;
+                }
+                else{
+                    var median = survival[Math.floor(survival.length/2)];
+                }
+                return (median);
+                
+            }
+            
+            //this functions splits the argument mat into two matrices,
+            //one containing the patients below the median and one containing
+            //the patients above the median
+            get_patients_below_and_above = function(mat){
+                
+                var all_survivals = [];
+                var below = [];
+                var above = [];
+                var n_patients = mat.length;
+                //the matrices below and above will only contain the protein features and not the survival value
+                var n_features = mat[0].length-1;
+                
+                for (var i=0;i<n_patients;i++){
+                    all_survivals[i] = mat[i][0];
+                }
+                var median = get_survival_median(all_survivals);
+                
+                var counter_below=0;
+                var counter_above=0;
+                for (var i=0;i<n_patients;i++){
+                    if (mat[i][0]<=median){
+                        below[counter_below] = [];
+                        for (var k=0;k<n_features;k++){
+                            below[counter_below][k] = mat[i][k+1];
+                        }
+                        counter_below++;
+                    }
+                    else{
+                        above[counter_above] = [];
+                        for (var k=0;k<n_features;k++){
+                            above[counter_above][k] = mat[i][k+1];
+                        }
+                        counter_above++;
+                    }
+                }
+                
+                return ([below,above]);
+            }
+            
+            //this function just reads in the data from patient_data.js which (for each patient)
+            //contains the clinical data and the RPPA expression values
+            get_data = function(){
+                
+                var data = JSON.parse(patient_data);
+                var n_patients = data.patients.length;
+                var n_features = data.patients[0].proteins.length;
+                var mat = [];
+                for (var i=0;i<n_patients;i++){
+                    mat[i] = [];
+                    mat[i][0] = parseInt(data.patients[i].clinical.death_days_to);
+                    for (var k=0;k<n_features;k++){
+                        mat[i][1+k] = parseFloat(data.patients[i].proteins[k].value);
+                    }
+                }
+                return(mat);
+                
+            }
+               
+            inital_weights = function(n){
+                
+                var weights = [];
+                
+                for (var i=0;i<n;i++){
+                    weights[i] = Math.random();
+                }
+                
+                return(weights);
+            }
+            
+            steps = function(weights){
+                
+                var steps = [];
+                
+                for (var i=0;i<weights.length;i++){
+                    steps[i] = weights[i]/4;
+                }
+                
+                return(steps);
+            }
+            
+            //computes the weighted euclidean distance between two vectors vector_a and vector_b
+            weighted_euclidean_distance = function(vector_a, vector_b, weights){
+                
+                var n_features = vector_a.length;
+                var sum = 0;
+                
+                for (var i=0;i<n_features;i++){
+                    
+                    sum = sum+(weights[i]*Math.pow(vector_a[i]-vector_b[i],2));
+
+                }
+                
+                sum = Math.sqrt(sum);
+                
+                
+                return (sum);
+            }
+            
+            mean_of_vector = function(vector,counter){
+                
+                var n_features = vector.length;
+                var sum = 0;
+                var mean = 0;
+                
+                for (var i=0;i<counter;i++){
+                    sum = sum+vector[i];
+                }
+                
+                mean = sum/n_features;
+                
+                return (mean);
+                
+            }
+            
+            //this function first computes the distance between each pair in the argument features
+            //and then returns the variance among the distances
+            
+            
+            var distances = [];
+            variance_of_distances = function(features, weights){
+                
+                var n_patients = features.length;
+                var counter = 0;
+                for (var i=0;i<n_patients-1;i++){
+                    for (var k=i+1;k<n_patients;k++){
+                        distances[counter] = weighted_euclidean_distance(features[i], features[k], weights);
+                        counter++;
+                    }
+                }
+                
+                var mean = mean_of_vector(distances,counter);
+                
+                var sum = 0;
+                for (var i=0;i<counter;i++){
+                    sum = sum+Math.pow(mean-distances[i],2);
+                }
+                
+                var variance = sum/counter;
+                
+                
+                return (variance);
+                
+            }
+            
+            //here I compute the objective function which we discussed:
+            //  ((Variance of distances between all items of survival < median) 
+            // + (Variance of distances between all items of survival > median)) 
+            // / (variance of distances between all items)
+            f_statistic = function(patients_below_median, patients_above_median, all_patients, weights, s){
+                
+                var variance_between_below_median = variance_of_distances(patients_below_median, weights,s);
+                var variance_between_above_median = variance_of_distances(patients_above_median, weights,s);
+                var variance_between_all = variance_of_distances(all_patients, weights,0);
+                
+                
+                if (s==1){
+                    console.log(variance_between_below_median);
+                    console.log(variance_between_above_median);
+                    console.log(variance_between_all);
+                }
+                
+                var stat = (variance_between_below_median+variance_between_above_median)/variance_between_all;
+                
+                return (stat);
+                
+            }
+            
+            //this function just returns the input argument mat
+            //with out the first column, which contains the survival of the patient
+            get_all_patient_features = function(mat){
+                
+                var n_patients = mat.length;
+                var n_features = mat[0].length-1;
+                var features = [];
+                
+                for (var i=0;i<n_patients;i++){
+                    features[i] = [];
+                    for (var k=0;k<n_features;k++){
+                        features[i][k] = mat[i][k+1];
+                    }
+                }
+                return (features);
+            }
+            
+            //mat contains one row for each patient. the columns 2...n are the protein expression features.
+            //the first entry in each row is the patients survival
+            var mat = get_data();
+            var n_features = mat[0].length-1;
+            
+            //I split the input data into two matrices, one matrix for all patients with survival below median,
+            //and one matrix with patients above the median.
+            var patients_below_and_above = get_patients_below_and_above(mat);
+            var patients_below_median = patients_below_and_above[0];
+            var patients_above_median = patients_below_and_above[1];
+            var all_patients = get_all_patient_features(mat);
+            var P0 = inital_weights(n_features);
+            
+            
+            fun = function(x, P){
+                return [x,P];
+            }
+
+            parms = fminsearch(fun,P0,[patients_below_median, patients_above_median, all_patients],[],{maxIter:100, objFun:function(y, args){
+                var variance_between_below_median = variance_of_distances(args[0][0], args[1]);
+                var variance_between_above_median = variance_of_distances(args[0][1], args[1]);
+                var variance_between_all = variance_of_distances(args[0][2], args[1]);
+                
+                var stat = (variance_between_below_median+variance_between_above_median)/variance_between_all;
+                
+                return (stat);
+            }});
+        
+            console.log(parms);
+            
+            
+        </script>
+        <div>TODO write content</div>
+    </body>
+</html>
