@@ -103,7 +103,7 @@ and open the template in the editor.
                         
                         var sum = 0;
                         for (var i=0;i<protein_counter;i++){
-                            sum = sum+(Math.pow($model.patient_data.patients[a].proteins[considered_proteins[i]].value-$model.patient_data.patients[b].proteins[considered_proteins[i]].value,2));
+                            sum = sum+$model.protein_weights[considered_proteins[i]]*(Math.pow($model.patient_data.patients[a].proteins[considered_proteins[i]].value-$model.patient_data.patients[b].proteins[considered_proteins[i]].value,2));
                         }
                         sum=Math.sqrt(sum);
                         return(sum);
@@ -113,7 +113,6 @@ and open the template in the editor.
                         this.distances[i] = [];
                         for (var k=i+1;k<this.n_patients;k++){
                             this.distances[i][k-i-1]=compute_euclidean_distance(i,k);
-                            
                         }
                     }
                     
@@ -139,7 +138,7 @@ and open the template in the editor.
                                 
                                 if(temp_counter<$model.n_nearest_connect){
                                     nearest_distances[temp_counter]=temp_distance;
-                                    nearest_indices[temp_counter]=temp_distance;
+                                    nearest_indices[temp_counter]=i;
                                     temp_counter++;
                                 }
                                 else{
@@ -162,8 +161,36 @@ and open the template in the editor.
                         } 
                         return(nearest_indices);
                     }
-                    console.log(this.n_nearest_connect);
-                    console.log(find_nearest_neighbors(0));
+                    
+                    for (var i=0;i<this.n_patients;i++){
+                        this.node_degree[i]=0;
+                        for (var k=0;k<this.n_patients;k++){
+                            this.edges[i][k]=0;
+                        }
+                    }
+                    
+                    if (protein_counter>0){
+                    for (var i=0;i<this.n_patients;i++){
+                        neighbors = find_nearest_neighbors(i);
+                        console.log(i+": "+neighbors);
+                        for (var k=0;k<neighbors.length;k++){
+                            if (neighbors[k]>i){
+                                this.edges[i][neighbors[k]-i-1]=1;
+                                this.node_degree[i]++;
+                                this.node_degree[neighbors[k]]++;
+                            }
+                            else{
+                                this.edges[neighbors[k]][i-neighbors[k]-1]=1;
+                                this.node_degree[i]++;
+                                this.node_degree[neighbors[k]]++;
+                            }
+                        }
+                    }
+                    }
+                    for (var i=0;i<this.n_patients;i++){
+                        console.log(i+": "+this.node_degree[i]);
+                    }
+                    
                     
                 }
                 
@@ -265,7 +292,12 @@ and open the template in the editor.
                     
                     gravity_vector_length=Math.sqrt(Math.pow(gravity_vector_x,2)+Math.pow(gravity_vector_y,2));
                     
-                    Fg = kg*($model.node_degree[i]+1)*gravity_vector_length;
+                    
+                    if ($model.n_nearest_connect>1)
+                    Fg = (kg/Math.log($model.n_nearest_connect+1))*($model.node_degree[i]+1)*gravity_vector_length;
+                    else{
+                    Fg = (kg/1)*($model.node_degree[i]+1)*gravity_vector_length;
+                    }
                     
                     gravity_vector_x=gravity_vector_x/gravity_vector_length;
                     gravity_vector_y=gravity_vector_y/gravity_vector_length;
@@ -338,6 +370,7 @@ and open the template in the editor.
                                 
                                 console.log(event.target.id+": "+ui.value);
                                 $model.protein_weights[number] = ui.value/100;
+                                $model.recompute();
                                 
                             }
                         });
@@ -355,6 +388,7 @@ and open the template in the editor.
                     
                     n_nearest_change = function(spinner){
                         $model.n_nearest_connect = spinner.value;
+                        $model.recompute();
                     }
                     
                     n_spinner.setAttribute('onchange', "n_nearest_change(this)");
