@@ -246,8 +246,8 @@ and open the template in the editor.
                     var Fa = 0;
                     var Fg = 0;
                     var distance = 0;
-                    var kr = -800;
-                    var kg = 0.008;
+                    var kr = -200;
+                    var kg = 0.001;
                     var Ftotal = 0;
                     var vector_between_x;
                     var vector_between_y;
@@ -268,7 +268,7 @@ and open the template in the editor.
                             Fr = kr*(4/distance);
                             
                             //if the two patients are similar comptue Fa, else set Fa=0
-                            if ($model.edges[i][k]==1){
+                            if ($model.edges[i][k-i-1]==1){
                                 Fa = Math.log((1+distance));
                             }
                             else{
@@ -293,7 +293,7 @@ and open the template in the editor.
                     gravity_vector_length=Math.sqrt(Math.pow(gravity_vector_x,2)+Math.pow(gravity_vector_y,2));
                     
                     
-                    if ($model.n_nearest_connect>1)
+                    if ($model.n_nearest_connect>0)
                     Fg = (kg/Math.log($model.n_nearest_connect+1))*($model.node_degree[i]+1)*gravity_vector_length;
                     else{
                     Fg = (kg/1)*($model.node_degree[i]+1)*gravity_vector_length;
