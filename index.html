@@ -6,168 +6,402 @@ and open the template in the editor.
 -->
 <html>
     <head>
-        <title>GSoC_Mockup</title>
+        <title>GSoC Mockup</title>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <script type="text/javascript" src="simulated_data.js"></script>
-        <script type="text/javascript" src="patient_data.js"></script>
-        <script src="three.min.js"></script>
-        <script src="DAT.GUI.min.js"></script>
         <script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.11.3.min.js"></script>
         <script src="jquery-ui.min.js"></script>
+        <script src="three.min.js"></script>
+        <script type="text/javascript" src="patient_data.js"></script>
         <link href="jquery-ui.css" rel="stylesheet">
         
         <style>
-            body{
-		font: 62.5% "Trebuchet MS", sans-serif;
-            }
-	
-            #visualization{
-                float:left;
-            }
-            #controls{
-                float:right;
-                padding-left:20px;
-                height:1000px;
-            }
-            #controls .ui-accordion-content {
-                max-height: 135px;
-            }
-            label{  
-                width:100px;       
-                position:relative;
-                
-                display:inline-block;    
-                vertical-align:middle; 
-            }
-            .weightlabel {
+            .ui-slider{
                 width:50px;
-                left:+10px;
+                height:5px;
+                margin-top:5px;
             }
-            input[type="range"]{
-                background: rgb(94, 30, 30);
-                width: 50px;
-                height: 6px;
-                min:0;
-                max:1;
+            .ui-slider .ui-slider-handle{
+                width: 5px;
+                height: 15px;
+                margin-left: -3px;
+                outline: none;
+            }
+            .div{
+                border: 2px solid #8AC007;
+            }
+            #slider label {
+                position: absolute;
+                margin-top: 12px;
+                font-size:12px;
+            }
+            .ui-checkbox {
+                font-size: 0.25em;
+                margin: 0.6em;
             }
             
-            
-            
+            input[type="number"] {
+                width:50px;
+            }
+ 
         </style>
         <script>
             
-            add_visualization = function(){
-                
             
-                var canvas = document.createElement('canvas');
-                document.getElementById('visualization').appendChild(canvas);
+            function Model(){
                 
-                var width = $(document).width()/2.1;
-                var height = $(document).width()/2.3;
+                this.dots = [];
+                this.distances = [];
+                this.edges = [];
+                this.node_degree = [];
+                this.protein_weights = [];
+                this.n_nearest_connect = 0;
                 
-                var renderer = new THREE.WebGLRenderer({canvas: canvas,  antialiasing: true });
-                renderer.setSize(width, height);
-            
-                var camera_parameter=30;
-                camera = new THREE.OrthographicCamera( width*camera_parameter / - 2, width*camera_parameter / 2, height*camera_parameter / 2, height*camera_parameter / - 2, - 500, 1000 );
-                camera.position.x = 0;
-                camera.position.y = 0;
-                camera.position.z = 100;
-            
-            }
-            
-            add_controls = function(){
+                this.patient_data = JSON.parse(data);
+                this.n_features = this.patient_data.patients[0].proteins.length;
+                this.n_patients = this.patient_data.patients.length;
                 
-                var patient_data = JSON.parse(data);
-                var n_features = patient_data.patients[0].proteins.length;
-                var control_divs = [];
+                console.log("n_patients: "+this.n_patients);
+                console.log("n_features: "+this.n_features);
                 
-                control_divs[0] = document.createElement('h');
-                document.getElementById('controls').appendChild(control_divs[0]);
-                control_divs[0].setAttribute('class',"demoHeaders");
-                control_divs[0].setAttribute('id', "rppa");
-                control_divs[0].innerHTML="Params";
+                for (var i=0;i<this.n_patients-1;i++){
+                    this.distances[i]=0;
+                    for (var k=i+1;k<this.n_patients;k++){
+                        this.distances[i][k-i-1]=0;
+                    }
+                }
                 
-                $('#rppa').width($(document).width()/2.2);
+                for (var i=0;i<this.n_patients;i++){
+                    this.edges[i] = [];
+                    for (var k=0;k<this.n_patients;k++){
+                        this.edges[i][k]=0;
+                    }
+                }
                 
-                div = document.createElement('div');
-                div.setAttribute('id', "div1");
-               
-                document.getElementById('controls').appendChild(div);
-               
+                for (var i=0;i<this.n_patients;i++){
+                    this.node_degree[i]=0;
+                }
                 
-                for (var i=0;i<n_features;i++){
-                    p = document.createElement('div');
+                for (var i=0;i<this.n_features;i++){
+                    this.protein_weights[i] = 0;
+                }
+                
+                this.recompute = function(){
                     
-                    checkbox = document.createElement('input');
-                    checkbox.setAttribute('type', "checkbox");
                     
-                    label = document.createElement('label');
-                    label.setAttribute('for', checkbox);
-                    label.innerHTML=patient_data.patients[0].proteins[i].ID;
                     
-                    slider = document.createElement('input');
-                    slider.setAttribute('type',"range");
+                    var considered_proteins = [];
+                    var protein_counter=0;
+                    for (var i=0;i<this.n_features;i++){
+                        if (this.protein_weights[i]!=0){
+                            considered_proteins[protein_counter]=i;
+                            protein_counter++;
+                        }
+                    }
                     
-                    label2 = document.createElement('label');
-                    label2.setAttribute('for', slider);
-                    label2.setAttribute('class', "weightlabel");
-                    label2.innerHTML="weight: ";
+                    compute_euclidean_distance = function(a,b){
+                        
+                        var sum = 0;
+                        for (var i=0;i<protein_counter;i++){
+                            sum = sum+(Math.pow($model.patient_data.patients[a].proteins[considered_proteins[i]].value-$model.patient_data.patients[b].proteins[considered_proteins[i]].value,2));
+                        }
+                        sum=Math.sqrt(sum);
+                        return(sum);
+                    }
                     
-                    p.appendChild(label);
-                    p.appendChild(checkbox);
+                    for (var i=0;i<this.n_patients-1;i++){
+                        this.distances[i] = [];
+                        for (var k=i+1;k<this.n_patients;k++){
+                            this.distances[i][k-i-1]=compute_euclidean_distance(i,k);
+                            
+                        }
+                    }
                     
-                    p.appendChild(label2);
-                    p.appendChild(slider);
-                    
-                    div.appendChild(p);
-                    
+                    find_nearest_neighbors = function(a){
+                        
+                       
+                        var temp_counter=0;
+                        var temp_distance=-1;
+                        var temp_max_distance;
+                        var temp_max_index;
+                        var nearest_distances = [];
+                        var nearest_indices = [];
+                        for (var i=0;i<$model.n_patients;i++){
+                            
+                            if (i!=a){
+                                
+                                if (i<a){
+                                    temp_distance = $model.distances[i][a-i-1];
+                                }
+                                else{
+                                    temp_distance = $model.distances[a][i-a-1];
+                                }
+                                
+                                if(temp_counter<$model.n_nearest_connect){
+                                    nearest_distances[temp_counter]=temp_distance;
+                                    nearest_indices[temp_counter]=temp_distance;
+                                    temp_counter++;
+                                }
+                                else{
+                                    temp_max_distance = nearest_distances[0];
+                                    temp_max_index = 0;
+                                    for (var k=1;k<$model.n_nearest_connect;k++){
+                                        if (nearest_distances[k]>temp_max_distance){
+                                            temp_max_distance = nearest_distances[k];
+                                            temp_max_index=k;
+                                        }
+                                    }
+                                    
+                                    if (temp_distance<temp_max_distance){
+                                        nearest_distances[temp_max_index]=temp_distance;
+                                        nearest_indices[temp_max_index]=i;
+                                    }
+                                    
+                                } 
+                            }
+                        } 
+                        return(nearest_indices);
+                    }
+                    console.log(this.n_nearest_connect);
+                    console.log(find_nearest_neighbors(0));
                     
                 }
                 
+            }
+            
+            function Visualization() {
                 
-                control_divs[1] = document.createElement('h');
-                document.getElementById('controls').appendChild(control_divs[1]);
-                control_divs[1].setAttribute('id', "rppa");
-                control_divs[1].innerHTML="Layout";
+                this.scene = new THREE.Scene();
+                this.width = 800;
+                this.height = 650;
+            
+                this.canvas = document.createElement('canvas');
+                document.getElementById('visualz').appendChild(this.canvas);
+                document.body.appendChild(this.canvas);
+            
+                this.renderer = new THREE.WebGLRenderer({canvas: this.canvas,  antialiasing: true });
+                this.renderer.setSize(this.width, this.height);
+            
+                this.camera_parameter=30;
+                this.camera = new THREE.OrthographicCamera( this.width*this.camera_parameter / - 2, this.width*this.camera_parameter / 2, this.height*this.camera_parameter / 2, this.height*this.camera_parameter / - 2, - 500, 1000 );
+                this.camera.position.x = 0;
+                this.camera.position.y = 0;
+                this.camera.position.z = 100;
                 
-                $(function() {
-                $( "#controls" ).accordion({collapsible: true,
-                    active: 'none',
-                    autoHeight: false,
-                    navigation: true,});
-                });
-               
+                this.geometry = new THREE.SphereGeometry(200,0,0);
                 
+                for (var i=0;i<$model.n_patients;i++){
+                    
+                    this.material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0.7, 0  ) } );
+                    $model.dots[i] = new THREE.Mesh( this.geometry, this.material);
+                    random_x = (Math.random() * this.camera_parameter*750) - this.camera_parameter*390;
+                    random_y = (Math.random() * this.camera_parameter*580) - this.camera_parameter*280;
+                  
+                    $model.dots[i].position.x = random_x;
+                    $model.dots[i].position.y = random_y;
+                    this.scene.add($model.dots[i]);
+                   
+                }
                 
-                console.log(n_features);
+                this.render = function(){
+                    $controller.update();
+                    
+                    this.renderer.render( this.scene, this.camera );
+                }
                 
             }
             
-        </script>
-        
+            function Controller(){
+                
+                this.update = function(){
+                    
+                    var Fr = 0;
+                    var Fa = 0;
+                    var Fg = 0;
+                    var distance = 0;
+                    var kr = -800;
+                    var kg = 0.008;
+                    var Ftotal = 0;
+                    var vector_between_x;
+                    var vector_between_y;
+                    var gravity_vector_x;
+                    var gravity_vector_y;
+                    var gravity_vector_length;
+                    var velocity;
+                    
+                    for (var i=0;i<$model.n_patients;i++){
+                        for (var k=i+1;k<$model.n_patients;k++){
+                            distance = Math.sqrt(Math.pow(($model.dots[i].position.x-$model.dots[k].position.x),2)+Math.pow(($model.dots[i].position.y-$model.dots[k].position.y),2));
+                            vector_between_x = $model.dots[i].position.x-$model.dots[k].position.x;
+                            vector_between_y = $model.dots[i].position.y-$model.dots[k].position.y;
+                            vector_between_x = vector_between_x/distance;
+                            vector_between_y = vector_between_y/distance;
+                            
+                            //compute Fr as suggested in the paper
+                            Fr = kr*(4/distance);
+                            
+                            //if the two patients are similar comptue Fa, else set Fa=0
+                            if ($model.edges[i][k]==1){
+                                Fa = Math.log((1+distance));
+                            }
+                            else{
+                                Fa=0;
+                            }
+                            Ftotal = Fr + Fa;
+                        
+                            //set new positions
+                            $model.dots[k].position.x=$model.dots[k].position.x+vector_between_x*Ftotal*0.8;
+                            $model.dots[k].position.y=$model.dots[k].position.y+vector_between_y*Ftotal*0.8;
+                
+                            $model.dots[i].position.x=$model.dots[i].position.x-vector_between_x*Ftotal*0.8;
+                            $model.dots[i].position.y=$model.dots[i].position.y-vector_between_y*Ftotal*0.8;
+                       
+                    }
+                }
+                //finally go over all nodes and compute the gravity
+                for (var i=0;i<$model.n_patients;i++){
+                    gravity_vector_x=-$model.dots[i].position.x;
+                    gravity_vector_y=-$model.dots[i].position.y;
+                    
+                    gravity_vector_length=Math.sqrt(Math.pow(gravity_vector_x,2)+Math.pow(gravity_vector_y,2));
+                    
+                    Fg = kg*($model.node_degree[i]+1)*gravity_vector_length;
+                    
+                    gravity_vector_x=gravity_vector_x/gravity_vector_length;
+                    gravity_vector_y=gravity_vector_y/gravity_vector_length;
+                    $model.dots[i].position.x=$model.dots[i].position.x+gravity_vector_x*Fg*0.8;
+                    $model.dots[i].position.y=$model.dots[i].position.y+gravity_vector_y*Fg*0.8;
+                }
+                
+                
+                }
+                
+                this.add_rppa_controls = function(){
+                    
+                    for (var i=0;i<$model.n_features;i++){
+                
+                        protein_div=document.createElement('div');
+                        protein_div.setAttribute('style', "float:left; width:390px");
+                        protein_div.setAttribute('id', "protein"+i);
+                
+                        checkbox_div=document.createElement('div');
+                        checkbox_div.setAttribute('id',"checkbox_protein");
+                        checkbox_div.setAttribute('style', "float:left; ");
+                        checkbox_div.innerHTML=$model.patient_data.patients[0].proteins[i].ID;
+                        checkbox_actual_wrapper = document.createElement('div');
+                        checkbox_actual_wrapper.setAttribute('style', "float:left; position:relative");
+                        checkbox_actual=document.createElement('input');
+                
+                        checkbox_handler = function(checkbox){
+                            
+                            if(checkbox.checked){
+                                $('#slider'+checkbox.id).slider("value", 100);
+                                $model.recompute();
+                            }
+                            else{
+                                $('#slider'+checkbox.id).slider("value", 0); 
+                                $model.recompute();
+                            }
+                            
+                        }
+                
+                        checkbox_actual.setAttribute('onchange', "checkbox_handler(this)");
+                        checkbox_actual.setAttribute('type',"checkbox");
+                        checkbox_actual.setAttribute('id',i);
             
+                        checkbox_actual.setAttribute('style',"position: absolute;left: 220px;");
+                
+                        $(checkbox_actual).appendTo(checkbox_actual_wrapper);
+                        $(checkbox_actual_wrapper).appendTo(checkbox_div);
+                
+                        weight_div_wrapper = document.createElement('div');
+                        weight_div_wrapper.setAttribute('style', "position:relative");
+                        weight_div = document.createElement('div');
+                        weight_div.setAttribute('style', "position:absolute; left: 260px;" );
+                        weight_div.innerHTML="weight: ";
+                
+                        slider_div = document.createElement('div');
+                        slider_div.setAttribute('id', "slider"+i);
+                        slider_div.setAttribute('style', "position:absolut; left:320px");
+                
+                        $(checkbox_div).appendTo(protein_div);
+                        $(weight_div).appendTo(weight_div_wrapper);
+                        $(weight_div_wrapper).appendTo(protein_div);
+                        $(slider_div).appendTo(protein_div);
+                
+                        controls = document.getElementById("controls1");
+                        $(protein_div).appendTo(controls);
+                
+                        $( "#slider"+i ).slider({
+                            change: function( event, ui ) {
+                                var number = event.target.id.substring(6,(event.target.id.length));
+                                
+                                console.log(event.target.id+": "+ui.value);
+                                $model.protein_weights[number] = ui.value/100;
+                                
+                            }
+                        });
+                    }
+                }
+            
+                this.add_layout_controls = function(){
+                    
+                    n_nearest_div = document.createElement('div');
+                    n_nearest_div.setAttribute('style', "margin-left:10px; width = 404px");
+                    n_spinner = document.createElement('input');
+                    n_spinner.setAttribute('id',"n_spinner");
+                    n_spinner.setAttribute('type',"number");
+                    n_spinner.setAttribute('style', "width=100px;");
+                    
+                    n_nearest_change = function(spinner){
+                        $model.n_nearest_connect = spinner.value;
+                    }
+                    
+                    n_spinner.setAttribute('onchange', "n_nearest_change(this)");
+                    n_label = document.createElement('label');
+                    n_label.setAttribute('for', 'n_spinner');
+                    n_label.innerHTML="connect to nearest neighbors: ";
+                
+                    threshold_div = document.createElement('div');
+                    threshold_div.setAttribute('style', "margin-left:10px;  width = 404px");
+                
+                    $(n_label).appendTo(n_nearest_div);
+                    $(n_spinner).appendTo(n_nearest_div);
+                    controls = document.getElementById("controls2");
+                    $(n_nearest_div).appendTo(controls);
+                    
+                }
+            
+            }
+            
+            $(function(){
+                
+                $model = new Model();
+                $visualization = new Visualization();
+                $controller = new Controller();
+                $controller.add_rppa_controls();
+                $controller.add_layout_controls();
+                
+                setInterval(function(){ $visualization.render() }, 5);
+                
+            })
+            
+        </script>
     </head>
-    
     <body>
-        <div id="visualization">
+        <div id="controls" style = "float: right">
+        <div id="controls1" style="width:390px; overflow:scroll; height:300px; border: 2px solid #000000;padding-left: 14px; ">
             
         </div>
-      
-        <div id="controls">
+        <div id="controls2" style="margin-top:-2px; width:404px; height:100px; border:2px solid #000000; padding-top:10px">
+           
+        </div>
+        </div>
+        <div id="visualz" style ="float: left">
             
-        </div> 
-       
-       
-        
+        </div>
         <script>
             
-            add_controls();
-            add_visualization();
-            
-           
         </script>
-        
     </body>
 </html>
