@@ -56,6 +56,8 @@ and open the template in the editor.
                 this.node_degree = [];
                 this.protein_weights = [];
                 this.n_nearest_connect = 0;
+                this.patient_age_quantile = [];
+                this.patient_survival_quantile = [];
                 
                 this.patient_data = JSON.parse(data);
                 this.n_features = this.patient_data.patients[0].proteins.length;
@@ -194,6 +196,72 @@ and open the template in the editor.
                     
                 }
                 
+                this.compute_age_quantile = function(){
+                    
+                    var patient_age = [];
+                    
+                    compare_values = function(a,b){
+                        return a-b;
+                    }
+                    
+                    for (var i=0;i<this.n_patients;i++){
+                        patient_age[i] = parseInt(this.patient_data.patients[i].clinical.age_at_initial_pathologic_diagnosis);
+                    }
+                    
+                    patient_age.sort(compare_values);
+                    
+                    var age_to_rank_map = {};
+                    var temp_counter=1;
+                    age_to_rank_map[patient_age[0]]=1;
+                    for (var i=1;i<this.n_patients;i++){
+                        if (patient_age[i]>patient_age[i-1]){
+                            temp_counter++;
+                            age_to_rank_map[patient_age[i]]=temp_counter;
+                        }
+                    }
+                    
+                    for (var i=0;i<this.n_patients;i++){
+                        this.patient_age_quantile[i] = age_to_rank_map[this.patient_data.patients[i].clinical.age_at_initial_pathologic_diagnosis]/(Object.keys(age_to_rank_map).length+1);
+                    }
+                    
+                }
+                
+                this.compute_survival_quantile = function(){
+                    
+                    var patient_survival = [];
+                    
+                    compare_values = function(a,b){
+                        return a-b;
+                    }
+                    
+                    for (var i=0;i<this.n_patients;i++){
+                        patient_survival[i] = parseInt(this.patient_data.patients[i].clinical.death_days_to);
+                        
+                    }
+                    
+                    patient_survival.sort(compare_values);
+                    
+                    var survival_to_rank_map = {};
+                    var temp_counter=1;
+                    survival_to_rank_map[patient_survival[0]]=1;
+                    for (var i=1;i<this.n_patients;i++){
+                        if (patient_survival[i]>patient_survival[i-1]){
+                            temp_counter++;
+                            survival_to_rank_map[patient_survival[i]]=temp_counter;
+                        }
+                    }
+                    
+                    for (var i=0;i<this.n_patients;i++){
+                        this.patient_survival_quantile[i] = survival_to_rank_map[this.patient_data.patients[i].clinical.death_days_to]/(Object.keys(survival_to_rank_map).length+1);
+                    }
+                    
+                }
+                
+                
+                this.compute_age_quantile();
+                this.compute_survival_quantile();
+                
+                
             }
             
             function Visualization() {
@@ -221,8 +289,8 @@ and open the template in the editor.
                     
                     this.material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0.7, 0  ) } );
                     $model.dots[i] = new THREE.Mesh( this.geometry, this.material);
-                    random_x = (Math.random() * this.camera_parameter*750) - this.camera_parameter*390;
-                    random_y = (Math.random() * this.camera_parameter*580) - this.camera_parameter*280;
+                    random_x = (Math.random() * this.camera_parameter*750/3) - this.camera_parameter*390/3;
+                    random_y = (Math.random() * this.camera_parameter*580/3) - this.camera_parameter*280/3;
                   
                     $model.dots[i].position.x = random_x;
                     $model.dots[i].position.y = random_y;
@@ -236,6 +304,103 @@ and open the template in the editor.
                     this.renderer.render( this.scene, this.camera );
                 }
                 
+                this.color_age = function(){
+                    
+                    compute_patient_color = function(index){
+                        
+                        color = [];
+                        
+                        var r=0;
+                        var g=0;
+                        var b=0;
+                        
+                        quantile_age = $model.patient_age_quantile[index];
+                        quantile_age = 1-quantile_age;
+                        if (quantile_age<0.3){
+                            b = quantile_age/0.3;
+                        }
+                        else if(quantile_age<0.6){
+                            g = (quantile_age-0.3)/0.3;
+                            b = (-quantile_age+0.6)/0.3;
+                        }
+                        else{
+                            r = (quantile_age-0.6)/0.4;
+                            g = (-quantile_age+1)/0.4;
+                        }
+                        
+                        color[0]=r;
+                        color[1]=g;
+                        color[2]=b;
+                        
+                        
+                        
+                        return(color);
+                        
+                    }
+                    
+                    for (var i=0;i<$model.n_patients;i++){
+                        
+                        color = compute_patient_color(i);
+                        console.log(color[0]+"; "+color[1]+"; "+color[2]);
+                        $model.dots[i].material.color = new THREE.Color(color[0],color[1],color[2]); 
+                    }
+                    
+                }
+                
+                this.color_survival = function(){
+                    
+                    compute_patient_color = function(index){
+                        
+                        color = [];
+                        
+                        var r=0;
+                        var g=0;
+                        var b=0;
+                        
+                        quantile_survival = $model.patient_survival_quantile[index];
+                        quantile_survival = 1-quantile_survival;
+                        if (quantile_survival<0.3){
+                            b = quantile_survival/0.3;
+                        }
+                        else if(quantile_survival<0.6){
+                            g = (quantile_survival-0.3)/0.3;
+                            b = (-quantile_survival+0.6)/0.3;
+                        }
+                        else{
+                            r = (quantile_survival-0.6)/0.4;
+                            g = (-quantile_survival+1)/0.4;
+                        }
+                        
+                        color[0]=r;
+                        color[1]=g;
+                        color[2]=b;
+                        
+                        
+                        
+                        return(color);
+                        
+                    }
+                    
+                    for (var i=0;i<$model.n_patients;i++){
+                        
+                        color = compute_patient_color(i);
+                        console.log(color[0]+"; "+color[1]+"; "+color[2]);
+                        $model.dots[i].material.color = new THREE.Color(color[0],color[1],color[2]); 
+                    }
+                    
+                }
+                
+                this.default_color = function(){
+                    
+                    for (var i=0;i<$model.n_patients;i++){
+                        
+                        color = compute_patient_color(i);
+                        console.log(color[0]+"; "+color[1]+"; "+color[2]);
+                        $model.dots[i].material.color = new THREE.Color(0,0.7,0); 
+                    }
+                    
+                }
+                
             }
             
             function Controller(){
@@ -247,7 +412,7 @@ and open the template in the editor.
                     var Fg = 0;
                     var distance = 0;
                     var kr = -200;
-                    var kg = 0.001;
+                    var kg = 0.002;
                     var Ftotal = 0;
                     var vector_between_x;
                     var vector_between_y;
@@ -380,7 +545,7 @@ and open the template in the editor.
                 this.add_layout_controls = function(){
                     
                     n_nearest_div = document.createElement('div');
-                    n_nearest_div.setAttribute('style', "margin-left:10px; width = 404px");
+                    n_nearest_div.setAttribute('style', "margin-left:10px; width = 390px");
                     n_spinner = document.createElement('input');
                     n_spinner.setAttribute('id',"n_spinner");
                     n_spinner.setAttribute('type',"number");
@@ -406,6 +571,59 @@ and open the template in the editor.
                     
                 }
             
+                this.add_clinical_controls = function(){
+                    
+                    
+                    clinical_age = document.createElement('div');
+                    clinical_age.innerHTML = "color dots by patient age";
+                    controls = document.getElementById("controls3");
+                    clinical_age.setAttribute('style', "float:left; width:390px; margin-left:14px;");
+                    $(clinical_age).appendTo(controls);
+                    clinical_age_checkbox = document.createElement('input');
+                    clinical_age_checkbox.setAttribute('type',"checkbox");
+                    $(clinical_age_checkbox).appendTo(clinical_age);
+                    
+                    age_checkbox_handler = function(checkbox){
+                        if (checkbox.checked){
+                            $visualization.color_age();
+                        }
+                        else{
+                            $visualization.default_color();
+                        }
+                    }
+                    
+                    
+                    
+                    clinical_age_checkbox.setAttribute('onchange', "age_checkbox_handler(this)");
+                    
+                    clinical_survival = document.createElement('div');
+                    clinical_survival.innerHTML = "color dots by patient survival";
+                    clinical_survival.setAttribute('style', "float:left; width:390px; margin-left:14px;");
+                    
+                    clinical_survival_checkbox = document.createElement('input');
+                    clinical_survival_checkbox.setAttribute('type',"checkbox");
+                    $(clinical_survival_checkbox).appendTo(clinical_survival);
+                    $(clinical_survival).appendTo(controls);
+                    
+                    survival_checkbox_handler = function(checkbox){
+                        
+                        if (checkbox.checked){
+                            $visualization.color_survival();
+                        }
+                        else{
+                            $visualization.default_color();
+                            
+                        }
+                        
+                        
+                    }
+                    
+                    clinical_survival_checkbox.setAttribute('onchange', "survival_checkbox_handler(this)");
+                    
+                    
+                    
+                }
+            
             }
             
             $(function(){
@@ -415,6 +633,7 @@ and open the template in the editor.
                 $controller = new Controller();
                 $controller.add_rppa_controls();
                 $controller.add_layout_controls();
+                $controller.add_clinical_controls();
                 
                 setInterval(function(){ $visualization.render() }, 5);
                 
@@ -424,7 +643,11 @@ and open the template in the editor.
     </head>
     <body>
         <div id="controls" style = "float: right">
-        <div id="controls1" style="width:390px; overflow:scroll; height:300px; border: 2px solid #000000;padding-left: 14px; ">
+            <div id="controls3" style="width:404px; height:100px; border:2px solid #000000; padding-top:10px ">
+                
+            </div>    
+            
+        <div id="controls1" style="margin-top:-2px; width:390px; overflow:scroll; height:300px; border: 2px solid #000000;padding-left: 14px; ">
             
         </div>
         <div id="controls2" style="margin-top:-2px; width:404px; height:100px; border:2px solid #000000; padding-top:10px">
