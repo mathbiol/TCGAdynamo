@@ -13,6 +13,8 @@ and open the template in the editor.
         <script src="jquery-ui.min.js"></script>
         <script src="three.min.js"></script>
         <script type="text/javascript" src="patient_data.js"></script>
+        <script type="text/javascript" src="graph.js"></script>
+        <script type="text/javascript" src="community_detection.js"></script>
         <link href="jquery-ui.css" rel="stylesheet">
         
         <style>
@@ -58,6 +60,9 @@ and open the template in the editor.
                 this.n_nearest_connect = 0;
                 this.patient_age_quantile = [];
                 this.patient_survival_quantile = [];
+                this.community;
+                this.community_ids;
+                this.number_communities=0;
                 
                 this.patient_data = JSON.parse(data);
                 this.n_features = this.patient_data.patients[0].proteins.length;
@@ -257,6 +262,51 @@ and open the template in the editor.
                     
                 }
                 
+                this.compute_communites = function(){
+                    
+                    var graph = new Graph(this.n_patients);
+                    
+                    for (var i=0;i<this.n_patients;i++){
+                        for (var k=i+1;k<this.n_patients;k++){
+                            if (this.edges[i][k-i-1]==1){
+                                graph.add_edge(i,k);
+                            }
+                        }
+                    }
+                    graph.compute_weights();
+                    graph.compute_node_neighbors();
+                    this.community = new Community(graph);
+                    this.community.modularity();
+                    this.community.iteration();
+                    
+                    var all_communities = [];
+            
+                    var number_communities = 0;
+                    var community_found=false;
+                    var tmp_community;
+                    for (var i=0;i<this.n_patients;i++){
+                        community_found=false;
+                        //console.log(i+": "+community.community_of_node[i]);
+                        tmp_community=this.community.community_of_node[i];
+                        for (var k=0;k<number_communities;k++){
+                            if (all_communities[k]==tmp_community){
+                                community_found=true;
+                            }
+                        }
+                        if (!community_found){
+                        all_communities[number_communities]=tmp_community;
+                        number_communities++;
+                        // console.log("its new.. got "+number_communities);
+                    }
+                
+                    }   
+                    console.log(number_communities+" cluster");
+                    this.number_communities = number_communities;
+                    this.community_ids = all_communities;
+                }
+                
+                
+                
                 
                 this.compute_age_quantile();
                 this.compute_survival_quantile();
@@ -384,9 +434,30 @@ and open the template in the editor.
                     for (var i=0;i<$model.n_patients;i++){
                         
                         color = compute_patient_color(i);
-                        console.log(color[0]+"; "+color[1]+"; "+color[2]);
+                        
                         $model.dots[i].material.color = new THREE.Color(color[0],color[1],color[2]); 
                     }
+                    
+                }
+                
+                this.show_communites = function(){
+                    
+                    $model.compute_communites();
+                    
+                    var colors = [];
+                    
+                    for (var i=0;i<$model.number_communities;i++){
+                        colors[$model.community_ids[i]] = [];
+                        colors[$model.community_ids[i]][0]=Math.random()+0.3;
+                        colors[$model.community_ids[i]][1]=Math.random()+0.3;
+                        colors[$model.community_ids[i]][2]=Math.random()+0.3;
+                    }
+                    
+                    for (var i=0;i<$model.n_patients;i++){
+                        
+                        $model.dots[i].material.color = new THREE.Color(colors[$model.community.community_of_node[i]][0],colors[$model.community.community_of_node[i]][1],colors[$model.community.community_of_node[i]][2]); 
+                    }
+                    
                     
                 }
                 
@@ -608,11 +679,11 @@ and open the template in the editor.
                     survival_checkbox_handler = function(checkbox){
                         
                         if (checkbox.checked){
+                            
                             $visualization.color_survival();
                         }
                         else{
                             $visualization.default_color();
-                            
                         }
                         
                         
@@ -620,6 +691,27 @@ and open the template in the editor.
                     
                     clinical_survival_checkbox.setAttribute('onchange', "survival_checkbox_handler(this)");
                     
+                    community_detection = document.createElement('div');
+                    community_detection.innerHTML = "show communities";
+                    community_detection.setAttribute('style', "float:left; width:390px; margin-left:14px;");
+                    
+                    community_detection_checkbox_handler = function(checkbox){
+                        
+                        if (checkbox.checked){
+                            $visualization.show_communites();
+                        }
+                        else{
+                            //$visualization.default_color();
+                        }
+                        
+                        
+                    }
+                    
+                    community_detection_checkbox = document.createElement('input');
+                    community_detection_checkbox.setAttribute('type',"checkbox");
+                    community_detection_checkbox.setAttribute('onchange', "community_detection_checkbox_handler(this)");
+                    $(community_detection_checkbox).appendTo(community_detection);
+                    $(community_detection).appendTo(controls);
                     
                     
                 }
