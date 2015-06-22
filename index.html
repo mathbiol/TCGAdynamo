@@ -12,7 +12,7 @@ and open the template in the editor.
         <script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.11.3.min.js"></script>
         <script src="jquery-ui.min.js"></script>
         <script src="three.min.js"></script>
-        <script type="text/javascript" src="patient_data.js"></script>
+        <script type="text/javascript" src="RPPA_data_bc.js"></script>
         <script type="text/javascript" src="graph.js"></script>
         <script type="text/javascript" src="community_detection.js"></script>
         <link href="jquery-ui.css" rel="stylesheet">
@@ -210,7 +210,8 @@ and open the template in the editor.
                     }
                     
                     for (var i=0;i<this.n_patients;i++){
-                        patient_age[i] = parseInt(this.patient_data.patients[i].clinical.age_at_initial_pathologic_diagnosis);
+                        //patient_age[i] = parseInt(this.patient_data.patients[i].clinical.age_at_initial_pathologic_diagnosis);
+                        patient_age[i] = 75;
                     }
                     
                     patient_age.sort(compare_values);
@@ -226,7 +227,8 @@ and open the template in the editor.
                     }
                     
                     for (var i=0;i<this.n_patients;i++){
-                        this.patient_age_quantile[i] = age_to_rank_map[this.patient_data.patients[i].clinical.age_at_initial_pathologic_diagnosis]/(Object.keys(age_to_rank_map).length+1);
+                        //this.patient_age_quantile[i] = age_to_rank_map[this.patient_data.patients[i].clinical.age_at_initial_pathologic_diagnosis]/(Object.keys(age_to_rank_map).length+1);
+                        this.patient_age_quantile[i] = 50;
                     }
                     
                 }
@@ -240,7 +242,8 @@ and open the template in the editor.
                     }
                     
                     for (var i=0;i<this.n_patients;i++){
-                        patient_survival[i] = parseInt(this.patient_data.patients[i].clinical.death_days_to);
+                        //patient_survival[i] = parseInt(this.patient_data.patients[i].clinical.death_days_to);
+                        patient_survival[i] = 10000;
                         
                     }
                     
@@ -257,7 +260,8 @@ and open the template in the editor.
                     }
                     
                     for (var i=0;i<this.n_patients;i++){
-                        this.patient_survival_quantile[i] = survival_to_rank_map[this.patient_data.patients[i].clinical.death_days_to]/(Object.keys(survival_to_rank_map).length+1);
+                        //this.patient_survival_quantile[i] = survival_to_rank_map[this.patient_data.patients[i].clinical.death_days_to]/(Object.keys(survival_to_rank_map).length+1);
+                        this.patient_survival_quantile[i] = 50;
                     }
                     
                 }
@@ -337,7 +341,17 @@ and open the template in the editor.
                 
                 for (var i=0;i<$model.n_patients;i++){
                     
-                    this.material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0.7, 0  ) } );
+                    if ($model.patient_data.patients[i].type==1){
+                        this.material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0.8, 0  ) } );
+                        console.log(i);
+                    }
+                    else if ($model.patient_data.patients[i].type==3){
+                        this.material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0.7, 0, 0 ) } );
+                    }
+                    else{
+                        this.material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0, 0.9  ) } );
+                    }
+                   // this.material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0.7, 0  ) } );
                     $model.dots[i] = new THREE.Mesh( this.geometry, this.material);
                     random_x = (Math.random() * this.camera_parameter*750/3) - this.camera_parameter*390/3;
                     random_y = (Math.random() * this.camera_parameter*580/3) - this.camera_parameter*280/3;
@@ -464,9 +478,6 @@ and open the template in the editor.
                 this.default_color = function(){
                     
                     for (var i=0;i<$model.n_patients;i++){
-                        
-                        color = compute_patient_color(i);
-                        console.log(color[0]+"; "+color[1]+"; "+color[2]);
                         $model.dots[i].material.color = new THREE.Color(0,0.7,0); 
                     }
                     
@@ -482,7 +493,7 @@ and open the template in the editor.
                     var Fa = 0;
                     var Fg = 0;
                     var distance = 0;
-                    var kr = -200;
+                    var kr = -1200;
                     var kg = 0.002;
                     var Ftotal = 0;
                     var vector_between_x;
@@ -701,7 +712,7 @@ and open the template in the editor.
                             $visualization.show_communites();
                         }
                         else{
-                            //$visualization.default_color();
+                            $visualization.default_color();
                         }
                         
                         
