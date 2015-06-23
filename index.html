@@ -351,6 +351,8 @@ and open the template in the editor.
                 this.camera.position.y = 0;
                 this.camera.position.z = 100;
                 
+                console.log(this.height*this.camera_parameter / 2);
+                
                 this.geometry = new THREE.SphereGeometry(200,0,0);
                 
                 for (var i=0;i<$model.n_patients;i++){
@@ -372,9 +374,12 @@ and open the template in the editor.
                   
                     $model.dots[i].position.x = random_x;
                     $model.dots[i].position.y = random_y;
+                    
+                    
                     this.scene.add($model.dots[i]);
-                   
+                    
                 }
+                
                 
                 this.render = function(){
                     $controller.update();
@@ -557,6 +562,11 @@ and open the template in the editor.
                 
                 this.update = function(){
                     
+                    var max_x=0;
+                    var max_y=0;
+                    var max_index=-1;
+                    var max_pos=0;
+                    
                     var Fr = 0;
                     var Fa = 0;
                     var Fg = 0;
@@ -618,9 +628,40 @@ and open the template in the editor.
                     gravity_vector_y=gravity_vector_y/gravity_vector_length;
                     $model.dots[i].position.x=$model.dots[i].position.x+gravity_vector_x*Fg*0.8;
                     $model.dots[i].position.y=$model.dots[i].position.y+gravity_vector_y*Fg*0.8;
+                    
+                    if (Math.abs($model.dots[i].position.x)>max_x){
+                        max_index = i;
+                        max_x=Math.abs($model.dots[i].position.x);
+                    }
+                    if (Math.abs($model.dots[i].position.y)>max_y){
+                        max_y=Math.abs($model.dots[i].position.y);
+                    }
+                }
+                //console.log("max: "+max_x+"; "+max_index);
+                var new_cam_x;
+                var new_cam_y;
+                var new_cam=-1;
+                
+                new_cam_x=((max_x+400)/$visualization.width)*2;
+                new_cam_y=((max_y+400)/$visualization.height)*2;
+                
+                console.log(new_cam_x+"; "+new_cam_y);
+                
+                if (new_cam_x>new_cam_y){
+                    new_cam=new_cam_x;
+                }
+                else{
+                    new_cam=new_cam_y;
                 }
                 
-                
+                if (new_cam>$visualization.camera_parameter){
+                $visualization.camera_parameter=new_cam;
+                $visualization.camera.top=new_cam*$visualization.height/2;
+                $visualization.camera.right=new_cam*$visualization.width/2;
+                $visualization.camera.left=new_cam*$visualization.width/-2;
+                $visualization.camera.bottom=new_cam*$visualization.height/-2;
+                $visualization.camera.updateProjectionMatrix();
+                }   
                 }
                 
                 this.add_rppa_controls = function(){
@@ -862,9 +903,13 @@ and open the template in the editor.
                     mousemove = function(event){
                         
                         var mouse_x = event.offsetX*$visualization.camera_parameter-(($visualization.width*$visualization.camera_parameter)/2);
-                        var mouse_y = (event.offsetY+72)*$visualization.camera_parameter-(($visualization.width*$visualization.camera_parameter)/2);
+                        var mouse_y = event.offsetY*$visualization.camera_parameter-(($visualization.height*$visualization.camera_parameter)/2);
                         mouse_y=mouse_y*-1;
-                       
+                        
+//                        console.log(event.offsetX+"; "+event.offsetY);
+//                        console.log(mouse_x+"; "+mouse_y);
+                        
+                        console.log();
                         $controller.find_closest_dot(mouse_x, mouse_y);
                         
                     }
