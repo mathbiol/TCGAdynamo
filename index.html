@@ -12,7 +12,7 @@ and open the template in the editor.
         <script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.11.3.min.js"></script>
         <script src="jquery-ui.min.js"></script>
         <script src="three.min.js"></script>
-        <script type="text/javascript" src="RPPA_data_bc.js"></script>
+        <script type="text/javascript" src="patient_data.js"></script>
         <script type="text/javascript" src="graph.js"></script>
         <script type="text/javascript" src="community_detection.js"></script>
         <link href="jquery-ui.css" rel="stylesheet">
@@ -44,6 +44,12 @@ and open the template in the editor.
             
             input[type="number"] {
                 width:50px;
+            }
+           
+            table, th, td {
+                border: 1px solid black;
+                border-collapse: collapse;
+                white-space: nowrap;
             }
  
         </style>
@@ -210,8 +216,8 @@ and open the template in the editor.
                     }
                     
                     for (var i=0;i<this.n_patients;i++){
-                        //patient_age[i] = parseInt(this.patient_data.patients[i].clinical.age_at_initial_pathologic_diagnosis);
-                        patient_age[i] = 75;
+                        patient_age[i] = parseInt(this.patient_data.patients[i].clinical.age_at_initial_pathologic_diagnosis);
+                        //patient_age[i] = 75;
                     }
                     
                     patient_age.sort(compare_values);
@@ -227,8 +233,8 @@ and open the template in the editor.
                     }
                     
                     for (var i=0;i<this.n_patients;i++){
-                        //this.patient_age_quantile[i] = age_to_rank_map[this.patient_data.patients[i].clinical.age_at_initial_pathologic_diagnosis]/(Object.keys(age_to_rank_map).length+1);
-                        this.patient_age_quantile[i] = 50;
+                        this.patient_age_quantile[i] = age_to_rank_map[this.patient_data.patients[i].clinical.age_at_initial_pathologic_diagnosis]/(Object.keys(age_to_rank_map).length+1);
+                        //this.patient_age_quantile[i] = 50;
                     }
                     
                 }
@@ -242,8 +248,8 @@ and open the template in the editor.
                     }
                     
                     for (var i=0;i<this.n_patients;i++){
-                        //patient_survival[i] = parseInt(this.patient_data.patients[i].clinical.death_days_to);
-                        patient_survival[i] = 10000;
+                        patient_survival[i] = parseInt(this.patient_data.patients[i].clinical.death_days_to);
+                        //patient_survival[i] = 10000;
                         
                     }
                     
@@ -260,8 +266,8 @@ and open the template in the editor.
                     }
                     
                     for (var i=0;i<this.n_patients;i++){
-                        //this.patient_survival_quantile[i] = survival_to_rank_map[this.patient_data.patients[i].clinical.death_days_to]/(Object.keys(survival_to_rank_map).length+1);
-                        this.patient_survival_quantile[i] = 50;
+                        this.patient_survival_quantile[i] = survival_to_rank_map[this.patient_data.patients[i].clinical.death_days_to]/(Object.keys(survival_to_rank_map).length+1);
+                        //this.patient_survival_quantile[i] = 50;
                     }
                     
                 }
@@ -490,29 +496,51 @@ and open the template in the editor.
                     patient_details_div.setAttribute('id', "patient_details");
                     patient_details_div.setAttribute('style', "float:left; width:800px");
                     
-                    patient_details_div.innerHTML="select patients to compare.."
-                    
                     patient_table = document.createElement('table');
                     patient_table.setAttribute('id',"patient_table");
+                    
                     patient_details_div.appendChild(patient_table);
                     
                     
                     document.getElementById('details').appendChild(patient_details_div);
+                    
+                    row = document.getElementById('patient_table').insertRow(0);
+                    
+                    var cells = [];
+                    
+                    for (var i=0;i<$model.n_features+1;i++){
+                        cells[i] = row.insertCell(i);
+                    }  
+                    cells[0].innerHTML ="Patient ID";
+                    
+                    for (var i=0;i<$model.n_features;i++){
+                        cells[i+1].innerHTML = $model.patient_data.patients[0].proteins[i].ID;
+                    }
+                    
                     
                 }
                 
                 this.details_string="";
                 this.add_patient_to_details_box = function(index){
                     
-                    
                     this.details_string=this.details_string.concat("Patient "+index+": "+"</br>");
                     
-                    row = document.getElementById('patient_table').insertRow(0);
-                    cell1 = row.insertCell(0);
-                    cell2 = row.insertCell(1);
                     
-                    document.getElementById('patient_details').innerHTML=this.details_string;
                     
+                    row = document.getElementById('patient_table').insertRow(1);
+                    
+                    
+                    var cells = [];
+                    
+                    for (var i=0;i<$model.n_features+1;i++){
+                        cells[i] = row.insertCell(i);
+                    }  
+                    cells[0].innerHTML ="patient "+index;
+                    
+                    for (var i=0;i<$model.n_features;i++){
+                        cells[i+1].innerHTML = $model.patient_data.patients[index].proteins[i].value;
+                        
+                    }
                     
                 }
                 
