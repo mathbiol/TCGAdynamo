@@ -64,11 +64,13 @@ and open the template in the editor.
                 this.node_degree = [];
                 this.protein_weights = [];
                 this.n_nearest_connect = 0;
+                this.threshold_connect = -1;
                 this.patient_age_quantile = [];
                 this.patient_survival_quantile = [];
                 this.community;
                 this.community_ids;
                 this.number_communities=0;
+                
                 
                 this.patient_data = JSON.parse(data);
                 this.n_features = this.patient_data.patients[0].proteins.length;
@@ -199,10 +201,15 @@ and open the template in the editor.
                             }
                         }
                     }
+                    
+                    for (var i=0;i<this.n_patients-1;i++){
+                        for (var k=i+1;k<this.n_patients;k++){
+                            if (this.distances[i][k-i-1]<this.threshold_connect){
+                                this.edges[i][k-i-1]=1;
+                            }
+                        }
                     }
-                    for (var i=0;i<this.n_patients;i++){
-                        //console.log(i+": "+this.node_degree[i]);
-                    }
+                }
                     
                     
                 }
@@ -692,6 +699,8 @@ and open the template in the editor.
                     n_spinner = document.createElement('input');
                     n_spinner.setAttribute('id',"n_spinner");
                     n_spinner.setAttribute('type',"number");
+                    
+                    n_spinner.setAttribute('min',0);
                     n_spinner.setAttribute('style', "width=100px;");
                     
                     n_nearest_change = function(spinner){
@@ -711,6 +720,29 @@ and open the template in the editor.
                     $(n_spinner).appendTo(n_nearest_div);
                     controls = document.getElementById("controls2");
                     $(n_nearest_div).appendTo(controls);
+                    
+                    threshold_div = document.createElement('div');
+                    threshold_div.setAttribute('style', "margin-left:10px; width = 390px;margin-top:5px;");
+                    spinner_thresh = document.createElement('input');
+                    spinner_thresh.setAttribute('id',"spinner_thresh");
+                    spinner_thresh.setAttribute('type',"number");
+                    spinner_thresh.setAttribute('step',0.01);
+                    spinner_thresh.setAttribute('style', "width=100px;");
+                    spinner_thresh.setAttribute('min',0);
+                    label_thresh = document.createElement('label');
+                    label_thresh.setAttribute('for', 'spinner_thresh');
+                    label_thresh.innerHTML="connect dots with distance below: ";
+                    
+                    threshold_connect_change = function(spinner){
+                        $model.threshold_connect = spinner.value;
+                        $model.recompute();
+                    }
+                    
+                    spinner_thresh.setAttribute('onchange', "threshold_connect_change(this)");
+                    
+                    $(label_thresh).appendTo(threshold_div);
+                    $(spinner_thresh).appendTo(threshold_div);
+                    $(threshold_div).appendTo(controls);
                     
                 }
             
