@@ -642,7 +642,7 @@ and open the template in the editor.
                             tempx=startx;
                             for (var k=0;k<boxesAroundPoint;k++){
                                 if (tempx>0 && tempx<numberBoxesPerRow && tempy>0 && tempy<numberBoxesPerRow ){
-                                    allCells[tempx][tempy]+=kernel[i][k]*(patient_quantiles[p]);
+                                    allCells[tempx][tempy]+=kernel[i][k]*(patient_quantiles[p]/$model.node_degree[p]);
                                     allCellsCounter[tempx][tempy]+=1;
                                     if (allCells[tempx][tempy]>max){
                                         max=allCells[tempx][tempy];
@@ -654,15 +654,6 @@ and open the template in the editor.
                         } 
                     }
                     
-                    max=0;
-                    for (var i=0;i<numberBoxesPerRow;i++){
-                        for (var k=0;k<numberBoxesPerRow;k++){
-                            allCells[i][k]=allCells[i][k]/allCellsCounter[i][k];
-                            if (allCells[i][k]>max){
-                                max=allCells[i][k];
-                            }
-                        }
-                    }
                     
                     
                     
