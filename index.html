@@ -351,8 +351,6 @@ and open the template in the editor.
                 this.camera.position.y = 0;
                 this.camera.position.z = 100;
                 
-                console.log(this.height*this.camera_parameter / 2);
-                
                 this.geometry = new THREE.SphereGeometry(200,0,0);
                 
                 for (var i=0;i<$model.n_patients;i++){
@@ -537,10 +535,7 @@ and open the template in the editor.
                     
                     this.details_string=this.details_string.concat("Patient "+index+": "+"</br>");
                     
-                    
-                    
                     row = document.getElementById('patient_table').insertRow(1);
-                    
                     
                     var cells = [];
                     
@@ -645,7 +640,7 @@ and open the template in the editor.
                 new_cam_x=((max_x+400)/$visualization.width)*2;
                 new_cam_y=((max_y+400)/$visualization.height)*2;
                 
-                console.log(new_cam_x+"; "+new_cam_y);
+               
                 
                 if (new_cam_x>new_cam_y){
                     new_cam=new_cam_x;
@@ -669,7 +664,7 @@ and open the template in the editor.
                     for (var i=0;i<$model.n_features;i++){
                 
                         protein_div=document.createElement('div');
-                        protein_div.setAttribute('style', "float:left; width:390px");
+                        protein_div.setAttribute('style', "float:left; width:510px");
                         protein_div.setAttribute('id', "protein"+i);
                 
                         checkbox_div=document.createElement('div');
@@ -718,6 +713,20 @@ and open the template in the editor.
                         $(slider_div).appendTo(protein_div);
                 
                         controls = document.getElementById("controls1");
+                        
+                        parzen_div_wrapper = document.createElement('div');
+                        parzen_div_wrapper.setAttribute('style', "position:relative");
+                        parzen_div = document.createElement('div');
+                        parzen_div.innerHTML="show density";
+                        parzen_div.setAttribute('style',"position:absolute; left:380px; margin-top:-13px");
+                        
+                        parzen_checkbox = document.createElement('input');
+                        parzen_checkbox.setAttribute('type',"checkbox");
+                        parzen_checkbox.setAttribute('style',"position:absolute; left:470px; margin-top:-9px")
+                        $(parzen_checkbox).appendTo(parzen_div_wrapper);
+                        $(parzen_div).appendTo(parzen_div_wrapper);
+                        $(parzen_div_wrapper).appendTo(protein_div);
+                        
                         $(protein_div).appendTo(controls);
                 
                         $( "#slider"+i ).slider({
@@ -730,6 +739,7 @@ and open the template in the editor.
                                 
                             }
                         });
+                        
                     }
                 }
             
