@@ -322,8 +322,40 @@ and open the template in the editor.
                     this.community_ids = all_communities;
                 }
                 
-                
-                
+                this.compute_parameter_quantile = function(which_param){
+                    
+                    var patient_value = [];
+                    var patient_quantile = [];
+                    
+                    compare_values = function(a,b){
+                        return a-b;
+                    }
+                    
+                    for (var i=0;i<$model.n_patients;i++){
+                        patient_value[i] = parseFloat($model.patient_data.patients[i].proteins[which_param].value);
+                    }
+                    
+                    patient_value.sort(compare_values);
+                    
+                    var value_to_rank_map = {};
+                    var temp_counter=1;
+                    value_to_rank_map[patient_value[0]]=1;
+                    
+                    for (var i=1;i<$model.n_patients;i++){
+                        if (patient_value[i]>patient_value[i-1]){
+                            temp_counter++;
+                            value_to_rank_map[patient_value[i]]=temp_counter;
+                        }
+                    }
+                    
+                    for (var i=0;i<$model.n_patients;i++){
+                        patient_quantile[i] = value_to_rank_map[parseFloat($model.patient_data.patients[i].proteins[which_param].value)]/(Object.keys(value_to_rank_map).length+1);
+                        //this.patient_age_quantile[i] = 50;
+                    }
+                    
+                    return(patient_quantile);
+                    
+                }
                 
                 this.compute_age_quantile();
                 this.compute_survival_quantile();
@@ -355,16 +387,8 @@ and open the template in the editor.
                 
                 for (var i=0;i<$model.n_patients;i++){
                     
-                    if ($model.patient_data.patients[i].type==1){
-                        this.material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0.6, 0  ) } );
-                      
-                    }
-                    else if ($model.patient_data.patients[i].type==3){
-                        this.material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0.7, 0, 0 ) } );
-                    }
-                    else{
-                        this.material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0, 0.7  ) } );
-                    }
+                    this.material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0.6, 0  ) } );
+                    
                    // this.material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0.7, 0  ) } );
                     $model.dots[i] = new THREE.Mesh( this.geometry, this.material);
                     random_x = (Math.random() * this.camera_parameter*750/3) - this.camera_parameter*390/3;
@@ -492,10 +516,21 @@ and open the template in the editor.
                     
                 }
                 
-                this.default_color = function(){
+                this.default_color = function(redraw_scene){
                     
-                    for (var i=0;i<$model.n_patients;i++){
-                        $model.dots[i].material.color = new THREE.Color(0,0.7,0); 
+                    if (!redraw_scene){
+                        for (var i=0;i<$model.n_patients;i++){
+                            $model.dots[i].material.color = new THREE.Color(0,0.7,0); 
+                        }
+                    }
+                    else{
+                       
+                        delete $visualization.scene;
+                        $visualization.scene = new THREE.Scene();
+                        for (var i=0;i<$model.n_patients;i++){
+                            $model.dots[i].material.color = new THREE.Color(0,0.7,0); 
+                            $visualization.scene.add($model.dots[i]);
+                        }
                     }
                     
                 }
@@ -551,6 +586,106 @@ and open the template in the editor.
                     
                 }
                 
+                this.compute_parzen = function(which_param){
+                    
+                    delete $visualization.scene;
+                    $visualization.scene = new THREE.Scene();
+                    
+                    patient_quantiles = $model.compute_parameter_quantile(which_param);
+                    
+                    var boxesAroundPoint=20;
+                    var kernel = [];
+                    for (var i=0;i<boxesAroundPoint;i++){
+                        kernel[i] = [];
+                    }
+                    var ycoord=-boxesAroundPoint/2+0.5;
+                    var xcoord=-boxesAroundPoint/2+0.5;
+                    var gamma=4;
+                    var row=0;
+                    var coloumn=0;
+                    for (var i=0;i<boxesAroundPoint;i++){
+                        xcoord=-boxesAroundPoint/2+0.5;
+                        column=0;
+                        for (var k=0;k<boxesAroundPoint;k++){
+                            value=(1/(2*Math.PI*Math.pow(gamma,2)))*Math.exp(-((Math.pow(xcoord,2)+Math.pow(ycoord,2))/(2*Math.pow(gamma,2))));
+                            kernel[row][column]=value;
+                            xcoord+=1;
+                            column++;
+                        }
+                        row++;
+                        ycoord+=1;
+                    }
+                    
+                    var numberBoxesPerRow=200;
+                    var stepSize=($visualization.width*$visualization.camera_parameter)/numberBoxesPerRow;
+            
+                    var allCells = [];
+                    var allCellsCounter = [];
+                    for (var i=0;i<numberBoxesPerRow;i++){
+                        allCells[i]=[];
+                        allCellsCounter[i] = [];
+                        for (var k=0;k<numberBoxesPerRow;k++){
+                            allCells[i][k]=0;
+                            allCellsCounter[i][k]=0;
+                        }
+                    }
+                    
+                    var max=0;
+                    for (var p=0;p<$model.dots.length;p++){
+                        var startx=Math.floor((($model.dots[p].position.x+(($visualization.width*$visualization.camera_parameter)/2))-(stepSize*boxesAroundPoint/2))/stepSize);
+                        var starty=Math.floor((($model.dots[p].position.y+(($visualization.width*$visualization.camera_parameter)/2))-(stepSize*boxesAroundPoint/2))/stepSize);
+                        var tempx=startx;
+                        var tempy=starty;
+                        
+                        for (var i=0;i<boxesAroundPoint;i++){
+                            tempx=startx;
+                            for (var k=0;k<boxesAroundPoint;k++){
+                                if (tempx>0 && tempx<numberBoxesPerRow && tempy>0 && tempy<numberBoxesPerRow ){
+                                    allCells[tempx][tempy]+=kernel[i][k]*patient_quantiles[p];
+                                    if (allCells[tempx][tempy]>max){
+                                        max=allCells[tempx][tempy];
+                                    }
+                                }
+                                tempx++;
+                            }
+                            tempy++;
+                        } 
+                    }
+                    var geometry = new THREE.BoxGeometry(stepSize,stepSize,0);
+                    var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 1, 0, 0 ) } );
+                    var box = new THREE.Mesh( geometry, material );
+                    var scaled_value=0;
+                    
+                    for (var i=0;i<numberBoxesPerRow;i++){
+                        for (var k=0;k<numberBoxesPerRow;k++){
+                            if (allCells[i][k]!=0){
+                                scaled_value=allCells[i][k]/max;
+                                r=0;
+                                g=0;
+                                b=0;
+                                if (scaled_value<0.1){
+                                    b = scaled_value/0.1;
+                                }
+                                else if(scaled_value<0.4){
+                                    g = (scaled_value-0.1)/0.3;
+                                    b = (-scaled_value+0.4)/0.3;
+                                }
+                                else{
+                                    r = (scaled_value-0.4)/0.6;
+                                    g = (-scaled_value+1)/0.6;
+                                }
+                                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color(r , g, b ) } );
+                                var box = new THREE.Mesh( geometry, material );
+                                box.position.x=i*stepSize+0.5*stepSize-($visualization.width*$visualization.camera_parameter)/2;
+                                box.position.y=k*stepSize+0.5*stepSize-($visualization.width*$visualization.camera_parameter)/2;
+                                $visualization.scene.add(box);
+                            }
+                        }
+                    }
+                    
+                    
+                }
+                
             }
             
             function Controller(){
@@ -566,7 +701,7 @@ and open the template in the editor.
                     var Fa = 0;
                     var Fg = 0;
                     var distance = 0;
-                    var kr = -1200;
+                    var kr = -600;
                     var kg = 0.002;
                     var Ftotal = 0;
                     var vector_between_x;
@@ -589,7 +724,7 @@ and open the template in the editor.
                             
                             //if the two patients are similar comptue Fa, else set Fa=0
                             if ($model.edges[i][k-i-1]==1){
-                                Fa = Math.log((1+distance));
+                                Fa = 1.5*Math.log((1+distance));
                             }
                             else{
                                 Fa=0;
@@ -720,9 +855,24 @@ and open the template in the editor.
                         parzen_div.innerHTML="show density";
                         parzen_div.setAttribute('style',"position:absolute; left:380px; margin-top:-13px");
                         
+                        parzen_checkbox_handler = function(checkbox){
+                            
+                            if(checkbox.checked){
+                                
+                                $visualization.compute_parzen(checkbox.id.substring(6,7));
+                            }
+                            else{
+                                $visualization.default_color(true);
+                            }
+                            
+                        }
+                        
                         parzen_checkbox = document.createElement('input');
                         parzen_checkbox.setAttribute('type',"checkbox");
-                        parzen_checkbox.setAttribute('style',"position:absolute; left:470px; margin-top:-9px")
+                        parzen_checkbox.setAttribute('style',"position:absolute; left:470px; margin-top:-9px");
+                        parzen_checkbox.setAttribute('id', "parzen"+i);
+                        
+                        parzen_checkbox.setAttribute('onchange', "parzen_checkbox_handler(this)");
                         $(parzen_checkbox).appendTo(parzen_div_wrapper);
                         $(parzen_div).appendTo(parzen_div_wrapper);
                         $(parzen_div_wrapper).appendTo(protein_div);
@@ -814,7 +964,7 @@ and open the template in the editor.
                             $visualization.color_age();
                         }
                         else{
-                            $visualization.default_color();
+                            $visualization.default_color(false);
                         }
                     }
                     
@@ -838,7 +988,7 @@ and open the template in the editor.
                             $visualization.color_survival();
                         }
                         else{
-                            $visualization.default_color();
+                            $visualization.default_color(false);
                         }
                         
                         
@@ -856,7 +1006,7 @@ and open the template in the editor.
                             $visualization.show_communites();
                         }
                         else{
-                            $visualization.default_color();
+                            $visualization.default_color(false);
                         }
                         
                         
