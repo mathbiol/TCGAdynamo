@@ -593,6 +593,7 @@ and open the template in the editor.
                     
                     patient_quantiles = $model.compute_parameter_quantile(which_param);
                     
+                    var numberBoxesPerRow=200;
                     var boxesAroundPoint=20;
                     var kernel = [];
                     for (var i=0;i<boxesAroundPoint;i++){
@@ -616,7 +617,7 @@ and open the template in the editor.
                         ycoord+=1;
                     }
                     
-                    var numberBoxesPerRow=200;
+                    
                     var stepSize=($visualization.width*$visualization.camera_parameter)/numberBoxesPerRow;
             
                     var allCells = [];
@@ -626,7 +627,7 @@ and open the template in the editor.
                         allCellsCounter[i] = [];
                         for (var k=0;k<numberBoxesPerRow;k++){
                             allCells[i][k]=0;
-                            allCellsCounter[i][k]=0;
+                            allCellsCounter[i][k]=1;
                         }
                     }
                     
@@ -641,7 +642,8 @@ and open the template in the editor.
                             tempx=startx;
                             for (var k=0;k<boxesAroundPoint;k++){
                                 if (tempx>0 && tempx<numberBoxesPerRow && tempy>0 && tempy<numberBoxesPerRow ){
-                                    allCells[tempx][tempy]+=kernel[i][k]*patient_quantiles[p];
+                                    allCells[tempx][tempy]+=kernel[i][k]*(patient_quantiles[p]);
+                                    allCellsCounter[tempx][tempy]+=1;
                                     if (allCells[tempx][tempy]>max){
                                         max=allCells[tempx][tempy];
                                     }
@@ -651,6 +653,20 @@ and open the template in the editor.
                             tempy++;
                         } 
                     }
+                    
+                    max=0;
+                    for (var i=0;i<numberBoxesPerRow;i++){
+                        for (var k=0;k<numberBoxesPerRow;k++){
+                            allCells[i][k]=allCells[i][k]/allCellsCounter[i][k];
+                            if (allCells[i][k]>max){
+                                max=allCells[i][k];
+                            }
+                        }
+                    }
+                    
+                    
+                    
+                    
                     var geometry = new THREE.BoxGeometry(stepSize,stepSize,0);
                     var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 1, 0, 0 ) } );
                     var box = new THREE.Mesh( geometry, material );
@@ -775,8 +791,6 @@ and open the template in the editor.
                 new_cam_x=((max_x+400)/$visualization.width)*2;
                 new_cam_y=((max_y+400)/$visualization.height)*2;
                 
-               
-                
                 if (new_cam_x>new_cam_y){
                     new_cam=new_cam_x;
                 }
@@ -784,13 +798,13 @@ and open the template in the editor.
                     new_cam=new_cam_y;
                 }
                 
-                if (new_cam>$visualization.camera_parameter){
-                $visualization.camera_parameter=new_cam;
-                $visualization.camera.top=new_cam*$visualization.height/2;
-                $visualization.camera.right=new_cam*$visualization.width/2;
-                $visualization.camera.left=new_cam*$visualization.width/-2;
-                $visualization.camera.bottom=new_cam*$visualization.height/-2;
-                $visualization.camera.updateProjectionMatrix();
+                if (new_cam!=$visualization.camera_parameter ){
+                    $visualization.camera_parameter=new_cam;
+                    $visualization.camera.top=new_cam*$visualization.height/2;
+                    $visualization.camera.right=new_cam*$visualization.width/2;
+                    $visualization.camera.left=new_cam*$visualization.width/-2;
+                    $visualization.camera.bottom=new_cam*$visualization.height/-2;
+                    $visualization.camera.updateProjectionMatrix();
                 }   
                 }
                 
