@@ -15,6 +15,7 @@ and open the template in the editor.
         <script type="text/javascript" src="patient_data.js"></script>
         <script type="text/javascript" src="graph.js"></script>
         <script type="text/javascript" src="community_detection.js"></script>
+        <script src="http://d3js.org/d3.v2.min.js?2.8.1"></script>
         <link href="jquery-ui.css" rel="stylesheet">
         
         <style>
@@ -51,6 +52,18 @@ and open the template in the editor.
                 border-collapse: collapse;
                 white-space: nowrap;
             }
+            
+        .background {
+            fill: #eee;
+        }   
+
+        line {
+            stroke: #fff;
+        }
+
+        text.active {
+            fill: red;
+        }
  
         </style>
         <script>
@@ -67,6 +80,7 @@ and open the template in the editor.
                 this.threshold_connect = -1;
                 this.patient_age_quantile = [];
                 this.patient_survival_quantile = [];
+                this.pearson_correlations = [];
                 this.community;
                 this.community_ids;
                 this.number_communities=0;
@@ -357,6 +371,87 @@ and open the template in the editor.
                     
                 }
                 
+                this.compute_pearson_of_selection = function(){
+                    
+                    var selected = $visualization.selected;
+                   
+                    mean_values = [];
+                    $model.pearson_correlations = [];
+                    
+                    compute_pearson_between_variables = function(param_a, param_b, selected){
+                        
+                        sum1=0;
+                        sum2=0;
+                        sum3=0;
+                        for (var i=0;i<selected.length;i++){
+                            sum1=sum1+((parseFloat($model.patient_data.patients[selected[i]].proteins[param_a].value)-this.mean_values[param_a])*(parseFloat($model.patient_data.patients[selected[i]].proteins[param_b].value)-this.mean_values[param_b]));
+                            sum2=sum2+Math.pow((parseFloat($model.patient_data.patients[selected[i]].proteins[param_a].value)-this.mean_values[param_a]),2);
+                            sum3=sum3+Math.pow((parseFloat($model.patient_data.patients[selected[i]].proteins[param_b].value)-this.mean_values[param_b]),2);
+                            
+                        }
+                        
+                        denominator = Math.sqrt(sum2*sum3);
+                        
+                        correlation_coefficient = sum1/denominator;
+                        
+                        return(correlation_coefficient);
+                        
+                    }
+                    
+                    compute_mean_of_parameter = function(parameter, selected){
+                        
+                        sum=0;
+                        
+                        for (var i=0;i<selected.length;i++){
+                            sum=sum+parseFloat($model.patient_data.patients[selected[i]].proteins[parameter].value);
+                            
+                        }
+                        
+                        sum = sum/selected.length;
+                        return(sum);
+                    }
+                    
+                    for (var i=0;i<this.n_features;i++){
+                        mean_values[i] = compute_mean_of_parameter(i, selected);
+                    }              
+                    
+                    
+                    var max_correlations = [];
+                    var max_correlations_row_indices = [];
+                    var max_correlations_column_indices = [];
+                    var max_counter=0;
+                    var temp_min;
+                    var temp_min_index;
+                    var top_k=500;
+                    for (var i=0;i<this.n_features-1;i++){
+                        $model.pearson_correlations[i] = [];
+                        for (var k=i+1;k<this.n_features;k++){
+                            $model.pearson_correlations[i][k-i-1] = compute_pearson_between_variables(i,k,selected);
+                            if (max_counter<top_k){
+                                max_correlations[max_counter] = $model.pearson_correlations[i][k-i-1];
+                                max_correlations_row_indices[max_counter] = i;
+                                max_correlations_column_indices[max_counter] = k;
+                                max_counter++;
+                            }
+                            else{
+                                temp_min=2;
+                                for (var j=0;j<top_k;j++){
+                                    if (max_correlations[j]<temp_min){
+                                        temp_min=max_correlations[j];
+                                        temp_min_index=j;
+                                    }
+                                }
+                                if ($model.pearson_correlations[i][k-i-1]>temp_min){
+                                    max_correlations[temp_min_index] = $model.pearson_correlations[i][k-i-1];
+                                    max_correlations_row_indices[temp_min_index]=i;
+                                    max_correlations_column_indices[temp_min_index]=k;
+                                }
+                            }
+                        }
+                    }
+                    
+                }
+                
                 this.compute_age_quantile();
                 this.compute_survival_quantile();
                 
@@ -401,7 +496,6 @@ and open the template in the editor.
                     this.scene.add($model.dots[i]);
                     
                 }
-                
                 
                 this.render = function(){
                     $controller.update();
@@ -566,9 +660,12 @@ and open the template in the editor.
                 }
                 
                 this.details_string="";
+                this.selected = [];
+                
                 this.add_patient_to_details_box = function(index){
                     
                     this.details_string=this.details_string.concat("Patient "+index+": "+"</br>");
+                    this.selected[this.selected.length]=index;
                     
                     row = document.getElementById('patient_table').insertRow(1);
                     
@@ -583,7 +680,11 @@ and open the template in the editor.
                         cells[i+1].innerHTML = $model.patient_data.patients[index].proteins[i].value;
                         
                     }
-                    
+                    if (this.selected.length>1){
+                        console.log("computing pearson correlations between all parameters in selection..");
+                        $model.compute_pearson_of_selection();
+                        $visualization.show_heatmap();
+                    }
                 }
                 
                 this.compute_parzen = function(which_param){
@@ -593,8 +694,8 @@ and open the template in the editor.
                     
                     patient_quantiles = $model.compute_parameter_quantile(which_param);
                     
-                    var numberBoxesPerRow=200;
-                    var boxesAroundPoint=20;
+                    var numberBoxesPerRow=300;
+                    var boxesAroundPoint=60;
                     var kernel = [];
                     for (var i=0;i<boxesAroundPoint;i++){
                         kernel[i] = [];
@@ -642,7 +743,7 @@ and open the template in the editor.
                             tempx=startx;
                             for (var k=0;k<boxesAroundPoint;k++){
                                 if (tempx>0 && tempx<numberBoxesPerRow && tempy>0 && tempy<numberBoxesPerRow ){
-                                    allCells[tempx][tempy]+=kernel[i][k]*(patient_quantiles[p]/$model.node_degree[p]);
+                                    allCells[tempx][tempy]+=kernel[i][k]*(patient_quantiles[p]);
                                     allCellsCounter[tempx][tempy]+=1;
                                     if (allCells[tempx][tempy]>max){
                                         max=allCells[tempx][tempy];
@@ -654,6 +755,15 @@ and open the template in the editor.
                         } 
                     }
                     
+                    max=0;
+                    for (var i=0;i<numberBoxesPerRow;i++){
+                        for (var k=0;k<numberBoxesPerRow;k++){
+                            allCells[i][k]=allCells[i][k]/allCellsCounter[i][k];
+                            if (allCells[i][k]>max){
+                                max=allCells[i][k];
+                            }
+                        }
+                    }
                     
                     
                     
@@ -690,6 +800,121 @@ and open the template in the editor.
                         }
                     }
                     
+                    
+                }
+                
+                this.show_heatmap = function(){
+                    
+                    var margin = {top: 80, right: 0, bottom: 10, left: 80},
+                                width = 1500,
+                                height = 1500;
+                    
+                    var x = d3.scale.ordinal().rangeBands([0, width]),
+                        z = d3.scale.linear().domain([0, 4]).clamp(true),
+                        c = d3.scale.category10().domain(d3.range(10));
+                
+                    $("#heatmap").html("");
+                    
+                    var svg = d3.select("#heatmap").append("svg")
+                                .attr("width", width + margin.left + margin.right)
+                                .attr("height", height + margin.top + margin.bottom)
+                                .style("margin-left", -margin.left + "px")
+                                .append("g")
+                                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                    var matrix = [];
+                    
+                    var counter=0;
+                    for (var i=0;i<$model.n_features;i++){
+                        matrix[i] = [];
+                        for (var k=0;k<$model.n_features;k++){
+                            if (i!=k){
+                                
+                                if (k>i){
+                                    if ($model.pearson_correlations[i][k-i-1]>0.9 || $model.pearson_correlations[i][k-i-1]<-0.9)
+                                        matrix[i][k]={x:k,y:i,z:1};
+                                    else
+                                        matrix[i][k]={x:k,y:i,z:0};
+                                }
+                                else{
+                                    if ($model.pearson_correlations[k][i-k-1]>0.9 || $model.pearson_correlations[k][i-k-1]<-0.9)
+                                        matrix[i][k]={x:k,y:i,z:1};
+                                    else
+                                        matrix[i][k]={x:k,y:i,z:0};
+                                }
+                                
+                            }
+                            else{
+                                matrix[i][k]={x:k,y:i,z:0};
+                            }
+                        }
+                    }
+                    
+                    x.domain(d3.range($model.n_features));
+                    
+                    svg.append("rect")
+                        .attr("class", "background")
+                        .attr("width", width)
+                        .attr("height", height);
+                
+                    var row = svg.selectAll(".row")
+                                .data(matrix)
+                                .enter().append("g")
+                                .attr("class", "row")
+                                .attr("transform", function(d, i) { return "translate(0," + x(i) + ")"; })
+                                .each(row);
+                        
+                    function row(row) {
+                        var cell = d3.select(this).selectAll(".cell")
+                        .data(row.filter(function(d) { return d.z; }))
+                        .enter().append("rect")
+                        .attr("class", "cell")
+                        .attr("x", function(d) { return x(d.x); })
+                        .attr("width", x.rangeBand())
+                        .attr("height", x.rangeBand())
+                        .style("fill-opacity", function(d) { return z(d.z); })
+                        .style("fill", function(d) { return "red"; })
+                        .on("mouseover", mouseover)
+                        .on("mouseout", mouseout);
+                    }
+                    
+                    function mouseover(p) {
+                        d3.selectAll(".row text").classed("active", function(d, i) { return i == p.y; });
+                        d3.selectAll(".column text").classed("active", function(d, i) { return i == p.x; });
+                    }
+
+                    function mouseout() {
+                        d3.selectAll("text").classed("active", false);
+                    }
+                    
+                    row.append("line")
+                        .attr("x2", width);
+
+                    row.append("text")
+                        .attr("x", -6)
+                        .attr("font-size","10px")
+                        .attr("y", x.rangeBand() / 2)
+                        .attr("dy", ".32em")
+                        .attr("text-anchor", "end")
+                        .text(function(d, i) { return $model.patient_data.patients[0].proteins[i].ID; });
+                    
+                    var column = svg.selectAll(".column")
+                                .data(matrix)
+                                .enter().append("g")
+                                .attr("class", "column")
+                                .attr("transform", function(d, i) { return "translate(" + x(i) + ")rotate(-90)"; });
+                    
+                    column.append("line")
+                        .attr("x1", -width);
+                        
+                    column.append("text")
+                        .attr("x", 6)
+                        .attr("font-size","10px")
+                        .attr("y", x.rangeBand() / 2)
+                        .attr("dy", ".32em")
+                        .attr("text-anchor", "start")
+                        .text(function(d, i) { return $model.patient_data.patients[0].proteins[i].ID; });
+
+                        
                     
                 }
                 
@@ -1100,8 +1325,10 @@ and open the template in the editor.
             $(function(){
                 
                 $model = new Model();
+                //
                 $visualization = new Visualization();
                 $visualization.add_patient_details();
+               
                 $controller = new Controller();
                 $controller.add_rppa_controls();
                 $controller.add_layout_controls();
@@ -1133,8 +1360,8 @@ and open the template in the editor.
         <div id="details" style = "float:left; width:798px; height:150px; border:2px solid #000000; position:absolute; top:680px; overflow:scroll">
           
         </div>
-        <script>
-            
-        </script>
+        <div id="heatmap" style="position:absolute; top:680px; left:950px;">
+           
+        </div>
     </body>
 </html>
