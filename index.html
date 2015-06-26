@@ -81,9 +81,12 @@ and open the template in the editor.
                 this.patient_age_quantile = [];
                 this.patient_survival_quantile = [];
                 this.pearson_correlations = [];
+                this.spearman_correlations = [];
                 this.community;
                 this.community_ids;
                 this.number_communities=0;
+                this.patient_feature_rank = [];
+                this.survival_in_distance=0;
                 
                 
                 this.patient_data = JSON.parse(data);
@@ -117,8 +120,6 @@ and open the template in the editor.
                 
                 this.recompute = function(){
                     
-                    
-                    
                     var considered_proteins = [];
                     var protein_counter=0;
                     for (var i=0;i<this.n_features;i++){
@@ -130,10 +131,20 @@ and open the template in the editor.
                     
                     compute_euclidean_distance = function(a,b){
                         
+                        
                         var sum = 0;
+                        
+                        if ($model.survival_in_distance==1){
+                           
+                            sum = sum + Math.pow($model.patient_survival_quantile[a]-$model.patient_survival_quantile[b],2);
+                            
+                            
+                        }
+ //                       console.log(sum);
                         for (var i=0;i<protein_counter;i++){
                             sum = sum+$model.protein_weights[considered_proteins[i]]*(Math.pow($model.patient_data.patients[a].proteins[considered_proteins[i]].value-$model.patient_data.patients[b].proteins[considered_proteins[i]].value,2));
                         }
+//                        console.log(sum);
                         sum=Math.sqrt(sum);
                         return(sum);
                     }
@@ -198,7 +209,7 @@ and open the template in the editor.
                         }
                     }
                     
-                    if (protein_counter>0){
+                    if (protein_counter>0 || $model.survival_in_distance==1){
                     for (var i=0;i<this.n_patients;i++){
                         neighbors = find_nearest_neighbors(i);
 //                        console.log(i+": "+neighbors);
@@ -374,7 +385,7 @@ and open the template in the editor.
                 this.compute_pearson_of_selection = function(){
                     
                     var selected = $visualization.selected;
-                   
+                    
                     mean_values = [];
                     $model.pearson_correlations = [];
                     
@@ -449,6 +460,129 @@ and open the template in the editor.
                             }
                         }
                     }
+                    
+                }
+                
+                this.compute_spearman_of_selection = function(){
+                    
+                    var selected = $visualization.selected;
+                    
+                    $model.spearman_correlations = [];
+                    
+//                    selected = [];
+//                    for (var i=0;i<$model.n_patients;i++){
+//                        selected[i]=i;
+//                    }
+                    
+                    var patient_feature_rank = [];
+                    
+                    for (var i=0;i<$model.n_patients;i++){
+                        this.patient_feature_rank[i] = [];
+                    }
+                    
+                    compare_values = function(a,b){
+                        return a-b;
+                    }
+                    
+                    temp_features = [];
+                    var value_to_rank_map;
+                    var temp_counter=1;
+                    
+                    for (var i=0;i<$model.n_features;i++){
+                      
+                        for (var k=0;k<selected.length;k++){
+                            temp_features[k] = parseFloat($model.patient_data.patients[selected[k]].proteins[i].value);
+                        }
+                        temp_features.sort(compare_values);
+                        
+                        value_to_rank_map = {};
+                        temp_counter=1;
+                        value_to_rank_map[temp_features[0]]=1;
+                        
+                        for (var k=0;k<selected.length;k++){
+                            if (temp_features[k]>temp_features[k-1]){
+                                temp_counter++;
+                                value_to_rank_map[temp_features[k]]=temp_counter;
+                            }
+                        }
+                        
+                        for (var k=0;k<selected.length;k++){
+                            this.patient_feature_rank[k][i] = value_to_rank_map[parseFloat($model.patient_data.patients[selected[k]].proteins[i].value)];
+                        }
+                    }
+                    
+                    
+                    compute_spearman_between_parameters = function(param_a, param_b, selected, patient_feature_rank){
+                        
+                        var sum = 0;
+                        
+                        for (var i=0;i<selected.length;i++){
+                            sum = sum+Math.pow((patient_feature_rank[i][param_a]-patient_feature_rank[i][param_b]),2);
+                        }
+                        
+                        spearman_correlation = 1-((6*sum)/(selected.length*(Math.pow(selected.length,2)-1)));
+                        
+                        return(spearman_correlation);
+                        
+                    }
+                    
+                    for (var i=0;i<this.n_features-1;i++){
+                        $model.spearman_correlations[i] = [];
+                        for (var k=i+1;k<this.n_features;k++){
+                            $model.spearman_correlations[i][k-i-1] = compute_spearman_between_parameters(i,k,selected, this.patient_feature_rank);
+                            
+                        }
+                    }
+                    
+                    
+                    
+                    
+                    
+                }
+                
+                this.spearman_test = function(){
+                    
+                    compare_values = function(a,b){
+                        return a-b;
+                    }
+                    
+                    for (var i=0;i<$model.n_patients;i++){
+                        $model.patient_feature_rank[i] = [];
+                    }
+                    
+                    temp_features = [];
+                    var value_to_rank_map;
+                    var temp_counter=1;
+                    for (var i=0;i<$model.n_features;i++){
+//                        console.log(i);
+                        
+                        for (var k=0;k<$model.n_patients;k++){
+                            temp_features[k] = parseFloat($model.patient_data.patients[k].proteins[i].value);
+                        }
+                        temp_features.sort(compare_values);
+                        
+                        value_to_rank_map = {};
+                        temp_counter=1;
+                        value_to_rank_map[temp_features[0]]=1;
+                        
+                        
+                        for (var k=0;k<$model.n_patients;k++){
+                            if (temp_features[k]>temp_features[k-1]){
+                                temp_counter++;
+                                value_to_rank_map[temp_features[k]]=temp_counter;
+                            }
+                        }
+                        
+                        
+                        for (var k=0;k<$model.n_patients;k++){
+                            $model.patient_feature_rank[k][i] = value_to_rank_map[parseFloat($model.patient_data.patients[k].proteins[i].value)];
+                        }
+                        
+                        
+                        
+                        
+                    }
+                    
                     
                 }
                 
@@ -683,6 +817,7 @@ and open the template in the editor.
                     if (this.selected.length>1){
                         console.log("computing pearson correlations between all parameters in selection..");
                         $model.compute_pearson_of_selection();
+                        $model.compute_spearman_of_selection();
                         $visualization.show_heatmap();
                     }
                 }
@@ -830,13 +965,13 @@ and open the template in the editor.
                             if (i!=k){
                                 
                                 if (k>i){
-                                    if ($model.pearson_correlations[i][k-i-1]>0.9 || $model.pearson_correlations[i][k-i-1]<-0.9)
+                                    if ($model.spearman_correlations[i][k-i-1]>0.9 || $model.spearman_correlations[i][k-i-1]<-0.9)
                                         matrix[i][k]={x:k,y:i,z:1};
                                     else
                                         matrix[i][k]={x:k,y:i,z:0};
                                 }
                                 else{
-                                    if ($model.pearson_correlations[k][i-k-1]>0.9 || $model.pearson_correlations[k][i-k-1]<-0.9)
+                                    if ($model.spearman_correlations[k][i-k-1]>0.9 || $model.spearman_correlations[k][i-k-1]<-0.9)
                                         matrix[i][k]={x:k,y:i,z:1};
                                     else
                                         matrix[i][k]={x:k,y:i,z:0};
@@ -1026,6 +1161,39 @@ and open the template in the editor.
                 
                 this.add_rppa_controls = function(){
                     
+                    survival_div = document.createElement('div');
+                    survival_div.setAttribute('style',"float:left; width:510px");
+                    survival_div.setAttribute('id', "survival_attraction");
+                    survival_checkbox = document.createElement('div');
+                    survival_checkbox.setAttribute('id',"add_survival");
+                    survival_checkbox.setAttribute('style', "float:left");
+                    survival_checkbox.innerHTML = "survival";
+                    checkbox_actual_wrapper = document.createElement('div');
+                    checkbox_actual_wrapper.setAttribute('style', "float:left; position:relative");
+                    checkbox_actual=document.createElement('input');
+                    checkbox_actual.setAttribute('type',"checkbox");
+                    
+                    survival_checkbox_handler2 = function(checkbox){
+                            
+                            if(checkbox.checked){
+                                console.log("jo");
+                                $model.survival_in_distance=1;
+                            }
+                            else{
+                                $model.survival_in_distance=0;
+                            }
+                            
+                    }
+                    checkbox_actual.setAttribute('onchange', "survival_checkbox_handler2(this)");
+                    checkbox_actual.setAttribute('id',"survival_checkbox");
+                    $(checkbox_actual).appendTo(checkbox_actual_wrapper);
+                    $(checkbox_actual_wrapper).appendTo(survival_checkbox);
+                    $(survival_checkbox).appendTo(survival_div);
+                    controls = document.getElementById("controls1");
+                    $(survival_div).appendTo(controls);
+            
+                    
+                    
                     for (var i=0;i<$model.n_features;i++){
                 
                         protein_div=document.createElement('div');
@@ -1039,6 +1207,8 @@ and open the template in the editor.
                         checkbox_actual_wrapper = document.createElement('div');
                         checkbox_actual_wrapper.setAttribute('style', "float:left; position:relative");
                         checkbox_actual=document.createElement('input');
+                        checkbox_actual.setAttribute('style',"position: absolute;left: 220px;");
+                        
                 
                         checkbox_handler = function(checkbox){
                             
@@ -1328,13 +1498,13 @@ and open the template in the editor.
                 //
                 $visualization = new Visualization();
                 $visualization.add_patient_details();
-               
+                $model.spearman_test();
+                $model.compute_spearman_of_selection();
                 $controller = new Controller();
                 $controller.add_rppa_controls();
                 $controller.add_layout_controls();
                 $controller.add_clinical_controls();
                 $controller.add_mouse_listener();
-                
                 setInterval(function(){ $visualization.render() }, 5);
                 
             })
