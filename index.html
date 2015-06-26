@@ -87,6 +87,7 @@ and open the template in the editor.
                 this.number_communities=0;
                 this.patient_feature_rank = [];
                 this.survival_in_distance=0;
+                this.age_in_distance=0;
                 
                 
                 this.patient_data = JSON.parse(data);
@@ -140,7 +141,10 @@ and open the template in the editor.
                             
                             
                         }
- //                       console.log(sum);
+                        
+                        if ($model.age_in_distance==1){
+                            sum = sum + Math.pow($model.patient_age_quantile[a]-$model.patient_age_quantile[b],2);
+                        }
                         for (var i=0;i<protein_counter;i++){
                             sum = sum+$model.protein_weights[considered_proteins[i]]*(Math.pow($model.patient_data.patients[a].proteins[considered_proteins[i]].value-$model.patient_data.patients[b].proteins[considered_proteins[i]].value,2));
                         }
@@ -209,7 +213,7 @@ and open the template in the editor.
                         }
                     }
                     
-                    if (protein_counter>0 || $model.survival_in_distance==1){
+                    if (protein_counter>0 || $model.survival_in_distance==1 || $model.age_in_distance==1){
                     for (var i=0;i<this.n_patients;i++){
                         neighbors = find_nearest_neighbors(i);
 //                        console.log(i+": "+neighbors);
@@ -1176,7 +1180,6 @@ and open the template in the editor.
                     survival_checkbox_handler2 = function(checkbox){
                             
                             if(checkbox.checked){
-                                console.log("jo");
                                 $model.survival_in_distance=1;
                             }
                             else{
@@ -1191,6 +1194,38 @@ and open the template in the editor.
                     $(survival_checkbox).appendTo(survival_div);
                     controls = document.getElementById("controls1");
                     $(survival_div).appendTo(controls);
+                    
+                    age_div = document.createElement('div');
+                    age_div.setAttribute('style',"float:left; width:510px");
+                    age_div.setAttribute('id', "age_attraction");
+                    age_checkbox = document.createElement('div');
+                    age_checkbox.setAttribute('id',"add_age");
+                    age_checkbox.setAttribute('style', "float:left");
+                    age_checkbox.innerHTML = "age";
+                    checkbox_actual_wrapper = document.createElement('div');
+                    checkbox_actual_wrapper.setAttribute('style', "float:left; position:relative");
+                    checkbox_actual=document.createElement('input');
+                    checkbox_actual.setAttribute('type',"checkbox");
+                    
+                    age_checkbox_handler2 = function(checkbox){
+                            
+                            if(checkbox.checked)
+                            {
+                                console.log("jo");
+                                $model.age_in_distance=1;
+                            }
+                            else{
+                                $model.age_in_distance=0;
+                            }
+                            
+                    }
+                    checkbox_actual.setAttribute('onchange', "age_checkbox_handler2(this)");
+                    checkbox_actual.setAttribute('id',"survival_checkbox");
+                    $(checkbox_actual).appendTo(checkbox_actual_wrapper);
+                    $(checkbox_actual_wrapper).appendTo(age_checkbox);
+                    $(age_checkbox).appendTo(age_div);
+                    controls = document.getElementById("controls1");
+                    $(age_div).appendTo(controls);
             
                     
                     
