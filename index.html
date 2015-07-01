@@ -6,1567 +6,369 @@ and open the template in the editor.
 -->
 <html>
     <head>
-        <title>GSoC Mockup</title>
+        <title>GSoC_tSNE</title>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.11.3.min.js"></script>
-        <script src="jquery-ui.min.js"></script>
         <script src="three.min.js"></script>
         <script type="text/javascript" src="patient_data.js"></script>
-        <script type="text/javascript" src="graph.js"></script>
-        <script type="text/javascript" src="community_detection.js"></script>
-        <script src="http://d3js.org/d3.v2.min.js?2.8.1"></script>
-        <link href="jquery-ui.css" rel="stylesheet">
-        
-        <style>
-            .ui-slider{
-                width:50px;
-                height:5px;
-                margin-top:5px;
-            }
-            .ui-slider .ui-slider-handle{
-                width: 5px;
-                height: 15px;
-                margin-left: -3px;
-                outline: none;
-            }
-            .div{
-                border: 2px solid #8AC007;
-            }
-            #slider label {
-                position: absolute;
-                margin-top: 12px;
-                font-size:12px;
-            }
-            .ui-checkbox {
-                font-size: 0.25em;
-                margin: 0.6em;
-            }
-            
-            input[type="number"] {
-                width:50px;
-            }
-           
-            table, th, td {
-                border: 1px solid black;
-                border-collapse: collapse;
-                white-space: nowrap;
-            }
-            
-        .background {
-            fill: #eee;
-        }   
-
-        line {
-            stroke: #fff;
-        }
-
-        text.active {
-            fill: red;
-        }
- 
-        </style>
-        <script>
-            
-            
-            function Model(){
-                
-                this.dots = [];
-                this.distances = [];
-                this.edges = [];
-                this.node_degree = [];
-                this.protein_weights = [];
-                this.n_nearest_connect = 0;
-                this.threshold_connect = -1;
-                this.patient_age_quantile = [];
-                this.patient_survival_quantile = [];
-                this.pearson_correlations = [];
-                this.spearman_correlations = [];
-                this.community;
-                this.community_ids;
-                this.number_communities=0;
-                this.patient_feature_rank = [];
-                this.survival_in_distance=0;
-                this.age_in_distance=0;
-                
-                
-                this.patient_data = JSON.parse(data);
-                this.n_features = this.patient_data.patients[0].proteins.length;
-                this.n_patients = this.patient_data.patients.length;
-                
-                console.log("n_patients: "+this.n_patients);
-                console.log("n_features: "+this.n_features);
-                
-                for (var i=0;i<this.n_patients-1;i++){
-                    this.distances[i]=0;
-                    for (var k=i+1;k<this.n_patients;k++){
-                        this.distances[i][k-i-1]=0;
-                    }
-                }
-                
-                for (var i=0;i<this.n_patients;i++){
-                    this.edges[i] = [];
-                    for (var k=0;k<this.n_patients;k++){
-                        this.edges[i][k]=0;
-                    }
-                }
-                
-                for (var i=0;i<this.n_patients;i++){
-                    this.node_degree[i]=0;
-                }
-                
-                for (var i=0;i<this.n_features;i++){
-                    this.protein_weights[i] = 0;
-                }
-                
-                this.recompute = function(){
-                    
-                    var considered_proteins = [];
-                    var protein_counter=0;
-                    for (var i=0;i<this.n_features;i++){
-                        if (this.protein_weights[i]!=0){
-                            considered_proteins[protein_counter]=i;
-                            protein_counter++;
-                        }
-                    }
-                    
-                    compute_euclidean_distance = function(a,b){
-                        
-                        
-                        var sum = 0;
-                        
-                        if ($model.survival_in_distance==1){
-                           
-                            sum = sum + Math.pow($model.patient_survival_quantile[a]-$model.patient_survival_quantile[b],2);
-                            
-                            
-                        }
-                        
-                        if ($model.age_in_distance==1){
-                            sum = sum + Math.pow($model.patient_age_quantile[a]-$model.patient_age_quantile[b],2);
-                        }
-                        for (var i=0;i<protein_counter;i++){
-                            sum = sum+$model.protein_weights[considered_proteins[i]]*(Math.pow($model.patient_data.patients[a].proteins[considered_proteins[i]].value-$model.patient_data.patients[b].proteins[considered_proteins[i]].value,2));
-                        }
-//                        console.log(sum);
-                        sum=Math.sqrt(sum);
-                        return(sum);
-                    }
-                    
-                    for (var i=0;i<this.n_patients-1;i++){
-                        this.distances[i] = [];
-                        for (var k=i+1;k<this.n_patients;k++){
-                            this.distances[i][k-i-1]=compute_euclidean_distance(i,k);
-                        }
-                    }
-                    
-                    find_nearest_neighbors = function(a){
-                        
-                       
-                        var temp_counter=0;
-                        var temp_distance=-1;
-                        var temp_max_distance;
-                        var temp_max_index;
-                        var nearest_distances = [];
-                        var nearest_indices = [];
-                        for (var i=0;i<$model.n_patients;i++){
-                            
-                            if (i!=a){
-                                
-                                if (i<a){
-                                    temp_distance = $model.distances[i][a-i-1];
-                                }
-                                else{
-                                    temp_distance = $model.distances[a][i-a-1];
-                                }
-                                
-                                if(temp_counter<$model.n_nearest_connect){
-                                    nearest_distances[temp_counter]=temp_distance;
-                                    nearest_indices[temp_counter]=i;
-                                    temp_counter++;
-                                }
-                                else{
-                                    temp_max_distance = nearest_distances[0];
-                                    temp_max_index = 0;
-                                    for (var k=1;k<$model.n_nearest_connect;k++){
-                                        if (nearest_distances[k]>temp_max_distance){
-                                            temp_max_distance = nearest_distances[k];
-                                            temp_max_index=k;
-                                        }
-                                    }
-                                    
-                                    if (temp_distance<temp_max_distance){
-                                        nearest_distances[temp_max_index]=temp_distance;
-                                        nearest_indices[temp_max_index]=i;
-                                    }
-                                    
-                                } 
-                            }
-                        } 
-                        return(nearest_indices);
-                    }
-                    
-                    for (var i=0;i<this.n_patients;i++){
-                        this.node_degree[i]=0;
-                        for (var k=0;k<this.n_patients;k++){
-                            this.edges[i][k]=0;
-                        }
-                    }
-                    
-                    if (protein_counter>0 || $model.survival_in_distance==1 || $model.age_in_distance==1){
-                    for (var i=0;i<this.n_patients;i++){
-                        neighbors = find_nearest_neighbors(i);
-//                        console.log(i+": "+neighbors);
-                        for (var k=0;k<neighbors.length;k++){
-                            if (neighbors[k]>i){
-                                this.edges[i][neighbors[k]-i-1]=1;
-                                this.node_degree[i]++;
-                                this.node_degree[neighbors[k]]++;
-                            }
-                            else{
-                                this.edges[neighbors[k]][i-neighbors[k]-1]=1;
-                                this.node_degree[i]++;
-                                this.node_degree[neighbors[k]]++;
-                            }
-                        }
-                    }
-                    
-                    for (var i=0;i<this.n_patients-1;i++){
-                        for (var k=i+1;k<this.n_patients;k++){
-                            if (this.distances[i][k-i-1]<this.threshold_connect){
-                                this.edges[i][k-i-1]=1;
-                            }
-                        }
-                    }
-                }
-                    
-                    
-                }
-                
-                this.compute_age_quantile = function(){
-                    
-                    var patient_age = [];
-                    
-                    compare_values = function(a,b){
-                        return a-b;
-                    }
-                    
-                    for (var i=0;i<this.n_patients;i++){
-                        patient_age[i] = parseInt(this.patient_data.patients[i].clinical.age_at_initial_pathologic_diagnosis);
-                        //patient_age[i] = 75;
-                    }
-                    
-                    patient_age.sort(compare_values);
-                    
-                    var age_to_rank_map = {};
-                    var temp_counter=1;
-                    age_to_rank_map[patient_age[0]]=1;
-                    for (var i=1;i<this.n_patients;i++){
-                        if (patient_age[i]>patient_age[i-1]){
-                            temp_counter++;
-                            age_to_rank_map[patient_age[i]]=temp_counter;
-                        }
-                    }
-                    
-                    for (var i=0;i<this.n_patients;i++){
-                        this.patient_age_quantile[i] = age_to_rank_map[this.patient_data.patients[i].clinical.age_at_initial_pathologic_diagnosis]/(Object.keys(age_to_rank_map).length+1);
-                        //this.patient_age_quantile[i] = 50;
-                    }
-                    
-                }
-                
-                this.compute_survival_quantile = function(){
-                    
-                    var patient_survival = [];
-                    
-                    compare_values = function(a,b){
-                        return a-b;
-                    }
-                    
-                    for (var i=0;i<this.n_patients;i++){
-                        patient_survival[i] = parseInt(this.patient_data.patients[i].clinical.death_days_to);
-                        //patient_survival[i] = 10000;
-                        
-                    }
-                    
-                    patient_survival.sort(compare_values);
-                    
-                    var survival_to_rank_map = {};
-                    var temp_counter=1;
-                    survival_to_rank_map[patient_survival[0]]=1;
-                    for (var i=1;i<this.n_patients;i++){
-                        if (patient_survival[i]>patient_survival[i-1]){
-                            temp_counter++;
-                            survival_to_rank_map[patient_survival[i]]=temp_counter;
-                        }
-                    }
-                    
-                    for (var i=0;i<this.n_patients;i++){
-                        this.patient_survival_quantile[i] = survival_to_rank_map[this.patient_data.patients[i].clinical.death_days_to]/(Object.keys(survival_to_rank_map).length+1);
-                        //this.patient_survival_quantile[i] = 50;
-                    }
-                    
-                }
-                
-                this.compute_communites = function(){
-                    
-                    var graph = new Graph(this.n_patients);
-                    
-                    for (var i=0;i<this.n_patients;i++){
-                        for (var k=i+1;k<this.n_patients;k++){
-                            if (this.edges[i][k-i-1]==1){
-                                graph.add_edge(i,k);
-                            }
-                        }
-                    }
-                    graph.compute_weights();
-                    graph.compute_node_neighbors();
-                    this.community = new Community(graph);
-                    this.community.modularity();
-                    this.community.iteration();
-                    
-                    var all_communities = [];
-            
-                    var number_communities = 0;
-                    var community_found=false;
-                    var tmp_community;
-                    for (var i=0;i<this.n_patients;i++){
-                        community_found=false;
-                        //console.log(i+": "+community.community_of_node[i]);
-                        tmp_community=this.community.community_of_node[i];
-                        for (var k=0;k<number_communities;k++){
-                            if (all_communities[k]==tmp_community){
-                                community_found=true;
-                            }
-                        }
-                        if (!community_found){
-                        all_communities[number_communities]=tmp_community;
-                        number_communities++;
-                        // console.log("its new.. got "+number_communities);
-                    }
-                
-                    }   
-                    console.log(number_communities+" cluster");
-                    this.number_communities = number_communities;
-                    this.community_ids = all_communities;
-                }
-                
-                this.compute_parameter_quantile = function(which_param){
-                    
-                    var patient_value = [];
-                    var patient_quantile = [];
-                    
-                    compare_values = function(a,b){
-                        return a-b;
-                    }
-                    
-                    for (var i=0;i<$model.n_patients;i++){
-                        patient_value[i] = parseFloat($model.patient_data.patients[i].proteins[which_param].value);
-                    }
-                    
-                    patient_value.sort(compare_values);
-                    
-                    var value_to_rank_map = {};
-                    var temp_counter=1;
-                    value_to_rank_map[patient_value[0]]=1;
-                    
-                    for (var i=1;i<$model.n_patients;i++){
-                        if (patient_value[i]>patient_value[i-1]){
-                            temp_counter++;
-                            value_to_rank_map[patient_value[i]]=temp_counter;
-                        }
-                    }
-                    
-                    for (var i=0;i<$model.n_patients;i++){
-                        patient_quantile[i] = value_to_rank_map[parseFloat($model.patient_data.patients[i].proteins[which_param].value)]/(Object.keys(value_to_rank_map).length+1);
-                        //this.patient_age_quantile[i] = 50;
-                    }
-                    
-                    return(patient_quantile);
-                    
-                }
-                
-                this.compute_pearson_of_selection = function(){
-                    
-                    var selected = $visualization.selected;
-                    
-                    mean_values = [];
-                    $model.pearson_correlations = [];
-                    
-                    compute_pearson_between_variables = function(param_a, param_b, selected){
-                        
-                        sum1=0;
-                        sum2=0;
-                        sum3=0;
-                        for (var i=0;i<selected.length;i++){
-                            sum1=sum1+((parseFloat($model.patient_data.patients[selected[i]].proteins[param_a].value)-this.mean_values[param_a])*(parseFloat($model.patient_data.patients[selected[i]].proteins[param_b].value)-this.mean_values[param_b]));
-                            sum2=sum2+Math.pow((parseFloat($model.patient_data.patients[selected[i]].proteins[param_a].value)-this.mean_values[param_a]),2);
-                            sum3=sum3+Math.pow((parseFloat($model.patient_data.patients[selected[i]].proteins[param_b].value)-this.mean_values[param_b]),2);
-                            
-                        }
-                        
-                        denominator = Math.sqrt(sum2*sum3);
-                        
-                        correlation_coefficient = sum1/denominator;
-                        
-                        return(correlation_coefficient);
-                        
-                    }
-                    
-                    compute_mean_of_parameter = function(parameter, selected){
-                        
-                        sum=0;
-                        
-                        for (var i=0;i<selected.length;i++){
-                            sum=sum+parseFloat($model.patient_data.patients[selected[i]].proteins[parameter].value);
-                            
-                        }
-                        
-                        sum = sum/selected.length;
-                        return(sum);
-                    }
-                    
-                    for (var i=0;i<this.n_features;i++){
-                        mean_values[i] = compute_mean_of_parameter(i, selected);
-                    }              
-                    
-                    
-                    var max_correlations = [];
-                    var max_correlations_row_indices = [];
-                    var max_correlations_column_indices = [];
-                    var max_counter=0;
-                    var temp_min;
-                    var temp_min_index;
-                    var top_k=500;
-                    for (var i=0;i<this.n_features-1;i++){
-                        $model.pearson_correlations[i] = [];
-                        for (var k=i+1;k<this.n_features;k++){
-                            $model.pearson_correlations[i][k-i-1] = compute_pearson_between_variables(i,k,selected);
-                            if (max_counter<top_k){
-                                max_correlations[max_counter] = $model.pearson_correlations[i][k-i-1];
-                                max_correlations_row_indices[max_counter] = i;
-                                max_correlations_column_indices[max_counter] = k;
-                                max_counter++;
-                            }
-                            else{
-                                temp_min=2;
-                                for (var j=0;j<top_k;j++){
-                                    if (max_correlations[j]<temp_min){
-                                        temp_min=max_correlations[j];
-                                        temp_min_index=j;
-                                    }
-                                }
-                                if ($model.pearson_correlations[i][k-i-1]>temp_min){
-                                    max_correlations[temp_min_index] = $model.pearson_correlations[i][k-i-1];
-                                    max_correlations_row_indices[temp_min_index]=i;
-                                    max_correlations_column_indices[temp_min_index]=k;
-                                }
-                            }
-                        }
-                    }
-                    
-                }
-                
-                this.compute_spearman_of_selection = function(){
-                    
-                    var selected = $visualization.selected;
-                    
-                    $model.spearman_correlations = [];
-                    
-//                    selected = [];
-//                    for (var i=0;i<$model.n_patients;i++){
-//                        selected[i]=i;
-//                    }
-                    
-                    var patient_feature_rank = [];
-                    
-                    for (var i=0;i<$model.n_patients;i++){
-                        this.patient_feature_rank[i] = [];
-                    }
-                    
-                    compare_values = function(a,b){
-                        return a-b;
-                    }
-                    
-                    temp_features = [];
-                    var value_to_rank_map;
-                    var temp_counter=1;
-                    
-                    for (var i=0;i<$model.n_features;i++){
-                      
-                        for (var k=0;k<selected.length;k++){
-                            temp_features[k] = parseFloat($model.patient_data.patients[selected[k]].proteins[i].value);
-                        }
-                        temp_features.sort(compare_values);
-                        
-                        value_to_rank_map = {};
-                        temp_counter=1;
-                        value_to_rank_map[temp_features[0]]=1;
-                        
-                        for (var k=0;k<selected.length;k++){
-                            if (temp_features[k]>temp_features[k-1]){
-                                temp_counter++;
-                                value_to_rank_map[temp_features[k]]=temp_counter;
-                            }
-                        }
-                        
-                        for (var k=0;k<selected.length;k++){
-                            this.patient_feature_rank[k][i] = value_to_rank_map[parseFloat($model.patient_data.patients[selected[k]].proteins[i].value)];
-                        }
-                    }
-                    
-                    
-                    compute_spearman_between_parameters = function(param_a, param_b, selected, patient_feature_rank){
-                        
-                        var sum = 0;
-                        
-                        for (var i=0;i<selected.length;i++){
-                            sum = sum+Math.pow((patient_feature_rank[i][param_a]-patient_feature_rank[i][param_b]),2);
-                        }
-                        
-                        spearman_correlation = 1-((6*sum)/(selected.length*(Math.pow(selected.length,2)-1)));
-                        
-                        return(spearman_correlation);
-                        
-                    }
-                    
-                    for (var i=0;i<this.n_features-1;i++){
-                        $model.spearman_correlations[i] = [];
-                        for (var k=i+1;k<this.n_features;k++){
-                            $model.spearman_correlations[i][k-i-1] = compute_spearman_between_parameters(i,k,selected, this.patient_feature_rank);
-                            
-                        }
-                    }
-                    
-                    
-                    
-                    
-                    
-                }
-                
-                this.spearman_test = function(){
-                    
-                    compare_values = function(a,b){
-                        return a-b;
-                    }
-                    
-                    for (var i=0;i<$model.n_patients;i++){
-                        $model.patient_feature_rank[i] = [];
-                    }
-                    
-                    temp_features = [];
-                    var value_to_rank_map;
-                    var temp_counter=1;
-                    for (var i=0;i<$model.n_features;i++){
-//                        console.log(i);
-                        
-                        for (var k=0;k<$model.n_patients;k++){
-                            temp_features[k] = parseFloat($model.patient_data.patients[k].proteins[i].value);
-                        }
-                        temp_features.sort(compare_values);
-                        
-                        value_to_rank_map = {};
-                        temp_counter=1;
-                        value_to_rank_map[temp_features[0]]=1;
-                        
-                        
-                        for (var k=0;k<$model.n_patients;k++){
-                            if (temp_features[k]>temp_features[k-1]){
-                                temp_counter++;
-                                value_to_rank_map[temp_features[k]]=temp_counter;
-                            }
-                        }
-                        
-                        
-                        for (var k=0;k<$model.n_patients;k++){
-                            $model.patient_feature_rank[k][i] = value_to_rank_map[parseFloat($model.patient_data.patients[k].proteins[i].value)];
-                        }
-                        
-                        
-                        
-                        
-                    }
-                    
-                    
-                }
-                
-                this.compute_age_quantile();
-                this.compute_survival_quantile();
-                
-                
-            }
-            
-            function Visualization() {
-                
-                this.scene = new THREE.Scene();
-                this.width = 800;
-                this.height = 650;
-            
-                this.canvas = document.createElement('canvas');
-                document.getElementById('visualz').appendChild(this.canvas);
-                this.canvas.setAttribute('style', "position: absolute; top: 10px; left: 10px; float:left");
-                document.body.appendChild(this.canvas);
-            
-                this.renderer = new THREE.WebGLRenderer({canvas: this.canvas,  antialiasing: true });
-                this.renderer.setSize(this.width, this.height);
-            
-                this.camera_parameter=30;
-                this.camera = new THREE.OrthographicCamera( this.width*this.camera_parameter / - 2, this.width*this.camera_parameter / 2, this.height*this.camera_parameter / 2, this.height*this.camera_parameter / - 2, - 500, 1000 );
-                this.camera.position.x = 0;
-                this.camera.position.y = 0;
-                this.camera.position.z = 100;
-                
-                this.geometry = new THREE.SphereGeometry(200,0,0);
-                
-                for (var i=0;i<$model.n_patients;i++){
-                    
-                    this.material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0.6, 0  ) } );
-                    
-                   // this.material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0.7, 0  ) } );
-                    $model.dots[i] = new THREE.Mesh( this.geometry, this.material);
-                    random_x = (Math.random() * this.camera_parameter*750/3) - this.camera_parameter*390/3;
-                    random_y = (Math.random() * this.camera_parameter*580/3) - this.camera_parameter*280/3;
-                  
-                    $model.dots[i].position.x = random_x;
-                    $model.dots[i].position.y = random_y;
-                    
-                    
-                    this.scene.add($model.dots[i]);
-                    
-                }
-                
-                this.render = function(){
-                    $controller.update();
-                    
-                    this.renderer.render( this.scene, this.camera );
-                }
-                
-                this.color_age = function(){
-                    
-                    compute_patient_color = function(index){
-                        
-                        color = [];
-                        
-                        var r=0;
-                        var g=0;
-                        var b=0;
-                        
-                        quantile_age = $model.patient_age_quantile[index];
-                        quantile_age = 1-quantile_age;
-                        if (quantile_age<0.3){
-                            b = quantile_age/0.3;
-                        }
-                        else if(quantile_age<0.6){
-                            g = (quantile_age-0.3)/0.3;
-                            b = (-quantile_age+0.6)/0.3;
-                        }
-                        else{
-                            r = (quantile_age-0.6)/0.4;
-                            g = (-quantile_age+1)/0.4;
-                        }
-                        
-                        color[0]=r;
-                        color[1]=g;
-                        color[2]=b;
-                        
-                        
-                        
-                        return(color);
-                        
-                    }
-                    
-                    for (var i=0;i<$model.n_patients;i++){
-                        
-                        color = compute_patient_color(i);
-                        console.log(color[0]+"; "+color[1]+"; "+color[2]);
-                        $model.dots[i].material.color = new THREE.Color(color[0],color[1],color[2]); 
-                    }
-                    
-                }
-                
-                this.color_survival = function(){
-                    
-                    compute_patient_color = function(index){
-                        
-                        color = [];
-                        
-                        var r=0;
-                        var g=0;
-                        var b=0;
-                        
-                        quantile_survival = $model.patient_survival_quantile[index];
-                        quantile_survival = 1-quantile_survival;
-                        if (quantile_survival<0.3){
-                            b = quantile_survival/0.3;
-                        }
-                        else if(quantile_survival<0.6){
-                            g = (quantile_survival-0.3)/0.3;
-                            b = (-quantile_survival+0.6)/0.3;
-                        }
-                        else{
-                            r = (quantile_survival-0.6)/0.4;
-                            g = (-quantile_survival+1)/0.4;
-                        }
-                        
-                        color[0]=r;
-                        color[1]=g;
-                        color[2]=b;
-                        
-                        
-                        
-                        return(color);
-                        
-                    }
-                    
-                    for (var i=0;i<$model.n_patients;i++){
-                        
-                        color = compute_patient_color(i);
-                        
-                        $model.dots[i].material.color = new THREE.Color(color[0],color[1],color[2]); 
-                    }
-                    
-                }
-                
-                this.show_communites = function(){
-                    
-                    $model.compute_communites();
-                    
-                    var colors = [];
-                    
-                    for (var i=0;i<$model.number_communities;i++){
-                        colors[$model.community_ids[i]] = [];
-                        colors[$model.community_ids[i]][0]=Math.random()+0.3;
-                        colors[$model.community_ids[i]][1]=Math.random()+0.3;
-                        colors[$model.community_ids[i]][2]=Math.random()+0.3;
-                    }
-                    
-                    for (var i=0;i<$model.n_patients;i++){
-                        
-                        $model.dots[i].material.color = new THREE.Color(colors[$model.community.community_of_node[i]][0],colors[$model.community.community_of_node[i]][1],colors[$model.community.community_of_node[i]][2]); 
-                    }
-                    
-                    
-                }
-                
-                this.default_color = function(redraw_scene){
-                    
-                    if (!redraw_scene){
-                        for (var i=0;i<$model.n_patients;i++){
-                            $model.dots[i].material.color = new THREE.Color(0,0.7,0); 
-                        }
-                    }
-                    else{
-                       
-                        delete $visualization.scene;
-                        $visualization.scene = new THREE.Scene();
-                        for (var i=0;i<$model.n_patients;i++){
-                            $model.dots[i].material.color = new THREE.Color(0,0.7,0); 
-                            $visualization.scene.add($model.dots[i]);
-                        }
-                    }
-                    
-                }
-                
-                this.add_patient_details = function(){
-                    
-                    patient_details_div = document.createElement('div');
-                    patient_details_div.setAttribute('id', "patient_details");
-                    patient_details_div.setAttribute('style', "float:left; width:800px");
-                    
-                    patient_table = document.createElement('table');
-                    patient_table.setAttribute('id',"patient_table");
-                    
-                    patient_details_div.appendChild(patient_table);
-                    
-                    
-                    document.getElementById('details').appendChild(patient_details_div);
-                    
-                    row = document.getElementById('patient_table').insertRow(0);
-                    
-                    var cells = [];
-                    
-                    for (var i=0;i<$model.n_features+1;i++){
-                        cells[i] = row.insertCell(i);
-                    }  
-                    cells[0].innerHTML ="Patient ID";
-                    
-                    for (var i=0;i<$model.n_features;i++){
-                        cells[i+1].innerHTML = $model.patient_data.patients[0].proteins[i].ID;
-                    }
-                    
-                    
-                }
-                
-                this.details_string="";
-                this.selected = [];
-                
-                this.add_patient_to_details_box = function(index){
-                    
-                    this.details_string=this.details_string.concat("Patient "+index+": "+"</br>");
-                    this.selected[this.selected.length]=index;
-                    
-                    row = document.getElementById('patient_table').insertRow(1);
-                    
-                    var cells = [];
-                    
-                    for (var i=0;i<$model.n_features+1;i++){
-                        cells[i] = row.insertCell(i);
-                    }  
-                    cells[0].innerHTML ="patient "+index;
-                    
-                    for (var i=0;i<$model.n_features;i++){
-                        cells[i+1].innerHTML = $model.patient_data.patients[index].proteins[i].value;
-                        
-                    }
-                    if (this.selected.length>1){
-                        console.log("computing pearson correlations between all parameters in selection..");
-                        $model.compute_pearson_of_selection();
-                        $model.compute_spearman_of_selection();
-                        $visualization.show_heatmap();
-                    }
-                }
-                
-                this.compute_parzen = function(which_param){
-                    
-                    delete $visualization.scene;
-                    $visualization.scene = new THREE.Scene();
-                    
-                    patient_quantiles = $model.compute_parameter_quantile(which_param);
-                    
-                    var numberBoxesPerRow=300;
-                    var boxesAroundPoint=60;
-                    var kernel = [];
-                    for (var i=0;i<boxesAroundPoint;i++){
-                        kernel[i] = [];
-                    }
-                    var ycoord=-boxesAroundPoint/2+0.5;
-                    var xcoord=-boxesAroundPoint/2+0.5;
-                    var gamma=4;
-                    var row=0;
-                    var coloumn=0;
-                    for (var i=0;i<boxesAroundPoint;i++){
-                        xcoord=-boxesAroundPoint/2+0.5;
-                        column=0;
-                        for (var k=0;k<boxesAroundPoint;k++){
-                            value=(1/(2*Math.PI*Math.pow(gamma,2)))*Math.exp(-((Math.pow(xcoord,2)+Math.pow(ycoord,2))/(2*Math.pow(gamma,2))));
-                            kernel[row][column]=value;
-                            xcoord+=1;
-                            column++;
-                        }
-                        row++;
-                        ycoord+=1;
-                    }
-                    
-                    
-                    var stepSize=($visualization.width*$visualization.camera_parameter)/numberBoxesPerRow;
-            
-                    var allCells = [];
-                    var allCellsCounter = [];
-                    for (var i=0;i<numberBoxesPerRow;i++){
-                        allCells[i]=[];
-                        allCellsCounter[i] = [];
-                        for (var k=0;k<numberBoxesPerRow;k++){
-                            allCells[i][k]=0;
-                            allCellsCounter[i][k]=1;
-                        }
-                    }
-                    
-                    var max=0;
-                    for (var p=0;p<$model.dots.length;p++){
-                        var startx=Math.floor((($model.dots[p].position.x+(($visualization.width*$visualization.camera_parameter)/2))-(stepSize*boxesAroundPoint/2))/stepSize);
-                        var starty=Math.floor((($model.dots[p].position.y+(($visualization.width*$visualization.camera_parameter)/2))-(stepSize*boxesAroundPoint/2))/stepSize);
-                        var tempx=startx;
-                        var tempy=starty;
-                        
-                        for (var i=0;i<boxesAroundPoint;i++){
-                            tempx=startx;
-                            for (var k=0;k<boxesAroundPoint;k++){
-                                if (tempx>0 && tempx<numberBoxesPerRow && tempy>0 && tempy<numberBoxesPerRow ){
-                                    allCells[tempx][tempy]+=kernel[i][k]*(patient_quantiles[p]);
-                                    allCellsCounter[tempx][tempy]+=1;
-                                    if (allCells[tempx][tempy]>max){
-                                        max=allCells[tempx][tempy];
-                                    }
-                                }
-                                tempx++;
-                            }
-                            tempy++;
-                        } 
-                    }
-                    
-                    max=0;
-                    for (var i=0;i<numberBoxesPerRow;i++){
-                        for (var k=0;k<numberBoxesPerRow;k++){
-                            allCells[i][k]=allCells[i][k]/allCellsCounter[i][k];
-                            if (allCells[i][k]>max){
-                                max=allCells[i][k];
-                            }
-                        }
-                    }
-                    
-                    
-                    
-                    
-                    var geometry = new THREE.BoxGeometry(stepSize,stepSize,0);
-                    var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 1, 0, 0 ) } );
-                    var box = new THREE.Mesh( geometry, material );
-                    var scaled_value=0;
-                    
-                    for (var i=0;i<numberBoxesPerRow;i++){
-                        for (var k=0;k<numberBoxesPerRow;k++){
-                            if (allCells[i][k]!=0){
-                                scaled_value=allCells[i][k]/max;
-                                r=0;
-                                g=0;
-                                b=0;
-                                if (scaled_value<0.1){
-                                    b = scaled_value/0.1;
-                                }
-                                else if(scaled_value<0.4){
-                                    g = (scaled_value-0.1)/0.3;
-                                    b = (-scaled_value+0.4)/0.3;
-                                }
-                                else{
-                                    r = (scaled_value-0.4)/0.6;
-                                    g = (-scaled_value+1)/0.6;
-                                }
-                                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color(r , g, b ) } );
-                                var box = new THREE.Mesh( geometry, material );
-                                box.position.x=i*stepSize+0.5*stepSize-($visualization.width*$visualization.camera_parameter)/2;
-                                box.position.y=k*stepSize+0.5*stepSize-($visualization.width*$visualization.camera_parameter)/2;
-                                $visualization.scene.add(box);
-                            }
-                        }
-                    }
-                    
-                    
-                }
-                
-                this.show_heatmap = function(){
-                    
-                    var margin = {top: 80, right: 0, bottom: 10, left: 80},
-                                width = 1500,
-                                height = 1500;
-                    
-                    var x = d3.scale.ordinal().rangeBands([0, width]),
-                        z = d3.scale.linear().domain([0, 4]).clamp(true),
-                        c = d3.scale.category10().domain(d3.range(10));
-                
-                    $("#heatmap").html("");
-                    
-                    var svg = d3.select("#heatmap").append("svg")
-                                .attr("width", width + margin.left + margin.right)
-                                .attr("height", height + margin.top + margin.bottom)
-                                .style("margin-left", -margin.left + "px")
-                                .append("g")
-                                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-                    var matrix = [];
-                    
-                    var counter=0;
-                    for (var i=0;i<$model.n_features;i++){
-                        matrix[i] = [];
-                        for (var k=0;k<$model.n_features;k++){
-                            if (i!=k){
-                                
-                                if (k>i){
-                                    if ($model.spearman_correlations[i][k-i-1]>0.9 || $model.spearman_correlations[i][k-i-1]<-0.9)
-                                        matrix[i][k]={x:k,y:i,z:1};
-                                    else
-                                        matrix[i][k]={x:k,y:i,z:0};
-                                }
-                                else{
-                                    if ($model.spearman_correlations[k][i-k-1]>0.9 || $model.spearman_correlations[k][i-k-1]<-0.9)
-                                        matrix[i][k]={x:k,y:i,z:1};
-                                    else
-                                        matrix[i][k]={x:k,y:i,z:0};
-                                }
-                                
-                            }
-                            else{
-                                matrix[i][k]={x:k,y:i,z:0};
-                            }
-                        }
-                    }
-                    
-                    x.domain(d3.range($model.n_features));
-                    
-                    svg.append("rect")
-                        .attr("class", "background")
-                        .attr("width", width)
-                        .attr("height", height);
-                
-                    var row = svg.selectAll(".row")
-                                .data(matrix)
-                                .enter().append("g")
-                                .attr("class", "row")
-                                .attr("transform", function(d, i) { return "translate(0," + x(i) + ")"; })
-                                .each(row);
-                        
-                    function row(row) {
-                        var cell = d3.select(this).selectAll(".cell")
-                        .data(row.filter(function(d) { return d.z; }))
-                        .enter().append("rect")
-                        .attr("class", "cell")
-                        .attr("x", function(d) { return x(d.x); })
-                        .attr("width", x.rangeBand())
-                        .attr("height", x.rangeBand())
-                        .style("fill-opacity", function(d) { return z(d.z); })
-                        .style("fill", function(d) { return "red"; })
-                        .on("mouseover", mouseover)
-                        .on("mouseout", mouseout);
-                    }
-                    
-                    function mouseover(p) {
-                        d3.selectAll(".row text").classed("active", function(d, i) { return i == p.y; });
-                        d3.selectAll(".column text").classed("active", function(d, i) { return i == p.x; });
-                    }
-
-                    function mouseout() {
-                        d3.selectAll("text").classed("active", false);
-                    }
-                    
-                    row.append("line")
-                        .attr("x2", width);
-
-                    row.append("text")
-                        .attr("x", -6)
-                        .attr("font-size","10px")
-                        .attr("y", x.rangeBand() / 2)
-                        .attr("dy", ".32em")
-                        .attr("text-anchor", "end")
-                        .text(function(d, i) { return $model.patient_data.patients[0].proteins[i].ID; });
-                    
-                    var column = svg.selectAll(".column")
-                                .data(matrix)
-                                .enter().append("g")
-                                .attr("class", "column")
-                                .attr("transform", function(d, i) { return "translate(" + x(i) + ")rotate(-90)"; });
-                    
-                    column.append("line")
-                        .attr("x1", -width);
-                        
-                    column.append("text")
-                        .attr("x", 6)
-                        .attr("font-size","10px")
-                        .attr("y", x.rangeBand() / 2)
-                        .attr("dy", ".32em")
-                        .attr("text-anchor", "start")
-                        .text(function(d, i) { return $model.patient_data.patients[0].proteins[i].ID; });
-
-                        
-                    
-                }
-                
-            }
-            
-            function Controller(){
-                
-                this.update = function(){
-                    
-                    var max_x=0;
-                    var max_y=0;
-                    var max_index=-1;
-                    var max_pos=0;
-                    
-                    var Fr = 0;
-                    var Fa = 0;
-                    var Fg = 0;
-                    var distance = 0;
-                    var kr = -600;
-                    var kg = 0.002;
-                    var Ftotal = 0;
-                    var vector_between_x;
-                    var vector_between_y;
-                    var gravity_vector_x;
-                    var gravity_vector_y;
-                    var gravity_vector_length;
-                    var velocity;
-                    
-                    for (var i=0;i<$model.n_patients;i++){
-                        for (var k=i+1;k<$model.n_patients;k++){
-                            distance = Math.sqrt(Math.pow(($model.dots[i].position.x-$model.dots[k].position.x),2)+Math.pow(($model.dots[i].position.y-$model.dots[k].position.y),2));
-                            vector_between_x = $model.dots[i].position.x-$model.dots[k].position.x;
-                            vector_between_y = $model.dots[i].position.y-$model.dots[k].position.y;
-                            vector_between_x = vector_between_x/distance;
-                            vector_between_y = vector_between_y/distance;
-                            
-                            //compute Fr as suggested in the paper
-                            Fr = kr*(4/distance);
-                            
-                            //if the two patients are similar comptue Fa, else set Fa=0
-                            if ($model.edges[i][k-i-1]==1){
-                                Fa = 1.5*Math.log((1+distance));
-                            }
-                            else{
-                                Fa=0;
-                            }
-                            Ftotal = Fr + Fa;
-                        
-                            //set new positions
-                            $model.dots[k].position.x=$model.dots[k].position.x+vector_between_x*Ftotal*0.8;
-                            $model.dots[k].position.y=$model.dots[k].position.y+vector_between_y*Ftotal*0.8;
-                
-                            $model.dots[i].position.x=$model.dots[i].position.x-vector_between_x*Ftotal*0.8;
-                            $model.dots[i].position.y=$model.dots[i].position.y-vector_between_y*Ftotal*0.8;
-                       
-                    }
-                }
-                //finally go over all nodes and compute the gravity
-                for (var i=0;i<$model.n_patients;i++){
-                    gravity_vector_x=-$model.dots[i].position.x;
-                    gravity_vector_y=-$model.dots[i].position.y;
-                    
-                    gravity_vector_length=Math.sqrt(Math.pow(gravity_vector_x,2)+Math.pow(gravity_vector_y,2));
-                    
-                    
-                    if ($model.n_nearest_connect>0)
-                    Fg = (kg/Math.log($model.n_nearest_connect+1))*($model.node_degree[i]+1)*gravity_vector_length;
-                    else{
-                    Fg = (kg/1)*($model.node_degree[i]+1)*gravity_vector_length;
-                    }
-                    
-                    gravity_vector_x=gravity_vector_x/gravity_vector_length;
-                    gravity_vector_y=gravity_vector_y/gravity_vector_length;
-                    $model.dots[i].position.x=$model.dots[i].position.x+gravity_vector_x*Fg*0.8;
-                    $model.dots[i].position.y=$model.dots[i].position.y+gravity_vector_y*Fg*0.8;
-                    
-                    if (Math.abs($model.dots[i].position.x)>max_x){
-                        max_index = i;
-                        max_x=Math.abs($model.dots[i].position.x);
-                    }
-                    if (Math.abs($model.dots[i].position.y)>max_y){
-                        max_y=Math.abs($model.dots[i].position.y);
-                    }
-                }
-                //console.log("max: "+max_x+"; "+max_index);
-                var new_cam_x;
-                var new_cam_y;
-                var new_cam=-1;
-                
-                new_cam_x=((max_x+400)/$visualization.width)*2;
-                new_cam_y=((max_y+400)/$visualization.height)*2;
-                
-                if (new_cam_x>new_cam_y){
-                    new_cam=new_cam_x;
-                }
-                else{
-                    new_cam=new_cam_y;
-                }
-                
-                if (new_cam!=$visualization.camera_parameter ){
-                    $visualization.camera_parameter=new_cam;
-                    $visualization.camera.top=new_cam*$visualization.height/2;
-                    $visualization.camera.right=new_cam*$visualization.width/2;
-                    $visualization.camera.left=new_cam*$visualization.width/-2;
-                    $visualization.camera.bottom=new_cam*$visualization.height/-2;
-                    $visualization.camera.updateProjectionMatrix();
-                }   
-                }
-                
-                this.add_rppa_controls = function(){
-                    
-                    survival_div = document.createElement('div');
-                    survival_div.setAttribute('style',"float:left; width:510px");
-                    survival_div.setAttribute('id', "survival_attraction");
-                    survival_checkbox = document.createElement('div');
-                    survival_checkbox.setAttribute('id',"add_survival");
-                    survival_checkbox.setAttribute('style', "float:left");
-                    survival_checkbox.innerHTML = "survival";
-                    checkbox_actual_wrapper = document.createElement('div');
-                    checkbox_actual_wrapper.setAttribute('style', "float:left; position:relative");
-                    checkbox_actual=document.createElement('input');
-                    checkbox_actual.setAttribute('type',"checkbox");
-                    
-                    survival_checkbox_handler2 = function(checkbox){
-                            
-                            if(checkbox.checked){
-                                $model.survival_in_distance=1;
-                            }
-                            else{
-                                $model.survival_in_distance=0;
-                            }
-                            
-                    }
-                    checkbox_actual.setAttribute('onchange', "survival_checkbox_handler2(this)");
-                    checkbox_actual.setAttribute('id',"survival_checkbox");
-                    $(checkbox_actual).appendTo(checkbox_actual_wrapper);
-                    $(checkbox_actual_wrapper).appendTo(survival_checkbox);
-                    $(survival_checkbox).appendTo(survival_div);
-                    controls = document.getElementById("controls1");
-                    $(survival_div).appendTo(controls);
-                    
-                    age_div = document.createElement('div');
-                    age_div.setAttribute('style',"float:left; width:510px");
-                    age_div.setAttribute('id', "age_attraction");
-                    age_checkbox = document.createElement('div');
-                    age_checkbox.setAttribute('id',"add_age");
-                    age_checkbox.setAttribute('style', "float:left");
-                    age_checkbox.innerHTML = "age";
-                    checkbox_actual_wrapper = document.createElement('div');
-                    checkbox_actual_wrapper.setAttribute('style', "float:left; position:relative");
-                    checkbox_actual=document.createElement('input');
-                    checkbox_actual.setAttribute('type',"checkbox");
-                    
-                    age_checkbox_handler2 = function(checkbox){
-                            
-                            if(checkbox.checked)
-                            {
-                                console.log("jo");
-                                $model.age_in_distance=1;
-                            }
-                            else{
-                                $model.age_in_distance=0;
-                            }
-                            
-                    }
-                    checkbox_actual.setAttribute('onchange', "age_checkbox_handler2(this)");
-                    checkbox_actual.setAttribute('id',"survival_checkbox");
-                    $(checkbox_actual).appendTo(checkbox_actual_wrapper);
-                    $(checkbox_actual_wrapper).appendTo(age_checkbox);
-                    $(age_checkbox).appendTo(age_div);
-                    controls = document.getElementById("controls1");
-                    $(age_div).appendTo(controls);
-            
-                    
-                    
-                    for (var i=0;i<$model.n_features;i++){
-                
-                        protein_div=document.createElement('div');
-                        protein_div.setAttribute('style', "float:left; width:510px");
-                        protein_div.setAttribute('id', "protein"+i);
-                
-                        checkbox_div=document.createElement('div');
-                        checkbox_div.setAttribute('id',"checkbox_protein");
-                        checkbox_div.setAttribute('style', "float:left; ");
-                        checkbox_div.innerHTML=$model.patient_data.patients[0].proteins[i].ID;
-                        checkbox_actual_wrapper = document.createElement('div');
-                        checkbox_actual_wrapper.setAttribute('style', "float:left; position:relative");
-                        checkbox_actual=document.createElement('input');
-                        checkbox_actual.setAttribute('style',"position: absolute;left: 220px;");
-                        
-                
-                        checkbox_handler = function(checkbox){
-                            
-                            if(checkbox.checked){
-                                $('#slider'+checkbox.id).slider("value", 100);
-                                $model.recompute();
-                            }
-                            else{
-                                $('#slider'+checkbox.id).slider("value", 0); 
-                                $model.recompute();
-                            }
-                            
-                        }
-                
-                        checkbox_actual.setAttribute('onchange', "checkbox_handler(this)");
-                        checkbox_actual.setAttribute('type',"checkbox");
-                        checkbox_actual.setAttribute('id',i);
-            
-                        checkbox_actual.setAttribute('style',"position: absolute;left: 220px;");
-                
-                        $(checkbox_actual).appendTo(checkbox_actual_wrapper);
-                        $(checkbox_actual_wrapper).appendTo(checkbox_div);
-                
-                        weight_div_wrapper = document.createElement('div');
-                        weight_div_wrapper.setAttribute('style', "position:relative");
-                        weight_div = document.createElement('div');
-                        weight_div.setAttribute('style', "position:absolute; left: 260px;" );
-                        weight_div.innerHTML="weight: ";
-                
-                        slider_div = document.createElement('div');
-                        slider_div.setAttribute('id', "slider"+i);
-                        slider_div.setAttribute('style', "position:absolut; left:320px");
-                
-                        $(checkbox_div).appendTo(protein_div);
-                        $(weight_div).appendTo(weight_div_wrapper);
-                        $(weight_div_wrapper).appendTo(protein_div);
-                        $(slider_div).appendTo(protein_div);
-                
-                        controls = document.getElementById("controls1");
-                        
-                        parzen_div_wrapper = document.createElement('div');
-                        parzen_div_wrapper.setAttribute('style', "position:relative");
-                        parzen_div = document.createElement('div');
-                        parzen_div.innerHTML="show density";
-                        parzen_div.setAttribute('style',"position:absolute; left:380px; margin-top:-13px");
-                        
-                        parzen_checkbox_handler = function(checkbox){
-                            
-                            if(checkbox.checked){
-                                
-                                $visualization.compute_parzen(checkbox.id.substring(6,7));
-                            }
-                            else{
-                                $visualization.default_color(true);
-                            }
-                            
-                        }
-                        
-                        parzen_checkbox = document.createElement('input');
-                        parzen_checkbox.setAttribute('type',"checkbox");
-                        parzen_checkbox.setAttribute('style',"position:absolute; left:470px; margin-top:-9px");
-                        parzen_checkbox.setAttribute('id', "parzen"+i);
-                        
-                        parzen_checkbox.setAttribute('onchange', "parzen_checkbox_handler(this)");
-                        $(parzen_checkbox).appendTo(parzen_div_wrapper);
-                        $(parzen_div).appendTo(parzen_div_wrapper);
-                        $(parzen_div_wrapper).appendTo(protein_div);
-                        
-                        $(protein_div).appendTo(controls);
-                
-                        $( "#slider"+i ).slider({
-                            change: function( event, ui ) {
-                                var number = event.target.id.substring(6,(event.target.id.length));
-                                
-                            //    console.log(event.target.id+": "+ui.value);
-                                $model.protein_weights[number] = ui.value/100;
-                                $model.recompute();
-                                
-                            }
-                        });
-                        
-                    }
-                }
-            
-                this.add_layout_controls = function(){
-                    
-                    n_nearest_div = document.createElement('div');
-                    n_nearest_div.setAttribute('style', "margin-left:10px; width = 390px");
-                    n_spinner = document.createElement('input');
-                    n_spinner.setAttribute('id',"n_spinner");
-                    n_spinner.setAttribute('type',"number");
-                    
-                    n_spinner.setAttribute('min',0);
-                    n_spinner.setAttribute('style', "width=100px;");
-                    
-                    n_nearest_change = function(spinner){
-                        $model.n_nearest_connect = spinner.value;
-                        $model.recompute();
-                    }
-                    
-                    n_spinner.setAttribute('onchange', "n_nearest_change(this)");
-                    n_label = document.createElement('label');
-                    n_label.setAttribute('for', 'n_spinner');
-                    n_label.innerHTML="connect to nearest neighbors: ";
-                
-                    threshold_div = document.createElement('div');
-                    threshold_div.setAttribute('style', "margin-left:10px;  width = 404px");
-                
-                    $(n_label).appendTo(n_nearest_div);
-                    $(n_spinner).appendTo(n_nearest_div);
-                    controls = document.getElementById("controls2");
-                    $(n_nearest_div).appendTo(controls);
-                    
-                    threshold_div = document.createElement('div');
-                    threshold_div.setAttribute('style', "margin-left:10px; width = 390px;margin-top:5px;");
-                    spinner_thresh = document.createElement('input');
-                    spinner_thresh.setAttribute('id',"spinner_thresh");
-                    spinner_thresh.setAttribute('type',"number");
-                    spinner_thresh.setAttribute('step',0.01);
-                    spinner_thresh.setAttribute('style', "width=100px;");
-                    spinner_thresh.setAttribute('min',0);
-                    label_thresh = document.createElement('label');
-                    label_thresh.setAttribute('for', 'spinner_thresh');
-                    label_thresh.innerHTML="connect dots with distance below: ";
-                    
-                    threshold_connect_change = function(spinner){
-                        $model.threshold_connect = spinner.value;
-                        $model.recompute();
-                    }
-                    
-                    spinner_thresh.setAttribute('onchange', "threshold_connect_change(this)");
-                    
-                    $(label_thresh).appendTo(threshold_div);
-                    $(spinner_thresh).appendTo(threshold_div);
-                    $(threshold_div).appendTo(controls);
-                    
-                }
-            
-                this.add_clinical_controls = function(){
-                    
-                    
-                    clinical_age = document.createElement('div');
-                    clinical_age.innerHTML = "color dots by patient age";
-                    controls = document.getElementById("controls3");
-                    clinical_age.setAttribute('style', "float:left; width:390px; margin-left:14px;");
-                    $(clinical_age).appendTo(controls);
-                    clinical_age_checkbox = document.createElement('input');
-                    clinical_age_checkbox.setAttribute('type',"checkbox");
-                    $(clinical_age_checkbox).appendTo(clinical_age);
-                    
-                    age_checkbox_handler = function(checkbox){
-                        if (checkbox.checked){
-                            $visualization.color_age();
-                        }
-                        else{
-                            $visualization.default_color(false);
-                        }
-                    }
-                    
-                    
-                    
-                    clinical_age_checkbox.setAttribute('onchange', "age_checkbox_handler(this)");
-                    
-                    clinical_survival = document.createElement('div');
-                    clinical_survival.innerHTML = "color dots by patient survival";
-                    clinical_survival.setAttribute('style', "float:left; width:390px; margin-left:14px;");
-                    
-                    clinical_survival_checkbox = document.createElement('input');
-                    clinical_survival_checkbox.setAttribute('type',"checkbox");
-                    $(clinical_survival_checkbox).appendTo(clinical_survival);
-                    $(clinical_survival).appendTo(controls);
-                    
-                    survival_checkbox_handler = function(checkbox){
-                        
-                        if (checkbox.checked){
-                            
-                            $visualization.color_survival();
-                        }
-                        else{
-                            $visualization.default_color(false);
-                        }
-                        
-                        
-                    }
-                    
-                    clinical_survival_checkbox.setAttribute('onchange', "survival_checkbox_handler(this)");
-                    
-                    community_detection = document.createElement('div');
-                    community_detection.innerHTML = "show communities";
-                    community_detection.setAttribute('style', "float:left; width:390px; margin-left:14px;");
-                    
-                    community_detection_checkbox_handler = function(checkbox){
-                        
-                        if (checkbox.checked){
-                            $visualization.show_communites();
-                        }
-                        else{
-                            $visualization.default_color(false);
-                        }
-                        
-                        
-                    }
-                    
-                    community_detection_checkbox = document.createElement('input');
-                    community_detection_checkbox.setAttribute('type',"checkbox");
-                    community_detection_checkbox.setAttribute('onchange', "community_detection_checkbox_handler(this)");
-                    $(community_detection_checkbox).appendTo(community_detection);
-                    $(community_detection).appendTo(controls);
-                    
-                    
-                }
-            
-                this.highlighted_before_index=-1;
-                this.find_closest_dot = function(mouse_x,mouse_y){
-                    
-                    var distance = Number.POSITIVE_INFINITY;
-                    var temp_distance;
-                    var index;
-                    
-                    for (var i=0;i<$model.n_patients;i++){
-                        temp_distance = Math.sqrt(Math.pow($model.dots[i].position.x-mouse_x,2)+Math.pow($model.dots[i].position.y-mouse_y,2));
-                        if (temp_distance<distance){
-                            distance = temp_distance;
-                            index = i;
-                        } 
-                    }
-                    
-                    
-                    
-                    if ($controller.highlighted_before_index!=-1 && index!=this.highlighted_before_index){
-                        
-                        $model.dots[index].material.color.r = $model.dots[index].material.color.r*2;
-                        $model.dots[index].material.color.g = $model.dots[index].material.color.g*2;
-                        $model.dots[index].material.color.b = $model.dots[index].material.color.b*2;
-                        $model.dots[$controller.highlighted_before_index].material.color.r = $model.dots[$controller.highlighted_before_index].material.color.r/2;
-                        $model.dots[$controller.highlighted_before_index].material.color.g = $model.dots[$controller.highlighted_before_index].material.color.g/2;
-                        $model.dots[$controller.highlighted_before_index].material.color.b = $model.dots[$controller.highlighted_before_index].material.color.b/2;
-                        //console.log($controller.highlighted_before_index+";" +index);
-                    }
-                    
-                    this.highlighted_before_index=index;
-                    
-                    return(index);
-                        
-                    
-                    //onsole.log(index);
-                    
-                }
-            
-                this.add_mouse_listener = function(){
-                    
-                    mousemove = function(event){
-                        
-                        var mouse_x = event.offsetX*$visualization.camera_parameter-(($visualization.width*$visualization.camera_parameter)/2);
-                        var mouse_y = event.offsetY*$visualization.camera_parameter-(($visualization.height*$visualization.camera_parameter)/2);
-                        mouse_y=mouse_y*-1;
-                        
-//                        console.log(event.offsetX+"; "+event.offsetY);
-//                        console.log(mouse_x+"; "+mouse_y);
-                        
-                        console.log();
-                        $controller.find_closest_dot(mouse_x, mouse_y);
-                        
-                    }
-                    
-                    mousedown = function(event){
-                        
-                        var mouse_x = event.offsetX*$visualization.camera_parameter-(($visualization.width*$visualization.camera_parameter)/2);
-                        var mouse_y = (event.offsetY+72)*$visualization.camera_parameter-(($visualization.width*$visualization.camera_parameter)/2);
-                        mouse_y=mouse_y*-1;
-                       
-                        index = $controller.find_closest_dot(mouse_x, mouse_y);
-                        
-                        
-                        $visualization.add_patient_to_details_box(index);
-                    }
-                    
-                    $visualization.canvas.addEventListener('mousemove', mousemove, false);
-                    $visualization.canvas.addEventListener('mousedown', mousedown, false);
-                }
-            
-            }
-            
-            $(function(){
-                
-                $model = new Model();
-                //
-                $visualization = new Visualization();
-                $visualization.add_patient_details();
-                $model.spearman_test();
-                $model.compute_spearman_of_selection();
-                $controller = new Controller();
-                $controller.add_rppa_controls();
-                $controller.add_layout_controls();
-                $controller.add_clinical_controls();
-                $controller.add_mouse_listener();
-                setInterval(function(){ $visualization.render() }, 5);
-                
-            })
-            
-        </script>
     </head>
     <body>
-        <div id="controls" style = "float: right; margin-right:10px">
-            <div id="controls3" style="width:404px; height:100px; border:2px solid #000000; padding-top:10px; margin-top:18px; ">
+        
+        <script>
+            
+            get_data = function(){
+                var data_raw = [
+                        32.380120, -86.300629,
+                        58.299740, -134.406794,
+                        33.448260, -112.075774,
+                        34.748655, -92.274494,
+                        38.579065, -121.491014,
+                        39.740010, -104.992259,
+                        41.763325, -72.674069,
+                        39.158035, -75.524734,
+                        30.439775, -84.280649,
+                        33.748315, -84.391109,
+                        21.304770, -157.857614,
+                        43.606980, -116.193409,
+                        39.801055, -89.643604,
+                        39.766910, -86.149964,
+                        41.589790, -93.615659,
+                        39.049285, -95.671184,
+                        38.195070, -84.878694,
+                        30.443345, -91.186994,
+                        44.318036, -69.776218,
+                        38.976700, -76.489934,
+                        42.358635, -71.056699,
+                        42.731940, -84.552249,
+                        44.943829, -93.093326,
+                        32.298690, -90.180489,
+                        38.577515, -92.177839,
+                        46.589760, -112.021202,
+                        40.813620, -96.707739,
+                        39.164885, -119.766999,
+                        43.207250, -71.536604,
+                        40.217875, -74.759404,
+                        35.691543, -105.937406,
+                        42.651445, -73.755254,
+                        35.785510, -78.642669,
+                        46.805372, -100.779334,
+                        39.961960, -83.002984,
+                        35.472015, -97.520354,
+                        44.933260, -123.043814,
+                        40.259865, -76.882230,
+                        41.823875, -71.411994,
+                        33.998550, -81.045249,
+                        44.368924, -100.350158,
+                        36.167783, -86.778365,
+                        30.267605, -97.742984,
+                        40.759505, -111.888229,
+                        44.260299, -72.576264,
+                        37.540700, -77.433654,
+                        47.039231, -122.891366,
+                        38.350195, -81.638989,
+                        43.072950, -89.386694,
+                        41.134815, -104.821544,
+                    ];
+                    var data = [];
+                    for (var i = 0; i < data_raw.length / 2; i++) {
+                        data[i] = [];
+                        for (var k = 0; k < 2; k++) {
+                            data[i][k] = data_raw[i * 2 + k];
+                        }
+                    }
+                    data_raw = JSON.parse(patient_data);
+                    console.log(data_raw.patients.length);
+                    var data = [];
+                    for (var i=0;i<data_raw.patients.length;i++){
+                        data[i] = [];
+                        for (var k=0;k<data_raw.patients[0].proteins.length;k++){
+                            data[i][k] = data_raw.patients[i].proteins[k].value;
+                        }
+                    }
+                    return data;
+            }
+            
+            L2_norm = function(x,y){
                 
-            </div>    
+                var dim = x.length;
+                var sum = 0;
+                for (var i=0;i<dim; i++){
+                    sum += (x[i]-y[i])*(x[i]-y[i]);
+                }
+                
+                //sum = Math.sqrt(sum);
+                
+                return sum;
+                
+            }
             
-        <div id="controls1" style="margin-top:-2px; width:390px; overflow:scroll; height:300px; border: 2px solid #000000;padding-left: 14px; ">
+            compute_distance_matrix = function(data){
+                
+                var N = data.length;
+                var distances = new Float64Array(N*N);
+                var distance;
+                for (var i=0;i<N;i++){
+                    for (var k=i+1;k<N;k++){
+                        distance = L2_norm(data[i], data[k]);
+                        distances[i*N+k]=distance;
+                        distances[k*N+i]=distance;
+                    }
+                }
+                
+                return distances;
+                
+            }
             
-        </div>
-        <div id="controls2" style="margin-top:-2px; width:404px; height:100px; border:2px solid #000000; padding-top:10px">
-           
-        </div>
-        </div>
-        <div id="visualz" style ="float: left;">
+            compute_symmetrized_probs = function(distances, perplexity){
+                
+                var N = Math.sqrt(distances.length);
+                var sigma=1;
+                var p_row = new Float64Array(N);
+                var nominator = 0;
+                var denominator = 0;
+                var temp_value = 0;
+                var H_target = Math.log(perplexity); 
+                var tol = 1e-4;
+                var P = new Float64Array(N * N);
+                    var maxtries = 50;
+
+                    for (var i = 0; i < N; i++) {
+                        var sigma_min = -Infinity;
+                        var sigma_max = Infinity;
+                        sigma = 1 / Math.sqrt(2);
+                        var num = 0;
+                        var done = false;
+                        while (!done) {
+
+                            denominator = 0;
+                            for (var k = 0; k < N; k++) {
+                                //temp_value = Math.exp(-distances[i*N+k]*sigma2);
+                                temp_value = Math.exp(-distances[i * N + k] * (1 / (2 * sigma * sigma)));
+                                if (i === k) {
+                                    temp_value = 0;
+                                }
+                                p_row[k] = temp_value;
+                                denominator += temp_value;
+
+                            }
+                            H_current = 0;
+                            for (var k = 0; k < N; k++) {
+                                p_row[k] = p_row[k] / denominator;
+                                if (p_row[k] > 1e-7) {
+                                    H_current -= p_row[k] * Math.log(p_row[k]);
+                                }
+                            }
+
+                            if (H_current > H_target) {
+
+                                sigma_max = sigma;
+                                if (sigma_min === Infinity) {
+                                    sigma = sigma / Math.sqrt(2);
+                                }
+                                else {
+                                    sigma = (sigma + sigma_min) / 2;
+                                }
+                            }
+                            else {
+                                sigma_min = sigma;
+                                if (sigma_max === Infinity) {
+                                    sigma = sigma * Math.sqrt(2);
+                                }
+                                else {
+                                    sigma = (sigma + sigma_max) / 2;
+                                }
+                            }
+
+                            num++;
+                            if (Math.abs(H_current - H_target) < tol) {
+                                done = true;
+                            }
+                            if (num >= maxtries) {
+                                done = true;
+                            }
+                        }
+                        for (var k=0;k<N;k++){
+                            P[i*N+k] = p_row[k];
+                        }
+                    }
+                    var P_out = new Float64Array(N * N);
+                    var N2 = N*2;
+                    for(var i=0;i<N;i++) {
+                        for(var k=0;k<N;k++) {
+                            P_out[i*N+k] = Math.max((P[i*N+k] + P[k*N+i])/N2, 1e-100);
+                        }
+                    }
+                    
+                    return P_out;
+                }
             
-        </div>
-        <div id="details" style = "float:left; width:798px; height:150px; border:2px solid #000000; position:absolute; top:680px; overflow:scroll">
+            compute_gradient = function(P,Y){
+                
+                var N = Y.length;
+                
+                var Qu = new Float64Array(N*N);
+                var distance=0;
+                var t_distr;
+                var denominator = 0;
+                for (var i=0;i<N;i++){
+                    for (var k=i+1;k<N;k++){
+                        distance = L2_norm(Y[i],Y[k]);
+                        t_distr = 1.0/(1.0+distance);
+                        Qu[i*N+k] = t_distr;
+                        Qu[k*N+i] = t_distr;
+                        denominator+=2*t_distr;
+                    }
+                }
+                
+                var Q = new Float64Array(N*N);
+                for (var i=0;i<N*N;i++){
+                    Q[i] = Math.max(Qu[i]/denominator,1e-100);
+                }
+                
+              
+                
+                var grad = [];
+                var cost = 0;
+                for (var i=0;i<N;i++){
+                    var gradient_sum = new Float64Array(2);
+                    for (var k=0;k<N;k++){
+                        cost += - P[i*N+k] * Math.log(Q[i*N+k]);
+                        var premult = 4 * (P[i*N+k] - Q[i*N+k]) * Qu[i*N+k];
+                        for(var d=0;d<2;d++) {
+                            gradient_sum[d] += premult * (Y[i][d] - Y[k][d]);
+                        }
+                    }
+                    grad.push(gradient_sum);
+                }
+                return {cost: cost, grad: grad}; 
+            }
+            
+            init_solution = function(rows,cols){
+                
+                var x = [];
+                
+                for(var i=0;i<rows;i++) {
+                    var xrow = [];
+                    for (var k=0;k<cols;k++){
+                        xrow.push((2*Math.random()-1)*1e-4);
+                    }
+                    x.push(xrow);
+                }
+                
+                return x;
+            }
+            
+            var y_step; 
+            var iter=0;
+            step = function(P,Y){
+                
+                var N = Math.sqrt(P.length);
+                var cost_gradient = compute_gradient(P,Y);
+                var cost = cost_gradient.cost;
+                console.log(iter+": "+cost);
+                var grad = cost_gradient.grad;
+                var momentum=0.5;
+                var epsilon=10;
+                
+                var grad_temp;
+                var momentum = 0.5;
+                var previous_step;
+                var new_step;
+                var y_mean = new Float64Array(2);
+                for(var i=0;i<N;i++) {
+                    for(var d=0;d<2;d++) {
+                        
+                        grad_temp = grad[i][d];
+                        previous_step = y_step[i][d];
+                        new_step = momentum*previous_step - epsilon * grad_temp;
+                        
+                        y_step[i][d] = new_step;
+                        
+                        Y[i][d] += new_step;
+                        
+                        y_mean[d] += Y[i][d];
+                    }
+                }
+                
+                for(var i=0;i<N;i++) {
+                    for(var d=0;d<this.dim;d++) {
+                        Y[i][d] -= y_mean[d]/N;
+                    }
+                }
+                
+                iter++;
+                return Y;
+            }
+            
+            var data = get_data();
+            var perplexity = 30;
+            var distances = compute_distance_matrix(data);
+            var P = compute_symmetrized_probs(distances,perplexity);
+            var Y = init_solution(data.length, 2);
+            y_step = init_solution(data.length, 2);
+            
+            this.scene = new THREE.Scene();
+            this.width = 800;
+            this.height = 650;
+            var canvas = document.createElement('canvas');
+            
+            
+            document.body.appendChild(canvas);
+            var renderer = new THREE.WebGLRenderer({canvas: canvas,  antialiasing: true });
+            renderer.setSize(width, height);
+            
+            this.camera_parameter = 30;
+            this.camera = new THREE.OrthographicCamera(this.width * this.camera_parameter / -2, this.width * this.camera_parameter / 2, this.height * this.camera_parameter / 2, this.height * this.camera_parameter / -2, -500, 1000);
+            this.camera.position.x = 0;
+            this.camera.position.y = 0;
+            this.camera.position.z = 100;
+
+            this.geometry = new THREE.SphereGeometry(200, 0, 0);
+            
+            var point = [];
+            
+            var random_x;
+            var random_y;
+            for (var i=0;i<data.length;i++){
+                
+                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0.6, 0  ) } );
+                point[i] = new THREE.Mesh( geometry, material );
+                
+                random_x = (Math.random() * 750)- 390;
+                random_y = (Math.random() * 750)- 390;
+                point[i].position.x = random_x;
+                point[i].position.y = random_y;
+                scene.add(point[i]);
+            }
+            
+            render = function(){
+                
+            }
+            
+            
+
+            for (var i = 0; i < 500; i++) {
+                Y = step(P, Y);
+                
+                for (var k=0;k<data.length;k++){
+                
+                    point[k].position.x = Y[k][0]*1200;
+                    point[k].position.y = Y[k][1]*1200;
+                    
+                }
+                
+                renderer.render( scene, camera );
+               
+                
+            }
+            
+             
+            
+                
+            render();
           
-        </div>
-        <div id="heatmap" style="position:absolute; top:680px; left:950px;">
-           
-        </div>
+            
+            
+        </script>
     </body>
 </html>
