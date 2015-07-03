@@ -1,374 +1,72 @@
-<!DOCTYPE html>
-<!--
-To change this license header, choose License Headers in Project Properties.
-To change this template file, choose Tools | Templates
-and open the template in the editor.
--->
-<html>
+<!doctype html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang=""> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8" lang=""> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9" lang=""> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang=""> <!--<![endif]-->
     <head>
-        <title>GSoC_tSNE</title>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <script src="three.min.js"></script>
-        <script type="text/javascript" src="patient_data.js"></script>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+        <link rel="stylesheet" href="css/bootstrap.min.css">
+        <style>
+            body {
+                padding-top: 50px;
+                padding-bottom: 20px;
+            }
+        </style>
+        <link rel="stylesheet" href="css/bootstrap-theme.min.css">
+        <link rel="stylesheet" href="css/main.css">
+        <script src="js/vendor/modernizr-2.8.3-respond-1.4.2.min.js"></script>
+        <script src="js/vendor/jquery-1.11.2.js"></script>
+        <script src="js/vendor/three.min.js"></script>
+        <script>
+            $(function(){
+                scene = new THREE.Scene();
+                width = 800;
+                height = 650;
+                canvas = document.createElement('canvas');
+                document.getElementById('visuals').appendChild(canvas);
+                renderer = new THREE.WebGLRenderer({canvas: canvas,  antialiasing: true });
+                renderer.setSize(width, height);
+                camera_parameter=30;
+                camera = new THREE.OrthographicCamera( width*camera_parameter / - 2, width*camera_parameter / 2, height*camera_parameter / 2, height*camera_parameter / - 2, - 500, 1000 );
+                camera.position.x = 0;
+                camera.position.y = 0;
+                camera.position.z = 100;
+                
+                render = function(){
+                    console.log("hallo");
+                    renderer.render( this.scene, this.camera );
+                }
+                
+                render();
+            })
+        </script>
     </head>
     <body>
-        
-        <script>
-            
-            get_data = function(){
-                var data_raw = [
-                        32.380120, -86.300629,
-                        58.299740, -134.406794,
-                        33.448260, -112.075774,
-                        34.748655, -92.274494,
-                        38.579065, -121.491014,
-                        39.740010, -104.992259,
-                        41.763325, -72.674069,
-                        39.158035, -75.524734,
-                        30.439775, -84.280649,
-                        33.748315, -84.391109,
-                        21.304770, -157.857614,
-                        43.606980, -116.193409,
-                        39.801055, -89.643604,
-                        39.766910, -86.149964,
-                        41.589790, -93.615659,
-                        39.049285, -95.671184,
-                        38.195070, -84.878694,
-                        30.443345, -91.186994,
-                        44.318036, -69.776218,
-                        38.976700, -76.489934,
-                        42.358635, -71.056699,
-                        42.731940, -84.552249,
-                        44.943829, -93.093326,
-                        32.298690, -90.180489,
-                        38.577515, -92.177839,
-                        46.589760, -112.021202,
-                        40.813620, -96.707739,
-                        39.164885, -119.766999,
-                        43.207250, -71.536604,
-                        40.217875, -74.759404,
-                        35.691543, -105.937406,
-                        42.651445, -73.755254,
-                        35.785510, -78.642669,
-                        46.805372, -100.779334,
-                        39.961960, -83.002984,
-                        35.472015, -97.520354,
-                        44.933260, -123.043814,
-                        40.259865, -76.882230,
-                        41.823875, -71.411994,
-                        33.998550, -81.045249,
-                        44.368924, -100.350158,
-                        36.167783, -86.778365,
-                        30.267605, -97.742984,
-                        40.759505, -111.888229,
-                        44.260299, -72.576264,
-                        37.540700, -77.433654,
-                        47.039231, -122.891366,
-                        38.350195, -81.638989,
-                        43.072950, -89.386694,
-                        41.134815, -104.821544,
-                    ];
-                    var data = [];
-                    for (var i = 0; i < data_raw.length / 2; i++) {
-                        data[i] = [];
-                        for (var k = 0; k < 2; k++) {
-                            data[i][k] = data_raw[i * 2 + k];
-                        }
-                    }
-                    data_raw = JSON.parse(patient_data);
-                    console.log(data_raw.patients.length);
-                    var data = [];
-                    for (var i=0;i<data_raw.patients.length;i++){
-                        data[i] = [];
-                        for (var k=0;k<data_raw.patients[0].proteins.length;k++){
-                            data[i][k] = data_raw.patients[i].proteins[k].value;
-                        }
-                    }
-                    return data;
-            }
-            
-            L2_norm = function(x,y){
-                
-                var dim = x.length;
-                var sum = 0;
-                for (var i=0;i<dim; i++){
-                    sum += (x[i]-y[i])*(x[i]-y[i]);
-                }
-                
-                //sum = Math.sqrt(sum);
-                
-                return sum;
-                
-            }
-            
-            compute_distance_matrix = function(data){
-                
-                var N = data.length;
-                var distances = new Float64Array(N*N);
-                var distance;
-                for (var i=0;i<N;i++){
-                    for (var k=i+1;k<N;k++){
-                        distance = L2_norm(data[i], data[k]);
-                        distances[i*N+k]=distance;
-                        distances[k*N+i]=distance;
-                    }
-                }
-                
-                return distances;
-                
-            }
-            
-            compute_symmetrized_probs = function(distances, perplexity){
-                
-                var N = Math.sqrt(distances.length);
-                var sigma=1;
-                var p_row = new Float64Array(N);
-                var nominator = 0;
-                var denominator = 0;
-                var temp_value = 0;
-                var H_target = Math.log(perplexity); 
-                var tol = 1e-4;
-                var P = new Float64Array(N * N);
-                    var maxtries = 50;
+        <div class="container-fluid">
 
-                    for (var i = 0; i < N; i++) {
-                        var sigma_min = -Infinity;
-                        var sigma_max = Infinity;
-                        sigma = 1 / Math.sqrt(2);
-                        var num = 0;
-                        var done = false;
-                        while (!done) {
+     
+      <div class="row">
+        <div class="col-md-8" id="visuals"></div>
+        <div class="col-md-4">parameter controls go here</div>
+      </div>
+            
+     <div class="row">
+        <div class="col-md-6">selected patients information goes here</div>
+        <div class="col-md-6">parameter visualization goes here</div>
+      </div>
 
-                            denominator = 0;
-                            for (var k = 0; k < N; k++) {
-                                //temp_value = Math.exp(-distances[i*N+k]*sigma2);
-                                temp_value = Math.exp(-distances[i * N + k] * (1 / (2 * sigma * sigma)));
-                                if (i === k) {
-                                    temp_value = 0;
-                                }
-                                p_row[k] = temp_value;
-                                denominator += temp_value;
 
-                            }
-                            H_current = 0;
-                            for (var k = 0; k < N; k++) {
-                                p_row[k] = p_row[k] / denominator;
-                                if (p_row[k] > 1e-7) {
-                                    H_current -= p_row[k] * Math.log(p_row[k]);
-                                }
-                            }
 
-                            if (H_current > H_target) {
+    </div> <!-- /container -->
 
-                                sigma_max = sigma;
-                                if (sigma_min === Infinity) {
-                                    sigma = sigma / Math.sqrt(2);
-                                }
-                                else {
-                                    sigma = (sigma + sigma_min) / 2;
-                                }
-                            }
-                            else {
-                                sigma_min = sigma;
-                                if (sigma_max === Infinity) {
-                                    sigma = sigma * Math.sqrt(2);
-                                }
-                                else {
-                                    sigma = (sigma + sigma_max) / 2;
-                                }
-                            }
 
-                            num++;
-                            if (Math.abs(H_current - H_target) < tol) {
-                                done = true;
-                            }
-                            if (num >= maxtries) {
-                                done = true;
-                            }
-                        }
-                        for (var k=0;k<N;k++){
-                            P[i*N+k] = p_row[k];
-                        }
-                    }
-                    var P_out = new Float64Array(N * N);
-                    var N2 = N*2;
-                    for(var i=0;i<N;i++) {
-                        for(var k=0;k<N;k++) {
-                            P_out[i*N+k] = Math.max((P[i*N+k] + P[k*N+i])/N2, 1e-100);
-                        }
-                    }
-                    
-                    return P_out;
-                }
-            
-            compute_gradient = function(P,Y){
-                
-                var N = Y.length;
-                
-                var Qu = new Float64Array(N*N);
-                var distance=0;
-                var t_distr;
-                var denominator = 0;
-                for (var i=0;i<N;i++){
-                    for (var k=i+1;k<N;k++){
-                        distance = L2_norm(Y[i],Y[k]);
-                        t_distr = 1.0/(1.0+distance);
-                        Qu[i*N+k] = t_distr;
-                        Qu[k*N+i] = t_distr;
-                        denominator+=2*t_distr;
-                    }
-                }
-                
-                var Q = new Float64Array(N*N);
-                for (var i=0;i<N*N;i++){
-                    Q[i] = Math.max(Qu[i]/denominator,1e-100);
-                }
-                
-              
-                
-                var grad = [];
-                var cost = 0;
-                for (var i=0;i<N;i++){
-                    var gradient_sum = new Float64Array(2);
-                    for (var k=0;k<N;k++){
-                        cost += - P[i*N+k] * Math.log(Q[i*N+k]);
-                        var premult = 4 * (P[i*N+k] - Q[i*N+k]) * Qu[i*N+k];
-                        for(var d=0;d<2;d++) {
-                            gradient_sum[d] += premult * (Y[i][d] - Y[k][d]);
-                        }
-                    }
-                    grad.push(gradient_sum);
-                }
-                return {cost: cost, grad: grad}; 
-            }
-            
-            init_solution = function(rows,cols){
-                
-                var x = [];
-                
-                for(var i=0;i<rows;i++) {
-                    var xrow = [];
-                    for (var k=0;k<cols;k++){
-                        xrow.push((2*Math.random()-1)*1e-4);
-                    }
-                    x.push(xrow);
-                }
-                
-                return x;
-            }
-            
-            var y_step; 
-            var iter=0;
-            step = function(P,Y){
-                
-                var N = Math.sqrt(P.length);
-                var cost_gradient = compute_gradient(P,Y);
-                var cost = cost_gradient.cost;
-                console.log(iter+": "+cost);
-                var grad = cost_gradient.grad;
-                var momentum=0.5;
-                var epsilon=10;
-                
-                var grad_temp;
-                var momentum = 0.5;
-                var previous_step;
-                var new_step;
-                var y_mean = new Float64Array(2);
-                for(var i=0;i<N;i++) {
-                    for(var d=0;d<2;d++) {
-                        
-                        grad_temp = grad[i][d];
-                        previous_step = y_step[i][d];
-                        new_step = momentum*previous_step - epsilon * grad_temp;
-                        
-                        y_step[i][d] = new_step;
-                        
-                        Y[i][d] += new_step;
-                        
-                        y_mean[d] += Y[i][d];
-                    }
-                }
-                
-                for(var i=0;i<N;i++) {
-                    for(var d=0;d<this.dim;d++) {
-                        Y[i][d] -= y_mean[d]/N;
-                    }
-                }
-                
-                iter++;
-                return Y;
-            }
-            
-            var data = get_data();
-            var perplexity = 30;
-            var distances = compute_distance_matrix(data);
-            var P = compute_symmetrized_probs(distances,perplexity);
-            var Y = init_solution(data.length, 2);
-            y_step = init_solution(data.length, 2);
-            
-            this.scene = new THREE.Scene();
-            this.width = 800;
-            this.height = 650;
-            var canvas = document.createElement('canvas');
-            
-            
-            document.body.appendChild(canvas);
-            var renderer = new THREE.WebGLRenderer({canvas: canvas,  antialiasing: true });
-            renderer.setSize(width, height);
-            
-            this.camera_parameter = 30;
-            this.camera = new THREE.OrthographicCamera(this.width * this.camera_parameter / -2, this.width * this.camera_parameter / 2, this.height * this.camera_parameter / 2, this.height * this.camera_parameter / -2, -500, 1000);
-            this.camera.position.x = 0;
-            this.camera.position.y = 0;
-            this.camera.position.z = 100;
-
-            this.geometry = new THREE.SphereGeometry(200, 0, 0);
-            
-            var point = [];
-            
-            var random_x;
-            var random_y;
-            for (var i=0;i<data.length;i++){
-                
-                var material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0.6, 0  ) } );
-                point[i] = new THREE.Mesh( geometry, material );
-                
-                random_x = (Math.random() * 750)- 390;
-                random_y = (Math.random() * 750)- 390;
-                point[i].position.x = random_x;
-                point[i].position.y = random_y;
-                scene.add(point[i]);
-            }
-            
-            render = function(){
-                
-            }
-            
-            
-
-            for (var i = 0; i < 500; i++) {
-                Y = step(P, Y);
-                
-                for (var k=0;k<data.length;k++){
-                
-                    point[k].position.x = Y[k][0]*1200;
-                    point[k].position.y = Y[k][1]*1200;
-                    
-                }
-                
-                renderer.render( scene, camera );
-               
-                
-            }
-            
-             
-            
-                
-            render();
-          
-            
-            
-        </script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="../../assets/js/ie10-viewport-bug-workaround.js"></script>
     </body>
 </html>
