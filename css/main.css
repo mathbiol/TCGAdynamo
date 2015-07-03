@@ -1,4 +1,12 @@
+.dropdown-menu {
+    max-height: 400px;
+    overflow: hidden;
+    overflow-y: auto;
+}
 
+.row {
+  margin-bottom: 20px;
+}
 
 /* ==========================================================================
    Author's custom styles

@@ -10,7 +10,7 @@
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="apple-touch-icon" href="apple-touch-icon.png">
-
+       
         <link rel="stylesheet" href="css/bootstrap.min.css">
         <style>
             body {
@@ -23,6 +23,8 @@
         <script src="js/vendor/modernizr-2.8.3-respond-1.4.2.min.js"></script>
         <script src="js/vendor/jquery-1.11.2.js"></script>
         <script src="js/vendor/three.min.js"></script>
+       
+  <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
         <script>
             $(function(){
                 scene = new THREE.Scene();
@@ -39,34 +41,83 @@
                 camera.position.z = 100;
                 
                 render = function(){
-                    console.log("hallo");
+                    
                     renderer.render( this.scene, this.camera );
                 }
                 
                 render();
+                
+                $(".dataset_selection").click(function(e){
+                    console.log(e.target.id+" selected");
+                });
             })
+            
+                
         </script>
     </head>
     <body>
+       
         <div class="container-fluid">
-
-     
-      <div class="row">
-        <div class="col-md-8" id="visuals"></div>
-        <div class="col-md-4">parameter controls go here</div>
-      </div>
             
-     <div class="row">
-        <div class="col-md-6">selected patients information goes here</div>
-        <div class="col-md-6">parameter visualization goes here</div>
-      </div>
+            <div class="row">
+                <div class="col-md-4">
+                <div class="dropdown">
+                <button class="btn btn-default dropdown-toggle" type="button" id="menu1" data-toggle="dropdown">Select Dataset
+                    <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu" role="menu" aria-labelledby="menu1">
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="acc">acc</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="blca">blca</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="brca">brca</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="cesc">cesc</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="chol">chol</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="cntl">cntl</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="coad">coad</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="dlbc">dlbc</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="esca">esca</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="fppp">fppp</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="gbm">gbm</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="hnsc">hnsc</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="kich">kich</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="kirp">kirp</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="laml">laml</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="lcml">lcml</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="lgg">lgg</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="lihc">lihc</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="lnnh">lnnh</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="luad">luad</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="lusc">lusc</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="meso">meso</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="ov">ov</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="paad">paad</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="pcpg">pcpg</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="prad">prad</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="read">read</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="sarc">sarc</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="skcm">skcm</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="stad">stad</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="tgct">tgct</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="thym">thym</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="ucec">ucec</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="ucs">ucs</a></li>
+                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="uvm">uvm</a></li>
+                </ul>
+                </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-8" id="visuals"></div>
+                <div class="col-md-4">parameter controls go here</div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">selected patients information goes here</div>
+                <div class="col-md-6">parameter visualization goes here</div>
+            </div>
 
-
-
-    </div> <!-- /container -->
-
-
-    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-    <script src="../../assets/js/ie10-viewport-bug-workaround.js"></script>
+    </div> 
+        
+   
     </body>
 </html>
