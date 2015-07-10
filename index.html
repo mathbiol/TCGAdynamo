@@ -26,7 +26,16 @@
        
   <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
         <script>
-            $(function(){
+            
+            function Model(){
+                
+                this.patients;
+                
+               
+            }
+            
+            function Visualization(){
+                
                 scene = new THREE.Scene();
                 width = 800;
                 height = 650;
@@ -47,11 +56,71 @@
                 
                 render();
                 
+            }
+            
+            function Controller(){
+                
+                this.add_rppa_parameters = function(){
+                    
+                    controls = document.getElementById("controls1");
+                    
+                    console.log($model.patients[0].RPPA.length);
+                    
+                    for (var i=0;i<$model.patients[0].RPPA.length;i++){
+                        
+                        new_row = document.createElement('div');
+                        new_row.setAttribute('class',"row");
+                        $(new_row).appendTo(controls);
+                    
+                        column = document.createElement('div');
+                        column.setAttribute('class',"col-md-8");
+                        column.innerHTML=$model.patients[0].RPPA[i].ID;
+                        $(column).appendTo(new_row);
+                        
+                    }
+                    
+                    
+                    
+                    
+                }
+                
+                function loadJSON(callback, which) {  
+                    var file_string = "json_data/"+which+"_data.json";
+                    console.log("loading "+file_string);
+                    var xobj = new XMLHttpRequest();
+                    xobj.overrideMimeType("application/json");
+                    xobj.open('GET', file_string, true);
+                    xobj.onreadystatechange = function () {
+                    if (xobj.readyState == 4 && xobj.status == "200") {
+                        callback(xobj.responseText);
+                    }
+                    };
+                    xobj.send(null); 
+                }
+                
                 $(".dataset_selection").click(function(e){
                     console.log(e.target.id+" selected");
+                    selected_data_set=e.target.id;
+                    loadJSON(function(response) {
+                        $model.patients = JSON.parse(response);
+                        console.log($model.patients.length);
+                        $controller.add_rppa_parameters();
+                    }, e.target.id);
+                    
                 });
-            })
+                
+            }
             
+            $(function(){
+                
+                $visualization = new Visualization();
+                
+                $controller = new Controller();
+                
+                $model = new Model();
+                
+               
+            });
                 
         </script>
     </head>
@@ -107,8 +176,9 @@
             </div>
             
             <div class="row">
-                <div class="col-md-8" id="visuals"></div>
-                <div class="col-md-4">parameter controls go here</div>
+                <div class="col-md-7" id="visuals"></div>
+                <div class="col-md-5" id="controls1"></div>
+                
             </div>
             
             <div class="row">
