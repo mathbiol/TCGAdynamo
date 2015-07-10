@@ -24,7 +24,11 @@
     
 }
 
-::-webkit-scrollbar { 
+#clinical_controls::-webkit-scrollbar { 
+    display: none; 
+}
+
+#rppa_controls::-webkit-scrollbar { 
     display: none; 
 }
 
