@@ -8,10 +8,25 @@
   margin-bottom: 20px;
 }
 
-#controls1{
-    height: 700px;
+#parameter_controls{
+    height: 650px;
     overflow-y: scroll;
 }
+
+#clinical_controls{
+    height: 250px;
+    overflow-y: scroll;
+}
+
+#rppa_controls{
+    height: 400px;
+    overflow-y: scroll;
+}
+
+#rppa_wrapper{
+    outline: 1px solid orange;
+}
+
 
 /* ==========================================================================
    Author's custom styles
