@@ -30,35 +30,265 @@
             function Model(){
                 
                 this.patients;
+                this.n_patients;
+                this.n_features;
+                this.distances = [];
+                this.node_degree = [];
+                this.edges = [];
+                this.n_nearest_connect=2;
                 
-               
+                this.recompute = function(){
+                    
+                    for (var i=0;i<this.n_patients;i++){
+                        this.edges[i] = [];
+                        for (var k=0;k<this.n_patients;k++){
+                            this.edges[i][k]=0;
+                        }
+                    }
+                    
+                    compute_euclidean_distance = function(a,b){
+                        
+                        var sum = 0;
+                        
+                        for (var i=0;i<$model.n_features;i++){
+                            sum = sum+(Math.pow($model.patients[a].RPPA[i].value-$model.patients[b].RPPA[i].value,2));
+                        }
+                        
+                        sum=Math.sqrt(sum);
+                        return(sum);
+                    }
+                    
+                    for (var i=0;i<this.n_patients-1;i++){
+                        this.distances[i] = [];
+                        for (var k=i+1;k<this.n_patients;k++){
+                            this.distances[i][k-i-1]=compute_euclidean_distance(i,k);
+                        }
+                    }
+                    
+                    find_nearest_neighbors = function(a){
+                        
+                        var temp_counter=0;
+                        var temp_distance=-1;
+                        var temp_max_distance;
+                        var temp_max_index;
+                        var nearest_distances = [];
+                        var nearest_indices = [];
+                        for (var i=0;i<$model.n_patients;i++){
+                            
+                            if (i!=a){
+                                
+                                if (i<a){
+                                    temp_distance = $model.distances[i][a-i-1];
+                                }
+                                else{
+                                    temp_distance = $model.distances[a][i-a-1];
+                                }
+                                
+                                
+                                
+                                if(temp_counter<$model.n_nearest_connect){
+                                    nearest_distances[temp_counter]=temp_distance;
+                                    nearest_indices[temp_counter]=i;
+                                    temp_counter++;
+                                }
+                                else{
+                                    temp_max_distance = nearest_distances[0];
+                                    temp_max_index = 0;
+                                    for (var k=1;k<$model.n_nearest_connect;k++){
+                                        if (nearest_distances[k]>temp_max_distance){
+                                            temp_max_distance = nearest_distances[k];
+                                            temp_max_index=k;
+                                        }
+                                    }
+                                    
+                                    if (temp_distance<temp_max_distance){
+                                        nearest_distances[temp_max_index]=temp_distance;
+                                        nearest_indices[temp_max_index]=i;
+                                    }
+                                    
+                                } 
+                            }
+                        } 
+                        return(nearest_indices);
+                    }
+                    
+                    for (var i=0;i<this.n_patients;i++){
+                        this.node_degree[i]=0;
+                        for (var k=0;k<this.n_patients;k++){
+                            this.edges[i][k]=0;
+                        }
+                    }
+                    
+                    for (var i=0;i<this.n_patients;i++){
+                       
+                        neighbors = find_nearest_neighbors(i);
+                        
+                        for (var k=0;k<neighbors.length;k++){
+                            if (neighbors[k]>i){
+                                this.edges[i][neighbors[k]-i-1]=1;
+                                this.node_degree[i]++;
+                                this.node_degree[neighbors[k]]++;
+                            }
+                            else{
+                                this.edges[neighbors[k]][i-neighbors[k]-1]=1;
+                                this.node_degree[i]++;
+                                this.node_degree[neighbors[k]]++;
+                            }
+                        }
+                    }
+                    
+                }
             }
             
             function Visualization(){
                 
-                scene = new THREE.Scene();
-                width = 800;
-                height = 650;
-                canvas = document.createElement('canvas');
-                document.getElementById('visuals').appendChild(canvas);
-                renderer = new THREE.WebGLRenderer({canvas: canvas,  antialiasing: true });
-                renderer.setSize(width, height);
-                camera_parameter=30;
-                camera = new THREE.OrthographicCamera( width*camera_parameter / - 2, width*camera_parameter / 2, height*camera_parameter / 2, height*camera_parameter / - 2, - 500, 1000 );
-                camera.position.x = 0;
-                camera.position.y = 0;
-                camera.position.z = 100;
+                this.scene = new THREE.Scene();
+                this.width = 800;
+                this.height = 650;
+                this.canvas = document.createElement('canvas');
+                document.getElementById('visuals').appendChild(this.canvas);
+                this.renderer = new THREE.WebGLRenderer({canvas: this.canvas,  antialiasing: true });
+                this.renderer.setSize(this.width, this.height);
+                this.camera_parameter=30;
+                this.camera = new THREE.OrthographicCamera( this.width*this.camera_parameter / - 2, this.width*this.camera_parameter / 2, this.height*this.camera_parameter / 2, this.height*this.camera_parameter / - 2, - 500, 1000 );
+                this.camera.position.x = 0;
+                this.camera.position.y = 0;
+                this.camera.position.z = 100;
                 
-                render = function(){
+                this.dots=[];
+                
+                this.init_dots = function(){
                     
-                    renderer.render( this.scene, this.camera );
+                    this.scene = new THREE.Scene();
+                    
+                    this.dots=[];
+                    
+                    this.geometry = new THREE.SphereGeometry(200,0,0);
+                
+                    for (var i=0;i<$model.n_patients;i++){
+                    
+                        this.material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0.6, 0  ) } );
+                    
+                        // this.material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0.7, 0  ) } );
+                        this.dots[i] = new THREE.Mesh( this.geometry, this.material);
+                        random_x = (Math.random() * this.camera_parameter*750/3) - this.camera_parameter*390/3;
+                        random_y = (Math.random() * this.camera_parameter*580/3) - this.camera_parameter*280/3;
+                  
+                        this.dots[i].position.x = random_x;
+                        this.dots[i].position.y = random_y;
+                    
+                        this.scene.add(this.dots[i]);
+                    }
                 }
                 
-                render();
+                this.render = function(){
+                    $controller.update();
+                    this.renderer.render( this.scene, this.camera );
+                }
+                
                 
             }
             
             function Controller(){
+                
+                this.update = function(){
+                    
+                    var max_x=0;
+                    var max_y=0;
+                    var Fr = 0;
+                    var Fa = 0;
+                    var Fg = 0;
+                    var distance = 0;
+                    var kr = -600;
+                    var kg = 0.002;
+                    var Ftotal = 0;
+                    var vector_between_x;
+                    var vector_between_y;
+                    var gravity_vector_x;
+                    var gravity_vector_y;
+                    var gravity_vector_length;
+                    var velocity;
+                    
+                    for (var i=0;i<$model.n_patients;i++){
+                        for (var k=i+1;k<$model.n_patients;k++){
+                            distance = Math.sqrt(Math.pow(($visualization.dots[i].position.x-$visualization.dots[k].position.x),2)+Math.pow(($visualization.dots[i].position.y-$visualization.dots[k].position.y),2));
+                            vector_between_x = $visualization.dots[i].position.x-$visualization.dots[k].position.x;
+                            vector_between_y = $visualization.dots[i].position.y-$visualization.dots[k].position.y;
+                            vector_between_x = vector_between_x/distance;
+                            vector_between_y = vector_between_y/distance;
+                            
+                            //compute Fr as suggested in the paper
+                            Fr = kr*(4/distance);
+                            
+                            //if the two patients are similar comptue Fa, else set Fa=0
+                            if ($model.edges[i][k-i-1]==1){
+                                Fa = 1.5*Math.log((1+distance));
+                            }
+                            else{
+                                Fa=0;
+                            }
+                            Ftotal = Fr + Fa;
+                        
+                            //set new positions
+                            $visualization.dots[k].position.x=$visualization.dots[k].position.x+vector_between_x*Ftotal*0.8;
+                            $visualization.dots[k].position.y=$visualization.dots[k].position.y+vector_between_y*Ftotal*0.8;
+                
+                            $visualization.dots[i].position.x=$visualization.dots[i].position.x-vector_between_x*Ftotal*0.8;
+                            $visualization.dots[i].position.y=$visualization.dots[i].position.y-vector_between_y*Ftotal*0.8;
+                       
+                    }
+                }
+                //finally go over all nodes and compute the gravity
+                for (var i=0;i<$model.n_patients;i++){
+                    gravity_vector_x=-$visualization.dots[i].position.x;
+                    gravity_vector_y=-$visualization.dots[i].position.y;
+                    
+                    gravity_vector_length=Math.sqrt(Math.pow(gravity_vector_x,2)+Math.pow(gravity_vector_y,2));
+                    
+                    
+                    if ($model.n_nearest_connect>0)
+                    Fg = (kg/Math.log($model.n_nearest_connect+1))*($model.node_degree[i]+1)*gravity_vector_length;
+                    else{
+                    Fg = (kg/1)*($model.node_degree[i]+1)*gravity_vector_length;
+                    }
+                    
+                    gravity_vector_x=gravity_vector_x/gravity_vector_length;
+                    gravity_vector_y=gravity_vector_y/gravity_vector_length;
+                    $visualization.dots[i].position.x=$visualization.dots[i].position.x+gravity_vector_x*Fg*0.8;
+                    $visualization.dots[i].position.y=$visualization.dots[i].position.y+gravity_vector_y*Fg*0.8;
+                    
+                    if (Math.abs($visualization.dots[i].position.x)>max_x){
+                        max_index = i;
+                        max_x=Math.abs($visualization.dots[i].position.x);
+                    }
+                    if (Math.abs($visualization.dots[i].position.y)>max_y){
+                        max_y=Math.abs($visualization.dots[i].position.y);
+                    }
+                }
+                //console.log("max: "+max_x+"; "+max_index);
+                var new_cam_x;
+                var new_cam_y;
+                var new_cam=-1;
+                
+                new_cam_x=((max_x+400)/$visualization.width)*2;
+                new_cam_y=((max_y+400)/$visualization.height)*2;
+                
+                if (new_cam_x>new_cam_y){
+                    new_cam=new_cam_x;
+                }
+                else{
+                    new_cam=new_cam_y;
+                }
+                
+                if (new_cam!=$visualization.camera_parameter ){
+                    $visualization.camera_parameter=new_cam;
+                    $visualization.camera.top=new_cam*$visualization.height/2;
+                    $visualization.camera.right=new_cam*$visualization.width/2;
+                    $visualization.camera.left=new_cam*$visualization.width/-2;
+                    $visualization.camera.bottom=new_cam*$visualization.height/-2;
+                    $visualization.camera.updateProjectionMatrix();
+                }   
+                }
                 
                 this.add_rppa_parameters = function(){
                     
@@ -83,8 +313,6 @@
                    
                     
                     controls = document.getElementById("rppa_controls");
-                    
-                    console.log($model.patients[0].RPPA.length);
                     
                     wrapper_row = document.createElement('div');
                     wrapper_row.setAttribute('class',"row");
@@ -127,7 +355,13 @@
                     selected_data_set=e.target.id;
                     loadJSON(function(response) {
                         $model.patients = JSON.parse(response);
+                        $model.n_features = $model.patients[0].RPPA.length;
+                        $model.n_patients = $model.patients.length;
+                        $model.recompute();
+                        $visualization.init_dots();
                         console.log($model.patients.length);
+                        console.log($model.n_features);
+                        
                         $controller.add_rppa_parameters();
                     }, e.target.id);
                     
@@ -138,10 +372,10 @@
             $(function(){
                 
                 $visualization = new Visualization();
-                
                 $controller = new Controller();
-                
                 $model = new Model();
+                
+                setInterval(function(){ $visualization.render() }, 5);
                 
                
             });
