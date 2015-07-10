@@ -15,12 +15,17 @@
 
 #clinical_controls{
     height: 250px;
-    overflow-y: auto;
+    overflow-y: scroll;
 }
 
 #rppa_controls{
     height: 400px;
-    overflow-y: auto;
+    overflow-y: scroll;
+    
+}
+
+::-webkit-scrollbar { 
+    display: none; 
 }
 
 #rppa_wrapper{
