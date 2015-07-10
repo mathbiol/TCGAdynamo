@@ -62,15 +62,39 @@
                 
                 this.add_rppa_parameters = function(){
                     
-                    controls = document.getElementById("controls1");
+                    document.getElementById("clinical_controls").innerHTML="";
+                    document.getElementById("rppa_controls").innerHTML="";
+                    
+                    controls = document.getElementById("clinical_controls");
+                    wrapper_row = document.createElement('div');
+                    wrapper_row.setAttribute('class',"row");
+                    
+                    $(wrapper_row).appendTo(controls);
+                    for (var i in $model.patients[0].clinical){
+                        new_row = document.createElement('div');
+                        new_row.setAttribute('class',"row");
+                        $(new_row).appendTo(wrapper_row);
+                    
+                        column = document.createElement('div');
+                        column.setAttribute('class',"col-md-8");
+                        column.innerHTML=i;
+                        $(column).appendTo(new_row);
+                    }
+                   
+                    
+                    controls = document.getElementById("rppa_controls");
                     
                     console.log($model.patients[0].RPPA.length);
                     
+                    wrapper_row = document.createElement('div');
+                    wrapper_row.setAttribute('class',"row");
+                    
+                    $(wrapper_row).appendTo(controls);
                     for (var i=0;i<$model.patients[0].RPPA.length;i++){
                         
                         new_row = document.createElement('div');
                         new_row.setAttribute('class',"row");
-                        $(new_row).appendTo(controls);
+                        $(new_row).appendTo(wrapper_row);
                     
                         column = document.createElement('div');
                         column.setAttribute('class',"col-md-8");
@@ -177,7 +201,12 @@
             
             <div class="row">
                 <div class="col-md-7" id="visuals"></div>
-                <div class="col-md-5" id="controls1"></div>
+                <div class="col-md-5" id="parameter_controls">
+                    <div class="row" style="margin-top:-20px"></div>
+                    <div class="col-md-5" id="clinical_controls"></div>
+                    <div class="row"></div>
+                    <div class="col-md-5" id="rppa_controls"></div>
+                </div>
                 
             </div>
             
