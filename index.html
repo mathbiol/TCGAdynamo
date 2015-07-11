@@ -157,8 +157,9 @@
                 
                 this.dots=[];
                 
-                this.init_dots = function(){
+                this.init_dots = function() {
                     
+                    delete this.scene;
                     this.scene = new THREE.Scene();
                     
                     this.dots=[];
@@ -337,6 +338,7 @@
                 }
                 
                 function loadJSON(callback, which) {  
+                    delete $visualization.scene;
                     var file_string = "json_data/"+which+"_data.json";
                     console.log("loading "+file_string);
                     var xobj = new XMLHttpRequest();
@@ -347,7 +349,7 @@
                         callback(xobj.responseText);
                     }
                     };
-                    xobj.send(null); 
+                    xobj.send(); 
                 }
                 
                 $(".dataset_selection").click(function(e){
