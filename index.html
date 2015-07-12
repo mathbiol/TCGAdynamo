@@ -10,7 +10,7 @@
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="apple-touch-icon" href="apple-touch-icon.png">
-       
+        <script type="text/javascript" src="tsne.js"></script>
         <link rel="stylesheet" href="css/bootstrap.min.css">
         <style>
             body {
@@ -36,6 +36,7 @@
                 this.node_degree = [];
                 this.edges = [];
                 this.n_nearest_connect=2;
+                this.tsne_selected=0;
                 
                 this.recompute = function(){
                     
@@ -138,6 +139,20 @@
                     }
                     
                 }
+            
+                this.tsne = function(){
+                    
+                    console.log(document.getElementById("tsne_checkbox").checked);
+                    if (document.getElementById("tsne_checkbox").checked==true){
+                        $model.tsne_selected=1;
+                        tsne_layout = new tsne(this.patients, $visualization.dots);
+                    }
+                    else{
+                        $model.tsne_selected=0;
+                    }
+                    
+                    
+                }
             }
             
             function Visualization(){
@@ -193,6 +208,8 @@
             function Controller(){
                 
                 this.update = function(){
+                    
+                    if ($model.tsne_selected==0){
                     
                     var max_x=0;
                     var max_y=0;
@@ -266,6 +283,20 @@
                         max_y=Math.abs($visualization.dots[i].position.y);
                     }
                 }
+                }
+                var max_x=0;
+                var max_y=0;
+                for (var i=0;i<$model.n_patients;i++){
+                   
+                    if (Math.abs($visualization.dots[i].position.x)>max_x){
+                        max_index = i;
+                        max_x=Math.abs($visualization.dots[i].position.x);
+                    }
+                    if (Math.abs($visualization.dots[i].position.y)>max_y){
+                        max_y=Math.abs($visualization.dots[i].position.y);
+                    }
+                }
+                
                 //console.log("max: "+max_x+"; "+max_index);
                 var new_cam_x;
                 var new_cam_y;
@@ -289,6 +320,7 @@
                     $visualization.camera.bottom=new_cam*$visualization.height/-2;
                     $visualization.camera.updateProjectionMatrix();
                 }   
+                
                 }
                 
                 this.add_rppa_parameters = function(){
@@ -353,6 +385,9 @@
                 }
                 
                 $(".dataset_selection").click(function(e){
+                    $model.tsne_selected=0;
+                    var checkbox = document.getElementById("tsne_checkbox");
+                    checkbox.checked=false;
                     console.log(e.target.id+" selected");
                     selected_data_set=e.target.id;
                     loadJSON(function(response) {
@@ -370,6 +405,8 @@
                 });
                 
             }
+            
+            
             
             $(function(){
                 
@@ -449,6 +486,10 @@
             <div class="row">
                 <div class="col-md-6">selected patients information goes here</div>
                 <div class="col-md-6">parameter visualization goes here</div>
+            </div>
+            
+            <div class="checkbox">
+                <label><input type="checkbox" onchange="$model.tsne()" id="tsne_checkbox">t-SNE</label>
             </div>
 
     </div> 
