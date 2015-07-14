@@ -37,7 +37,7 @@
                 this.edges = [];
                 this.n_nearest_connect=2;
                 this.tsne_selected=0;
-                
+                this.all_edges = [];
                 this.protein_weights = [];
                 
                 this.recompute = function(){
@@ -130,7 +130,9 @@
                             this.edges[i][k]=0;
                         }
                     }
+                    
                     if (protein_counter>0){
+                    var edge_counter=0;
                     for (var i=0;i<this.n_patients;i++){
                        
                         neighbors = find_nearest_neighbors(i);
@@ -140,6 +142,7 @@
                                 this.edges[i][neighbors[k]-i-1]=1;
                                 this.node_degree[i]++;
                                 this.node_degree[neighbors[k]]++;
+                                
                             }
                             else{
                                 this.edges[neighbors[k]][i-neighbors[k]-1]=1;
@@ -218,6 +221,7 @@
             }
             
             function Controller(){
+                
                 
                 this.update = function(){
                     
@@ -420,6 +424,117 @@
                     
                 }
                 
+                this.closest_old=-1;
+                this.find_closest_dot = function(mouse_x,mouse_y){
+                    
+                    var distance = Number.POSITIVE_INFINITY;
+                    var temp_distance;
+                    var index;
+                    
+                    for (var i=0;i<$model.n_patients;i++){
+                        temp_distance = Math.sqrt(Math.pow($visualization.dots[i].position.x-mouse_x,2)+Math.pow($visualization.dots[i].position.y-mouse_y,2));
+                        if (temp_distance<distance){
+                            distance = temp_distance;
+                            index = i;
+                        } 
+                    }
+                    
+                    return(index);
+                    
+                }
+                
+                this.n_selected=0;
+                this.add_patient_to_details = function(index){
+                    $controller.n_selected++;
+                    
+                    if ($controller.n_selected==1){
+                        container = document.getElementById("selected_patients");
+                        container.innerHTML="<table data-toggle=\"table\" data-cache=\"false\" data-height=\"299\" id=\"patient_table\">";
+                        table = document.getElementById("patient_table");
+                        table.setAttribute("class","table");
+                        thead = document.createElement("thead");
+                        tr = document.createElement("tr");
+                        
+                        th = document.createElement("th");
+                        th.innerHTML="patient_uuid";
+                        $(th).appendTo(tr);
+                    
+                        for (var i=0;i<$model.n_features;i++){
+                        
+                            th = document.createElement("th");
+                            th.innerHTML=$model.patients[0].RPPA[i].ID;
+                            $(th).appendTo(tr);
+                        
+                        }
+                        
+                        tbody = document.createElement("tbody");
+                        tbody.setAttribute("id","table_body");
+                        
+                    
+                        $(tr).appendTo(thead);
+                        $(thead).appendTo(table);
+                        $(tbody).appendTo(table);
+                        $(table).appendTo(container);
+                    }
+                    
+                    tr = document.createElement("tr");
+                    
+                    td = document.createElement("td");
+                    td.innerHTML=$model.patients[index].clinical.bcr_patient_uuid;
+                    $(td).appendTo(tr);
+                    
+                    for (var i=0;i<$model.n_features;i++){
+                        
+                        td = document.createElement("td");
+                        td.innerHTML=$model.patients[index].RPPA[i].value;
+                        $(td).appendTo(tr);
+                    }
+                    
+                    $(tr).appendTo(document.getElementById("table_body"));
+                    
+                }
+                
+                this.add_mouse_listener = function(){
+                    
+                    mousemove = function(event){
+                        
+                        var mouse_x = event.offsetX*$visualization.camera_parameter-(($visualization.width*$visualization.camera_parameter)/2);
+                        var mouse_y = event.offsetY*$visualization.camera_parameter-(($visualization.height*$visualization.camera_parameter)/2);
+                        mouse_y=mouse_y*-1;
+                        
+                        var closest = $controller.find_closest_dot(mouse_x, mouse_y);
+                        
+                        if ($controller.closest_old!=closest){
+                            $visualization.dots[closest].material.color.r = $visualization.dots[closest].material.color.r*2;
+                            $visualization.dots[closest].material.color.g = $visualization.dots[closest].material.color.g*2;
+                            $visualization.dots[closest].material.color.b = $visualization.dots[closest].material.color.b*2;
+                        }
+                        
+                        if ($controller.closest_old!=-1 && $controller.closest_old!=closest){
+                            $visualization.dots[$controller.closest_old].material.color.r = $visualization.dots[$controller.closest_old].material.color.r/2;
+                            $visualization.dots[$controller.closest_old].material.color.g = $visualization.dots[$controller.closest_old].material.color.g/2;
+                            $visualization.dots[$controller.closest_old].material.color.b = $visualization.dots[$controller.closest_old].material.color.b/2;
+                        }
+                        
+                        $controller.closest_old = closest;
+                        
+                    }
+                    
+                    mousedown = function(event){
+                        
+                        var mouse_x = event.offsetX*$visualization.camera_parameter-(($visualization.width*$visualization.camera_parameter)/2);
+                        var mouse_y = (event.offsetY+72)*$visualization.camera_parameter-(($visualization.width*$visualization.camera_parameter)/2);
+                        mouse_y=mouse_y*-1;
+                       
+                        closest = $controller.find_closest_dot(mouse_x, mouse_y);
+                        
+                        $controller.add_patient_to_details(closest);
+                    }
+                    
+                    $visualization.canvas.addEventListener('mousemove', mousemove, false);
+                    $visualization.canvas.addEventListener('mousedown', mousedown, false);
+                }
+                
                 function loadJSON(callback, which) {  
                     delete $visualization.scene;
                     var file_string = "json_data/"+which+"_data.json";
@@ -437,6 +552,7 @@
                 
                 $(".dataset_selection").click(function(e){
                     $model.tsne_selected=0;
+                    $controller.closest_old=-1;
                     var checkbox = document.getElementById("tsne_checkbox");
                     checkbox.checked=false;
                     console.log(e.target.id+" selected");
@@ -465,7 +581,7 @@
                 $visualization = new Visualization();
                 $controller = new Controller();
                 $model = new Model();
-                
+                $controller.add_mouse_listener();
                 setInterval(function(){ $visualization.render() }, 5);
                 
                
@@ -536,7 +652,7 @@
             </div>
             
             <div class="row">
-                <div class="col-md-6">selected patients information goes here</div>
+                <div class="col-md-6" id="selected_patients">click to select patients...</div>
                 <div class="col-md-6">parameter visualization goes here</div>
             </div>
             
