@@ -38,7 +38,18 @@
                 this.n_nearest_connect=2;
                 this.tsne_selected=0;
                 
+                this.protein_weights = [];
+                
                 this.recompute = function(){
+                    
+                    var considered_proteins = [];
+                    var protein_counter=0;
+                    for (var i=0;i<this.n_features;i++){
+                        if (this.protein_weights[i]!=0){
+                            considered_proteins[protein_counter]=i;
+                            protein_counter++;
+                        }
+                    }
                     
                     for (var i=0;i<this.n_patients;i++){
                         this.edges[i] = [];
@@ -51,8 +62,8 @@
                         
                         var sum = 0;
                         
-                        for (var i=0;i<$model.n_features;i++){
-                            sum = sum+(Math.pow($model.patients[a].RPPA[i].value-$model.patients[b].RPPA[i].value,2));
+                        for (var i=0;i<protein_counter;i++){
+                            sum = sum+$model.protein_weights[considered_proteins[i]]*(Math.pow($model.patients[a].RPPA[i].value-$model.patients[b].RPPA[i].value,2));
                         }
                         
                         sum=Math.sqrt(sum);
@@ -119,7 +130,7 @@
                             this.edges[i][k]=0;
                         }
                     }
-                    
+                    if (protein_counter>0){
                     for (var i=0;i<this.n_patients;i++){
                        
                         neighbors = find_nearest_neighbors(i);
@@ -136,6 +147,7 @@
                                 this.node_degree[neighbors[k]]++;
                             }
                         }
+                    }
                     }
                     
                 }
@@ -323,6 +335,26 @@
                 
                 }
                 
+                this.rppa_checkbox_clicked = function(checkbox){
+                    var rppa_id = checkbox.id.substring(0,checkbox.id.length-9)
+                    console.log(rppa_id);
+                    var slider_id = rppa_id+"_slider";
+                    slider = document.getElementById(slider_id);
+                    slider.value=1;
+                    $controller.rppa_weight_changed(slider);
+                }
+                
+                this.rppa_weight_changed = function(slider){
+                    
+                    console.log(slider.id+": "+slider.value+"; ");
+                    var parameter = slider.id.substring(0,slider.id.length-7)
+                    for (var i=0;i<$model.n_features;i++){
+                        if ($model.patients[0].RPPA[i].ID==slider.id.substring(0,slider.id.length-7))
+                            $model.protein_weights[i] = slider.value;
+                    }
+                    $model.recompute();
+                }
+                
                 this.add_rppa_parameters = function(){
                     
                     document.getElementById("clinical_controls").innerHTML="";
@@ -358,9 +390,28 @@
                         $(new_row).appendTo(wrapper_row);
                     
                         column = document.createElement('div');
-                        column.setAttribute('class',"col-md-8");
+                        column.setAttribute('class',"col-md-5");
                         column.innerHTML=$model.patients[0].RPPA[i].ID;
                         $(column).appendTo(new_row);
+                        
+                        
+                        
+                        column = document.createElement('div');
+                        column.setAttribute('class',"col-md-1");
+                        column.innerHTML="<input type=\"checkbox\" onchange=\"$controller.rppa_checkbox_clicked(this)\" id=\""+$model.patients[0].RPPA[i].ID+"_checkbox\"/>";
+                        $(column).appendTo(new_row);
+                        
+                        column = document.createElement('div');
+                        column.setAttribute('class',"col-md-2");
+                        column.innerHTML="weight:";
+                        $(column).appendTo(new_row);
+                        
+                        column = document.createElement('div');
+                        column.setAttribute('class',"col-md-2");
+                        column.innerHTML="<input type=\"range\" min=\"0\" max=\"1\" step=\"0.01\" value=\"0\" style=\"width:60px\" id=\""+$model.patients[0].RPPA[i].ID+"_slider\" onchange=\"$controller.rppa_weight_changed(this)\"/>"
+                        $(column).appendTo(new_row);
+                        
+                        
                         
                     }
                     
@@ -394,6 +445,9 @@
                         $model.patients = JSON.parse(response);
                         $model.n_features = $model.patients[0].RPPA.length;
                         $model.n_patients = $model.patients.length;
+                        for (var i=0;i<$model.n_features;i++){
+                            $model.protein_weights[i]=0;
+                        }
                         $model.recompute();
                         $visualization.init_dots();
                         console.log($model.patients.length);
@@ -405,8 +459,6 @@
                 });
                 
             }
-            
-            
             
             $(function(){
                 
@@ -476,9 +528,9 @@
                 <div class="col-md-7" id="visuals"></div>
                 <div class="col-md-5" id="parameter_controls">
                     <div class="row" style="margin-top:-20px"></div>
-                    <div class="col-md-8" id="clinical_controls"></div>
+                    <div class="col-md-12" id="clinical_controls"></div>
                     <div class="row"></div>
-                    <div class="col-md-8" id="rppa_controls"></div>
+                    <div class="col-md-12" id="rppa_controls"></div>
                 </div>
                 
             </div>
