@@ -24,6 +24,12 @@
     
 }
 
+#selected_patients{
+    height: 300px;
+    overflow-x: scroll;
+    overflow-y: scroll;
+}
+
 #clinical_controls::-webkit-scrollbar { 
     display: none; 
 }
