@@ -12,6 +12,7 @@
         <link rel="apple-touch-icon" href="apple-touch-icon.png">
         <script type="text/javascript" src="tsne.js"></script>
         <link rel="stylesheet" href="css/bootstrap.min.css">
+        <script src="http://d3js.org/d3.v2.min.js?2.8.1"></script>
         <style>
             body {
                 padding-top: 50px;
@@ -39,6 +40,121 @@
                 this.tsne_selected=0;
                 this.all_edges = [];
                 this.protein_weights = [];
+                
+                this.pearson_correlations = [];
+                this.spearman_correlations = [];
+                
+                this.compute_pearson_of_selected_patients = function(){
+                    var selected = $controller.selected_patients;
+                    mean_values = [];
+                    $model.pearson_correlations = [];
+                    compute_pearson_between_variables = function(param_a, param_b, selected){
+                        
+                        sum1=0;
+                        sum2=0;
+                        sum3=0;
+                        for (var i=0;i<selected.length;i++){
+                            sum1=sum1+((parseFloat($model.patients[selected[i]].RPPA[param_a].value)-this.mean_values[param_a])*(parseFloat($model.patients[selected[i]].RPPA[param_b].value)-this.mean_values[param_b]));
+                            sum2=sum2+Math.pow((parseFloat($model.patients[selected[i]].RPPA[param_a].value)-this.mean_values[param_a]),2);
+                            sum3=sum3+Math.pow((parseFloat($model.patients[selected[i]].RPPA[param_b].value)-this.mean_values[param_b]),2);
+                        }
+                        denominator = Math.sqrt(sum2*sum3);
+                        correlation_coefficient = sum1/denominator;
+                        
+                        return(correlation_coefficient);
+                        
+                    }
+                    
+                    compute_mean_of_parameter = function(parameter, selected){
+                        
+                        sum=0;
+                        
+                        for (var i=0;i<selected.length;i++){
+                            sum=sum+parseFloat($model.patients[selected[i]].RPPA[parameter].value);
+                        }
+                        
+                        sum = sum/selected.length;
+                        return(sum);
+                    }
+                    
+                    for (var i=0;i<this.n_features;i++){
+                        mean_values[i] = compute_mean_of_parameter(i, selected);
+                    }
+                    
+                    for (var i=0;i<this.n_features-1;i++){
+                        $model.pearson_correlations[i] = [];
+                        for (var k=i+1;k<this.n_features;k++){
+                            $model.pearson_correlations[i][k-i-1] = compute_pearson_between_variables(i,k,selected);
+                        }
+                    }
+                
+                }
+                
+                this.compute_spearman_of_selected_patients = function(){
+                    
+                    var selected = $controller.selected_patients;
+                    $model.spearman_correlations = [];
+                    
+                    this.patient_feature_rank = [];
+                    
+                    for (var i=0;i<$model.n_patients;i++){
+                        this.patient_feature_rank[i] = [];
+                    }
+                    
+                    compare_values = function(a,b){
+                        return a-b;
+                    }
+                    
+                    temp_features = [];
+                    var value_to_rank_map;
+                    var temp_counter=1;
+                    
+                    for (var i=0;i<$model.n_features;i++){
+                      
+                        for (var k=0;k<selected.length;k++){
+                            temp_features[k] = parseFloat($model.patients[selected[k]].RPPA[i].value);
+                        }
+                        temp_features.sort(compare_values);
+                        
+                        value_to_rank_map = {};
+                        temp_counter=1;
+                        value_to_rank_map[temp_features[0]]=1;
+                        
+                        for (var k=0;k<selected.length;k++){
+                            if (temp_features[k]>temp_features[k-1]){
+                                temp_counter++;
+                                value_to_rank_map[temp_features[k]]=temp_counter;
+                            }
+                        }
+                        
+                        for (var k=0;k<selected.length;k++){
+                            this.patient_feature_rank[k][i] = value_to_rank_map[parseFloat($model.patients[selected[k]].RPPA[i].value)];
+                        }
+                    }
+                    
+                    compute_spearman_between_parameters = function(param_a, param_b, selected, patient_feature_rank){
+                        
+                        var sum = 0;
+                        
+                        for (var i=0;i<selected.length;i++){
+                            sum = sum+Math.pow((patient_feature_rank[i][param_a]-patient_feature_rank[i][param_b]),2);
+                        }
+                        
+                        spearman_correlation = 1-((6*sum)/(selected.length*(Math.pow(selected.length,2)-1)));
+                        
+                        return(spearman_correlation);
+                        
+                    }
+                    
+                    for (var i=0;i<this.n_features-1;i++){
+                        $model.spearman_correlations[i] = [];
+                        for (var k=i+1;k<this.n_features;k++){
+                            $model.spearman_correlations[i][k-i-1] = compute_spearman_between_parameters(i,k,selected, this.patient_feature_rank);
+                            
+                        }
+                    }
+                    
+                }
                 
                 this.recompute = function(){
                     
@@ -217,6 +333,174 @@
                     this.renderer.render( this.scene, this.camera );
                 }
                 
+                this.show_pearson_correlation=1;
+                this.show_spearman_correlation=0;
+                this.show_heatmap = function(){
+                    
+                    container = document.getElementById("parameter_visualization_buttons");
+                    
+                    container.innerHTML="<div id=\"param_visualization_buttons\" class=\"btn-toolbar btn-default\">";
+                    container.innerHTML+="<button class=\"btn btn-default\" id=\"pearson_button\"><span>Pearson correlation</span></button>";
+                    container.innerHTML+="<button class=\"btn btn-default\" id=\"spearman_button\"><span>Spearman correlation</span></button></div>";
+                    
+                    $('#pearson_button').on('click', function(e) {
+                        $visualization.show_pearson_correlation=1;
+                        $visualization.show_spearman_correlation=0;
+                        $visualization.show_heatmap();
+                    });
+                        
+                    $('#spearman_button').on('click', function(e) {
+                        $visualization.show_pearson_correlation=0;
+                        $visualization.show_spearman_correlation=1;
+                        console.log("hi");
+                        $visualization.show_heatmap();
+                    });
+                    
+                    var margin = {top: 100, right: 20, bottom: 10, left: 100 },
+                                width = 1500,
+                                height = 1500;
+                    
+                    var x = d3.scale.ordinal().rangeBands([0, width]),
+                        z = d3.scale.linear().domain([0, 4]).clamp(true),
+                        c = d3.scale.category10().domain(d3.range(10));
+                
+                        
+                    
+                    $("#parameter_visualization").html("");
+                    
+                    var svg = d3.select("#parameter_visualization").append("svg")
+                                .attr("width", width + margin.left + margin.right)
+                                .attr("height", height + margin.top + margin.bottom)
+                                .style("margin-left", +margin.left + "px")
+                                .append("g")
+                                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                        
+                    var matrix = [];
+                    
+                    var counter=0;
+                    
+                    if ($visualization.show_pearson_correlation==1)
+                    {
+                    for (var i=0;i<$model.n_features;i++){
+                        matrix[i] = [];
+                        for (var k=0;k<$model.n_features;k++){
+                            if (i!=k){
+                                
+                                if (k>i){
+                                    if ($model.pearson_correlations[i][k-i-1]>0.9 || $model.pearson_correlations[i][k-i-1]<-0.9)
+                                        matrix[i][k]={x:k,y:i,z:1};
+                                    else
+                                        matrix[i][k]={x:k,y:i,z:0};
+                                }
+                                else{
+                                    if ($model.pearson_correlations[k][i-k-1]>0.9 || $model.pearson_correlations[k][i-k-1]<-0.9)
+                                        matrix[i][k]={x:k,y:i,z:1};
+                                    else
+                                        matrix[i][k]={x:k,y:i,z:0};
+                                }
+                                
+                            }
+                            else{
+                                matrix[i][k]={x:k,y:i,z:0};
+                            }
+                        }
+                    }
+                    }
+                else{
+                    for (var i=0;i<$model.n_features;i++){
+                        matrix[i] = [];
+                        for (var k=0;k<$model.n_features;k++){
+                            if (i!=k){
+                                
+                                if (k>i){
+                                    if ($model.spearman_correlations[i][k-i-1]>0.9 || $model.spearman_correlations[i][k-i-1]<-0.9)
+                                        matrix[i][k]={x:k,y:i,z:1};
+                                    else
+                                        matrix[i][k]={x:k,y:i,z:0};
+                                }
+                                else{
+                                    if ($model.spearman_correlations[k][i-k-1]>0.9 || $model.spearman_correlations[k][i-k-1]<-0.9)
+                                        matrix[i][k]={x:k,y:i,z:1};
+                                    else
+                                        matrix[i][k]={x:k,y:i,z:0};
+                                }
+                                
+                            }
+                            else{
+                                matrix[i][k]={x:k,y:i,z:0};
+                            }
+                        }
+                    }
+                    
+                }
+                    
+                    x.domain(d3.range($model.n_features));
+                    
+                    svg.append("rect")
+                        .attr("class", "background")
+                        .attr("width", width)
+                        .attr("height", height);
+                
+                    var row = svg.selectAll(".row")
+                                .data(matrix)
+                                .enter().append("g")
+                                .attr("class", "row")
+                                .attr("transform", function(d, i) { return "translate(0," + x(i) + ")"; })
+                                .each(row);
+                        
+                    function row(row) {
+                        var cell = d3.select(this).selectAll(".cell")
+                        .data(row.filter(function(d) { return d.z; }))
+                        .enter().append("rect")
+                        .attr("class", "cell")
+                        .attr("x", function(d) { return x(d.x); })
+                        .attr("width", x.rangeBand())
+                        .attr("height", x.rangeBand())
+                        .style("fill-opacity", function(d) { return z(d.z); })
+                        .style("fill", function(d) { return "red"; })
+                        .on("mouseover", mouseover)
+                        .on("mouseout", mouseout);
+                    }
+                    
+                    function mouseover(p) {
+                        d3.selectAll(".row text").classed("active", function(d, i) { return i == p.y; });
+                        d3.selectAll(".column text").classed("active", function(d, i) { return i == p.x; });
+                    }
+
+                    function mouseout() {
+                        d3.selectAll("text").classed("active", false);
+                    }
+                    
+                    row.append("line")
+                        .attr("x2", width);
+
+                    row.append("text")
+                        .attr("x", -6)
+                        .attr("font-size","10px")
+                        .attr("y", x.rangeBand() / 2)
+                        .attr("dy", ".32em")
+                        .attr("text-anchor", "end")
+                        .text(function(d, i) { return $model.patients[0].RPPA[i].ID; });
+                    
+                    var column = svg.selectAll(".column")
+                                .data(matrix)
+                                .enter().append("g")
+                                .attr("class", "column")
+                                .attr("id", "column2")
+                                .attr("transform", function(d, i) { return "translate(" + x(i) + ")rotate(-90)"; });
+                    
+                    column.append("line")
+                        .attr("x1", -width);
+                        
+                    column.append("text")
+                        .attr("x", 6)
+                        .attr("font-size","10px")
+                        .attr("y", x.rangeBand() / 2)
+                        .attr("dy", ".32em")
+                        .attr("text-anchor", "start")
+                        .text(function(d, i) { return $model.patients[0].RPPA[i].ID; });
+
+                }
                 
             }
             
@@ -444,37 +728,124 @@
                 }
                 
                 this.n_selected=0;
-                this.add_patient_to_details = function(index){
-                    $controller.n_selected++;
+                this.selected_patients=[];
+                this.rppa_details_selected=1;
+                this.clinical_details_selected=0;
+                this.list_rppa_details = function(){
                     
-                    if ($controller.n_selected==1){
-                        container = document.getElementById("selected_patients");
-                        container.innerHTML="<table data-toggle=\"table\" data-cache=\"false\" data-height=\"299\" id=\"patient_table\">";
-                        table = document.getElementById("patient_table");
-                        table.setAttribute("class","table");
-                        thead = document.createElement("thead");
-                        tr = document.createElement("tr");
+                    $controller.init_details_table();
+                    
+                    for (var k=0;k<$controller.selected_patients.length;k++){
                         
-                        th = document.createElement("th");
-                        th.innerHTML="patient_uuid";
-                        $(th).appendTo(tr);
+                        var index = $controller.selected_patients[k];
+                        
+                        tr = document.createElement("tr");
+                        td = document.createElement("td");
+                        td.innerHTML=$model.patients[index].clinical.bcr_patient_uuid;
+                        $(td).appendTo(tr);
                     
                         for (var i=0;i<$model.n_features;i++){
+                            td = document.createElement("td");
+                            td.innerHTML=$model.patients[index].RPPA[i].value;
+                            $(td).appendTo(tr);
+                        }
+                    
+                        $(tr).appendTo(document.getElementById("table_body"));
                         
+                    }
+                    
+                    
+                    
+                }
+                
+                this.list_clinical_details = function(){
+                    
+                    $controller.init_details_table();
+                    
+                    for (var k=0;k<$controller.selected_patients.length;k++){
+                        
+                        var index = $controller.selected_patients[k];
+                        
+                        tr = document.createElement("tr");
+                        td = document.createElement("td");
+                        td.innerHTML=$model.patients[index].clinical.bcr_patient_uuid;
+                        $(td).appendTo(tr);
+                    
+                        for (var i in $model.patients[0].clinical){
+                            td = document.createElement("td");
+                            td.innerHTML=$model.patients[index].clinical[i];
+                            $(td).appendTo(tr);
+                        }
+                    
+                        $(tr).appendTo(document.getElementById("table_body"));
+                        
+                    }
+                    
+                }
+                
+                this.init_details_table = function(){
+                    
+                    container = document.getElementById("selected_patients");
+                    
+                    container.innerHTML="<div id=\"transform-buttons\" class=\"btn-toolbar btn-default\">";
+                    container.innerHTML+="<button class=\"btn btn-default\" id=\"rppa_button\"><span>RPPA parameters</span></button>";
+                    container.innerHTML+="<button class=\"btn btn-default\" id=\"clinical_button\"><span>Clinical data</span></button></div>";
+                    container.innerHTML+="<table data-toggle=\"table\" data-cache=\"false\" data-height=\"299\" id=\"patient_table\">";
+                    
+                    $('#rppa_button').on('click', function(e) {
+                            console.log("rppa button");
+                            $controller.rppa_details_selected=1;
+                            $controller.clinical_details_selected=0;
+                            $controller.list_rppa_details();
+                    });
+                        
+                    $('#clinical_button').on('click', function(e) {
+                        console.log("clinical button");
+                        $controller.clinical_details_selected=1;
+                        $controller.rppa_details_selected=0;
+                        $controller.list_clinical_details();
+                    });
+                    
+                    table = document.getElementById("patient_table");
+                    table.setAttribute("class","table");
+                    thead = document.createElement("thead");
+                    tr = document.createElement("tr");
+                        
+                    th = document.createElement("th");
+                    th.innerHTML="patient_uuid";
+                    $(th).appendTo(tr);
+                    
+                    if ($controller.rppa_details_selected==1){
+                        for (var i=0;i<$model.n_features;i++){
                             th = document.createElement("th");
                             th.innerHTML=$model.patients[0].RPPA[i].ID;
                             $(th).appendTo(tr);
-                        
                         }
+                    }
+                    else{
+                        for (var i in $model.patients[0].clinical){
+                            th = document.createElement("th");
+                            th.innerHTML=i;
+                            $(th).appendTo(tr);
+                        }
+                    }
                         
-                        tbody = document.createElement("tbody");
-                        tbody.setAttribute("id","table_body");
+                    tbody = document.createElement("tbody");
+                    tbody.setAttribute("id","table_body");
                         
+                    $(tr).appendTo(thead);
+                    $(thead).appendTo(table);
+                    $(tbody).appendTo(table);
+                    $(table).appendTo(container);
                     
-                        $(tr).appendTo(thead);
-                        $(thead).appendTo(table);
-                        $(tbody).appendTo(table);
-                        $(table).appendTo(container);
+                }
+                
+                this.add_patient_to_details = function(index){
+                    
+                    $controller.selected_patients[$controller.n_selected]=index;
+                    $controller.n_selected++;
+                    if ($controller.n_selected==1){
+                        $controller.init_details_table();
                     }
                     
                     tr = document.createElement("tr");
@@ -484,7 +855,6 @@
                     $(td).appendTo(tr);
                     
                     for (var i=0;i<$model.n_features;i++){
-                        
                         td = document.createElement("td");
                         td.innerHTML=$model.patients[index].RPPA[i].value;
                         $(td).appendTo(tr);
@@ -529,6 +899,12 @@
                         closest = $controller.find_closest_dot(mouse_x, mouse_y);
                         
                         $controller.add_patient_to_details(closest);
+                        
+                        if ($controller.selected_patients.length>1){
+                            $model.compute_pearson_of_selected_patients();
+                            $model.compute_spearman_of_selected_patients();
+                            $visualization.show_heatmap();
+                        }
                     }
                     
                     $visualization.canvas.addEventListener('mousemove', mousemove, false);
@@ -653,7 +1029,15 @@
             
             <div class="row">
                 <div class="col-md-6" id="selected_patients">click to select patients...</div>
-                <div class="col-md-6">parameter visualization goes here</div>
+                <div class="col-md-6">
+                    <div class="row">
+                        <div class="col-md-12" id="parameter_visualization_buttons"></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12" id="parameter_visualization"></div>
+                    </div>
+                </div>
+            
             </div>
             
             <div class="checkbox">
