@@ -30,6 +30,18 @@
     overflow-y: scroll;
 }
 
+.background {
+    fill: #eee;
+}   
+
+line {
+    stroke: #fff;
+}
+
+text.active {
+    fill: red;
+}
+
 #clinical_controls::-webkit-scrollbar { 
     display: none; 
 }
@@ -42,7 +54,9 @@
     outline: 1px solid orange;
 }
 
-
+#pearson_button{
+    margin-left:100px;
+}
 /* ==========================================================================
    Author's custom styles
    ========================================================================== */
