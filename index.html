@@ -284,6 +284,68 @@
                     
                     
                 }
+                
+                this.userstory_compute_fisher_ratios = function(){
+                    
+                    var values_group1 = [];
+                    var values_group2 = [];
+                    
+                    for (var i=0;i<$model.n_features;i++){
+                        values_group1[i] = [];
+                        values_group2[i] = [];
+                        for (var k=0;k<$model.n_patients;k++){
+                            if ($model.patients[k].clinical["tobacco_smoking_pack_years_smoked"]=="[Not Available]"){
+                                values_group1[i].push(parseFloat($model.patients[k].RPPA[i].value));
+                            }
+                            else{
+                                values_group2[i].push(parseFloat($model.patients[k].RPPA[i].value));
+                            }
+                        }
+                    }
+                    
+                    var mean_values_group1 = [];
+                    var mean_values_group2 = [];
+                    var sum=0;
+                    for (var i=0;i<$model.n_features;i++){
+                        for (var k=0;k<values_group1[i].length;k++){
+                            sum = sum+values_group1[i][k];
+                        }
+                        sum = sum/values_group1[i].length;
+                        mean_values_group1[i] = sum;
+                        for (var k=0;k<values_group2[i].length;k++){
+                            sum = sum+values_group2[i][k];
+                        }
+                        sum = sum/values_group1[i].length;
+                        mean_values_group2[i] = sum;
+                    }
+                    
+                    var variance_values_group1 = [];
+                    var variance_values_group2 = [];
+                    sum=0;
+                    for (var i=0;i<$model.n_features;i++){
+                        for (var k=0;k<values_group1[i].length;k++){
+                            sum=sum+Math.pow(values_group1[i][k]-mean_values_group1[i],2);
+                        }
+                        sum=sum/values_group1[i].length;
+                        variance_values_group1[i]=sum;
+                        
+                        for (var k=0;k<values_group2[i].length;k++){
+                            sum=sum+Math.pow(values_group2[i][k]-mean_values_group2[i],2);
+                        }
+                        sum=sum/values_group2[i].length;
+                        variance_values_group2[i]=sum;
+                    }
+                    
+                    var fisher_ratios = [];
+                    
+                    for (var i=0;i<$model.n_features;i++){
+                        fisher_ratios[i] = Math.pow(mean_values_group1[i]-mean_values_group2[i],2)/(variance_values_group1[i]+variance_values_group2[i]);
+                    }
+                   
+                    
+                    return (fisher_ratios);
+                }
+    
             }
             
             function Visualization(){
@@ -501,6 +563,8 @@
                         .text(function(d, i) { return $model.patients[0].RPPA[i].ID; });
 
                 }
+                
+                
                 
             }
             
@@ -841,6 +905,7 @@
                 }
                 
                 this.add_patient_to_details = function(index){
+                  
                     
                     $controller.selected_patients[$controller.n_selected]=index;
                     $controller.n_selected++;
@@ -874,13 +939,11 @@
                         
                         var closest = $controller.find_closest_dot(mouse_x, mouse_y);
                         
-                        if ($controller.closest_old!=closest){
+                        if ($controller.closest_old!=-1 && $controller.closest_old!=closest){
+                            
                             $visualization.dots[closest].material.color.r = $visualization.dots[closest].material.color.r*2;
                             $visualization.dots[closest].material.color.g = $visualization.dots[closest].material.color.g*2;
                             $visualization.dots[closest].material.color.b = $visualization.dots[closest].material.color.b*2;
-                        }
-                        
-                        if ($controller.closest_old!=-1 && $controller.closest_old!=closest){
                             $visualization.dots[$controller.closest_old].material.color.r = $visualization.dots[$controller.closest_old].material.color.r/2;
                             $visualization.dots[$controller.closest_old].material.color.g = $visualization.dots[$controller.closest_old].material.color.g/2;
                             $visualization.dots[$controller.closest_old].material.color.b = $visualization.dots[$controller.closest_old].material.color.b/2;
@@ -944,11 +1007,305 @@
                         $visualization.init_dots();
                         console.log($model.patients.length);
                         console.log($model.n_features);
-                        
                         $controller.add_rppa_parameters();
+                        
+                        if ($controller.userstory_selected==1){
+                            $controller.userstory_lusc_select_patients();
+                        }
+                        
                     }, e.target.id);
                     
                 });
+                
+                $(".userstory_selection").click(function(e){
+                   console.log(e.target.id); 
+                   button = document.getElementById("lusc");
+                   var event = button["click"];
+                   event.call(button)
+                   $controller.userstory_selected=1;
+                   
+                });
+                
+                this.userstory_add_patients_to_details = function(){
+                    
+                    for (var i=0;i<$model.n_patients;i++){
+                        if ($model.patients[i].clinical["tobacco_smoking_pack_years_smoked"]=="[Not Available]"){
+                            
+                            tr = document.createElement("tr");
+                            td = document.createElement("td");
+                            td.innerHTML=$model.patients[i].clinical.bcr_patient_uuid;
+                            $(td).appendTo(tr);
+                            
+                            if ($controller.rppa_details_selected==1){
+                                for (var k=0;k<$model.n_features;k++){
+                                    td = document.createElement("td");
+                                    td.innerHTML=$model.patients[i].RPPA[k].value;
+                                    $(td).appendTo(tr);
+                                }
+                            }
+                            else{
+                                for (var k in $model.patients[0].clinical){
+                                    td = document.createElement("td");
+                                    td.innerHTML=$model.patients[i].clinical[k];
+                                    $(td).appendTo(tr);
+                                }
+                            }
+                            
+                            $(tr).appendTo(document.getElementById("group1"));
+                        }   
+                        else{
+                            
+                            tr = document.createElement("tr");
+                            td = document.createElement("td");
+                            td.innerHTML=$model.patients[i].clinical.bcr_patient_uuid;
+                            $(td).appendTo(tr);
+                            if ($controller.rppa_details_selected==1){
+                                for (var k=0;k<$model.n_features;k++){
+                                    td = document.createElement("td");
+                                    td.innerHTML=$model.patients[i].RPPA[k].value;
+                                    $(td).appendTo(tr);
+                                }
+                            }
+                            else{
+                                for (var k in $model.patients[0].clinical){
+                                    td = document.createElement("td");
+                                    td.innerHTML=$model.patients[i].clinical[k];
+                                    $(td).appendTo(tr);
+                                }
+                            }
+                            
+                            $(tr).appendTo(document.getElementById("group2"));
+                        }
+                            
+                    }
+                    
+                }
+                
+                this.userstory_color_dots = function(){
+                    
+                        for (var i=0;i<$model.n_patients;i++){
+                            if ($model.patients[i].clinical["tobacco_smoking_pack_years_smoked"]=="[Not Available]"){
+                                $visualization.dots[i].material.color = new THREE.Color( 0x66FFFF );
+                            }
+                            else{
+                                $visualization.dots[i].material.color = new THREE.Color( 0xFF0000 );
+                            }
+                        }
+                }
+   
+                this.userstory_selected=0;
+                this.userstory_lusc_select_patients = function(){
+                    
+                    column = document.getElementById("selected_patients");
+                    column.innerHTML="<div class=\"row\"> <div class=\"col-md-12\" id=\"userstory_lusc_buttons\">";
+                    column.innerHTML+="<div id=\"transform-buttons\" class=\"btn-toolbar btn-default\">";
+                    column.innerHTML+="<button class=\"btn btn-default\" id=\"rppa_button\"><span>RPPA parameters</span></button>";
+                    column.innerHTML+="<button class=\"btn btn-default\" id=\"clinical_button\"><span>Clinical data</span></button></div>";
+                    column.innerHTML+="</div></div>";
+                    column.innerHTML+="<div class=\"row\"><div class=\"col-md-6\" id=\"group1\">group1</div><div class=\"col-md-6\" id=\"group2\">group2</div></div>";
+                    
+                    $('#rppa_button').on('click', function(e) {
+                            console.log("rppa button");
+                            $controller.rppa_details_selected=1;
+                            $controller.clinical_details_selected=0;
+                            $controller.userstory_lusc_select_patients();
+                    });
+                        
+                    $('#clinical_button').on('click', function(e) {
+                        console.log("clinical button");
+                        $controller.clinical_details_selected=1;
+                        $controller.rppa_details_selected=0;
+                        $controller.userstory_lusc_select_patients();
+                    });
+                    
+                    group1_column = document.getElementById("group1");
+                    
+                    group1.innerHTML="<table data-toggle=\"table\" data-cache=\"false\" data-height=\"299\" id=\"group1_table\">";
+                    
+                    group2_column = document.getElementById("group2");
+                    
+                    group2.innerHTML="<table data-toggle=\"table\" data-cache=\"false\" data-height=\"299\" id=\"group2_table\">";
+                    
+                    table = document.getElementById("group1_table");
+                    table.setAttribute("class","table");
+                    thead = document.createElement("thead");
+                    tr = document.createElement("tr");
+                    th = document.createElement("th");
+                    th.innerHTML="patient_uuid";
+                    $(th).appendTo(tr);
+                    if ($controller.rppa_details_selected==1){
+                        
+                        for (var i=0;i<$model.n_features;i++){
+                            th = document.createElement("th");
+                            th.innerHTML=$model.patients[0].RPPA[i].ID;
+                            $(th).appendTo(tr);
+                        }
+                    }
+                    else{
+                        for (var i in $model.patients[0].clinical){
+                            th = document.createElement("th");
+                            th.innerHTML=i;
+                            $(th).appendTo(tr);
+                        }
+                    }
+                    
+                    $(tr).appendTo(thead);
+                    $(thead).appendTo(table);
+                    
+                    
+                    table = document.getElementById("group2_table");
+                    table.setAttribute("class","table");
+                    thead = document.createElement("thead");
+                    tr = document.createElement("tr");
+                    th = document.createElement("th");
+                    th.innerHTML="patient_uuid";
+                    $(th).appendTo(tr);
+                    if ($controller.rppa_details_selected==1){
+                        for (var i=0;i<$model.n_features;i++){
+                            th = document.createElement("th");
+                            th.innerHTML=$model.patients[0].RPPA[i].ID;
+                            $(th).appendTo(tr);
+                        }
+                    }
+                    else{
+                        for (var i in $model.patients[0].clinical){
+                            th = document.createElement("th");
+                            th.innerHTML=i;
+                            $(th).appendTo(tr);
+                        }
+                    }
+                    
+                    $(th).appendTo(tr);
+                    $(tr).appendTo(thead);
+                    $(thead).appendTo(table);
+                    
+                    $controller.userstory_add_patients_to_details();
+                    $controller.userstory_color_dots();
+                    $controller.userstory_create_histogram();
+                    $model.userstory_compute_fisher_ratios();
+                    
+                }
+                
+                this.userstory_get_preprocessed_array
+                
+                this.userstory_create_histogram = function(){
+                    
+                    document.getElementById("parameter_mean_histograms").innerHTML="";
+                    
+                    var margin = {top: 20, right: 20, bottom: 30, left: 40},
+                            width = 20060 - margin.left - margin.right,
+                            height = 400 - margin.top - margin.bottom;
+                    
+                    var x0 = d3.scale.ordinal()
+                        .rangeRoundBands([0, width], .1);
+                
+                    var x1 = d3.scale.ordinal();
+                    
+                    var y = d3.scale.linear()
+                            .range([height, 0]);
+                    var color = d3.scale.ordinal()
+                        .range(["#A9F5A9"]);
+                
+                    var xAxis = d3.svg.axis()
+                        .scale(x0)
+                        .orient("bottom");
+                
+                    var yAxis = d3.svg.axis()
+                        .scale(y)
+                        .orient("left")
+                        .tickFormat(d3.format(".2s"));
+                    
+                    var svg = d3.select("#parameter_mean_histograms").append("svg")
+                        .attr("width", width + margin.left + margin.right)
+                        .attr("height", height + margin.top + margin.bottom)
+                        .append("g")
+                        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                
+                    data=[{"parameter":"a","group1":"10","group2":"20"},{"parameter":"b","group1":"30","group2":"20"},{"parameter":"c","group1":"10","group2":"50"},{"parameter":"d","group1":"15","group2":"23"}];
+                    fisher_ratios = $model.userstory_compute_fisher_ratios();
+                    var fisher_ratios_unsorted = fisher_ratios.slice(0);
+                    compare_values = function(a,b){
+                        return b-a;
+                    }
+                    fisher_ratios.sort(compare_values);
+                    
+                    data = [];
+                    var current_item = {};
+                    for (var i=0;i<$model.n_features;i++){
+                        current_item = {};
+                        for (var k=0;k<$model.n_features;k++){
+                            if (fisher_ratios_unsorted[k]==fisher_ratios[i]){
+                                current_item["parameter"]=$model.patients[0].RPPA[k].ID;
+                            }
+                        }
+                        current_item["value"]=fisher_ratios[i];
+                        data.push(current_item);
+                    }
+                    
+                    var groupNames = d3.keys(data[0]).filter(function(key) { return key !== "parameter"; });
+                    
+                    console.log(groupNames);
+                    
+                    data.forEach(function(d) {
+                        d.groups = groupNames.map(function(name) { return {name: name, value: +d[name]}; });
+                    });
+                    
+                    
+                    x0.domain(data.map(function(d) { return d.parameter; }));
+                    x1.domain(groupNames).rangeRoundBands([0, x0.rangeBand()]);
+                    y.domain([0, d3.max(data, function(d) { return d3.max(d.groups, function(d) { return d.value; }); })]);
+                    
+                    svg.append("g")
+                        .attr("class", "x axis")
+                        .attr("transform", "translate(0," + height + ")")
+                        .call(xAxis);
+
+                    svg.append("g")
+                        .attr("class", "y axis")
+                        .call(yAxis)
+                        .append("text")
+                        .attr("transform", "rotate(-90)")
+                        .attr("y", 6)
+                        .attr("dy", ".71em")
+                        .style("text-anchor", "end")
+                        .text("fisher ratio");
+
+                    var state = svg.selectAll(".state")
+                        .data(data)
+                        .enter().append("g")
+                        .attr("class", "g")
+                        .attr("transform", function(d) { return "translate(" + x0(d.parameter) + ",0)"; });
+
+                    state.selectAll("rect")
+                        .data(function(d) { return d.groups; })
+                        .enter().append("rect")
+                        .attr("width", x1.rangeBand())
+                        .attr("x", function(d) { return x1(d.name); })
+                        .attr("y", function(d) { return y(d.value); })
+                        .attr("height", function(d) { return height - y(d.value); })
+                        .style("fill", function(d) { return color(d.name); });
+
+                    var legend = svg.selectAll(".legend")
+                        .data(groupNames.slice().reverse())
+                        .enter().append("g")
+                        .attr("class", "legend")
+                        .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+                
+               
+                    legend.append("rect")
+                        .attr("x", width - 18)
+                        .attr("width", 18)
+                        .attr("height", 18)
+                        .style("fill", color);
+
+                    legend.append("text")
+                        .attr("x", width - 24)
+                        .attr("y", 9)
+                        .attr("dy", ".35em")
+                        .style("text-anchor", "end")
+                        .text(function(d) { return d; });     
+                
+                }
                 
             }
             
@@ -960,7 +1317,6 @@
                 $controller.add_mouse_listener();
                 setInterval(function(){ $visualization.render() }, 5);
                 
-               
             });
                 
         </script>
@@ -970,7 +1326,7 @@
         <div class="container-fluid">
             
             <div class="row">
-                <div class="col-md-4">
+                <div class="col-md-1">
                 <div class="dropdown">
                 <button class="btn btn-default dropdown-toggle" type="button" id="menu1" data-toggle="dropdown">Select Dataset
                     <span class="caret"></span>
@@ -1014,6 +1370,16 @@
                 </ul>
                 </div>
                 </div>
+                <div class="col-md-4">
+                <div class="dropdown">
+                <button class="btn btn-default dropdown-toggle" type="button" id="menu2" data-toggle="dropdown">Userstories
+                    <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu" role="menu" aria-labelledby="menu2">
+                    <li role="presentation"><a class="userstory_selection" role="menuitem" tabindex="-1" href="#" id="userstory_lcsc">smoking status in lusc</a></li>
+                </ul>
+                </div>
+                </div>
             </div>
             
             <div class="row">
@@ -1028,8 +1394,9 @@
             </div>
             
             <div class="row">
-                <div class="col-md-6" id="selected_patients">click to select patients...</div>
-                <div class="col-md-6">
+                <div class="col-md-12" id="selected_patients">click to select patients...</div>
+                <div class="col-md-12" id="parameter_mean_histograms">histograms go here...</div>
+                <div class="col-md-12">
                     <div class="row">
                         <div class="col-md-12" id="parameter_visualization_buttons"></div>
                     </div>
