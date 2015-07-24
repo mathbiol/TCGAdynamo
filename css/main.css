@@ -58,10 +58,6 @@
     fill: #eee;
 }   
 
-line {
-    stroke: #fff;
-}
-
 text.active {
     fill: red;
 }
@@ -86,20 +82,6 @@ text.active {
     overflow-x: scroll;
 }
 
-.axis path,
-.axis line {
-  fill: none;
-  stroke: #000;
-  shape-rendering: crispEdges;
-}
-
-.bar {
-  fill: steelblue;
-}
-
-.x.axis path {
-  display: none;
-}
 
 /* ==========================================================================
    Author's custom styles
