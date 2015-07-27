@@ -1,16 +1,30 @@
+.row {
+  margin-bottom: 20px;
+}
 .dropdown-menu {
     max-height: 400px;
     overflow: hidden;
     overflow-y: auto;
 }
 
-.row {
-  margin-bottom: 20px;
-}
-
 #parameter_controls{
     height: 650px;
     overflow-y: scroll;
+}
+
+#group1{
+    overflow-x:scroll;
+    max-height:400px;
+}
+
+#group2{
+    overflow-x:scroll;
+    max-height:400px;
+}
+
+#group3{
+    overflow-x:scroll;
+    max-height:400px;
 }
 
 #clinical_controls{
@@ -21,67 +35,13 @@
 #rppa_controls{
     height: 400px;
     overflow-y: scroll;
-    
 }
 
-#selected_patients{
-    height: 300px;
-    overflow-x: scroll;
-    overflow-y: scroll;
-}
-#group1{
-    overflow-x: scroll;
-    max-height:400px;
-}
-#group2{
-    overflow-x: scroll;
-    max-height:400px;
-}
-#group3{
-    overflow-x: scroll;
-    max-height:400px;
-}
-#group4{
-    overflow-x: scroll;
-    max-height:400px;
-}
 #rppa_distribution{
+    height: 400px;
     overflow-y:scroll;
     overflow-x:scroll;
 }
-#tumor_type_distribution{
-    overflow-y:scroll;
-    overflow-x:scroll;
-}
-
-.background {
-    fill: #eee;
-}   
-
-text.active {
-    fill: red;
-}
-
-#clinical_controls::-webkit-scrollbar { 
-    display: none; 
-}
-
-#rppa_controls::-webkit-scrollbar { 
-    display: none; 
-}
-
-#rppa_wrapper{
-    outline: 1px solid orange;
-}
-
-#pearson_button{
-    margin-left:100px;
-}
-
-#parameter_mean_histograms{
-    overflow-x: scroll;
-}
-
 
 /* ==========================================================================
    Author's custom styles
