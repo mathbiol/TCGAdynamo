@@ -10,7 +10,6 @@
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="apple-touch-icon" href="apple-touch-icon.png">
-        
         <link rel="stylesheet" href="css/bootstrap.min.css">
         <style>
             body {
@@ -590,14 +589,793 @@
             }
             
             function clinical_checkbox_clicked(checkbox){
-                console.log(checkbox.id);
-                console.log($dataset);
+                
+                function userstory_create_smoking_status_plots(){
+                    
+                    for (var i=0;i<$model.patients.length;i++){
+                        
+                        if ($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current reformed smoker for < or = 15 years"){
+                            $visualization.dots[i].material.color = new THREE.Color( 0x6699FF);
+                        }
+                        else if($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current reformed smoker for > 15 years" || $model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current Reformed Smoker, Duration Not Specified"){
+                            $visualization.dots[i].material.color = new THREE.Color( 0x00FF00);
+                        }
+                        else if($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Lifelong Non-smoker"){
+                            $visualization.dots[i].material.color = new THREE.Color( 0xCC6699);
+                        }
+                        else if($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current smoker"){
+                            $visualization.dots[i].material.color = new THREE.Color( 0xFF3300);
+                        }
+                        
+                    }
+                    
+                    tables_row = document.getElementById("tables");
+                    table_column = document.createElement('div');
+                    table_column.setAttribute('class',"col-md-3");
+                    table_column.setAttribute("id","group1");
+                    $(table_column).appendTo(tables_row);
+                    table_column = document.createElement('div');
+                    table_column.setAttribute('class',"col-md-3");
+                    table_column.setAttribute("id","group2");
+                    $(table_column).appendTo(tables_row);
+                    table_column = document.createElement('div');
+                    table_column.setAttribute('class',"col-md-3");
+                    table_column.setAttribute("id","group3");
+                    $(table_column).appendTo(tables_row);
+                    table_column = document.createElement('div');
+                    table_column.setAttribute('class',"col-md-3");
+                    table_column.setAttribute("id","group4");
+                    $(table_column).appendTo(tables_row);
+                    
+                    $("#group1").css("background-color", "#6699FF");
+                    $("#group1").html("<h1>Lifelong Non-smoker</h1><table class=\"table table-bordered\" id=\"table1\"></table>");
+                
+                    $("#group2").css("background-color", "#00FF00");
+                    $("#group2").html("<h1>Current Reformed Smoker for > 15 yrs.</h1><table class=\"table table-bordered\" id=\"table2\"></table>");
+                
+                    $("#group3").css("background-color", "#CC6699");
+                    $("#group3").html("<h1>Current reformed smoker for < or = 15 years</h1><table class=\"table table-bordered\" id=\"table3\"></table>");
+                    
+                    $("#group4").css("background-color", "#FF3300");
+                    $("#group4").html("<h1>Current smoker</h1><table class=\"table table-bordered\" id=\"table4\"></table>");
+                    
+                    for (var i=1;i<5;i++){
+                        
+                        var html_string="<thead><tr>";
+                        
+                        for (var k in $model.patients[0].clinical){
+                            html_string+="<th class=\"text-center\">"+k+"</th>";
+                        }
+                    
+                        html_string+="</tr></thead><tbody id=\"group"+i+"_body\"><tr id=\"group"+i+"_row_1\"></tr></tbody>";
+                        $("#table"+i).html(html_string);
+                        
+                    }
+                    
+                    for (var i=0;i<$model.patients.length;i++){
+                       
+                        if ($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current reformed smoker for < or = 15 years"){
+                            html_string="";
+                            for (var k in $model.patients[i].clinical){
+                                html_string+="<td>"+$model.patients[i].clinical[k]+"</td>";
+                            }
+                            var number_rows = document.getElementById("table3").rows.length;
+                            
+                            
+                            $("#group3_row_"+(number_rows-1)).html(html_string);
+                            $("#group3_body").append("<tr id=\"group3_row_"+(number_rows+1)+"\"></tr>");
+                        }
+                        else if($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current reformed smoker for > 15 years" || $model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current Reformed Smoker, Duration Not Specified"){
+                           
+                            html_string="";
+                            for (var k in $model.patients[i].clinical){
+                                html_string+="<td>"+$model.patients[i].clinical[k]+"</td>";
+                            }
+                            var number_rows = document.getElementById("table2").rows.length;
+                            
+                            
+                            $("#group2_row_"+(number_rows-1)).html(html_string);
+                            $("#group2_body").append("<tr id=\"group2_row_"+(number_rows+1)+"\"></tr>");
+                        }
+                        else if($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Lifelong Non-smoker"){
+                            html_string="";
+                            for (var k in $model.patients[i].clinical){
+                                html_string+="<td>"+$model.patients[i].clinical[k]+"</td>";
+                            }
+                            var number_rows = document.getElementById("table1").rows.length;
+                            
+                           
+                            $("#group1_row_"+(number_rows-1)).html(html_string);
+                            $("#group1_body").append("<tr id=\"group1_row_"+(number_rows+1)+"\"></tr>");
+                            //console.log(i+": lifelong non");
+                        }
+                        else if($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current smoker"){
+                            html_string="";
+                            for (var k in $model.patients[i].clinical){
+                                html_string+="<td>"+$model.patients[i].clinical[k]+"</td>";
+                            }
+                            var number_rows = document.getElementById("table4").rows.length;
+                            
+                           
+                            $("#group4_row_"+(number_rows-1)).html(html_string);
+                            $("#group4_body").append("<tr id=\"group4_row_"+(number_rows+1)+"\"></tr>");
+                        }
+                        else{
+                            //console.log(i+": "+data[i].clinical["tobacco_smoking_history_indicator"]);
+                        }
+                        
+                    }
+                    
+                    this.merge_data = function(data){
+                    
+                        merged_data = [];
+                    
+                        for (var i=0;i<data.proteins.length;i++){
+                            for (var k=0;k<data.proteins[i].groups.length;k++){
+                                for (var x=0;x<data.proteins[i].groups[k].values.length;x++){
+                                    point = [i-0.22+k*0.16,data.proteins[i].groups[k].values[x],k];
+                                    merged_data.push(point);
+                                }
+                            }
+                        }
+                        return merged_data;
+                    }
+                    
+                    this.find_min_max = function(data){
+                    
+                        var min=Number.POSITIVE_INFINITY;
+                        var max=Number.NEGATIVE_INFINITY;
+                    
+                        for (var i=0;i<data.proteins.length;i++){
+                            for (var k=0;k<data.proteins[i].groups.length;k++){
+                                for (var x=0;x<data.proteins[i].groups[k].values.length;x++){
+                                    if (parseFloat(data.proteins[i].groups[k].values[x])<min){
+                                        min=parseFloat(data.proteins[i].groups[k].values[x]);
+                                    }
+                                    if(parseFloat(data.proteins[i].groups[k].values[x])>max){
+                                        max=parseFloat(data.proteins[i].groups[k].values[x]);
+                                    }
+                                }
+                            }
+                        }
+                    
+                        return([min,max]);
+                    }
+                    
+                    this.preprocess_data = function(data){
+                    
+                        var proteins = [];
+                        for (var i=0;i<data[0].RPPA.length;i++){
+                            proteins.push({"name":data[0].RPPA[i].ID, "groups":[{"values":[]},{"values":[]},{"values":[]},{"values":[]}]});
+                        }
+                    
+                        for (var i=0;i<data.length;i++){
+                            for (var k=0;k<data[i].RPPA.length;k++){
+                                if (proteins[k].name==data[i].RPPA[k].ID){
+                                    if ($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current reformed smoker for < or = 15 years"){
+                                        proteins[k].groups[2].values.push(data[i].RPPA[k].value);
+                                    }
+                                    else if($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current reformed smoker for > 15 years" || $model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current Reformed Smoker, Duration Not Specified"){
+                                        proteins[k].groups[1].values.push(data[i].RPPA[k].value);
+                                    }
+                                    else if($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Lifelong Non-smoker"){
+                                        proteins[k].groups[0].values.push(data[i].RPPA[k].value);
+                                    }
+                                    else if ($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current smoker"){
+                                        proteins[k].groups[3].values.push(data[i].RPPA[k].value);
+                                    }
+                                }
+                                else{
+                                    console.log("error");
+                                }
+                            }
+                        }
+                        
+                        preprocessed_data = {"proteins":proteins};
+                        return(preprocessed_data);
+                    }
+                    
+                    test_data = this.preprocess_data($model.patients);
+                    
+                    min_max=this.find_min_max(test_data);
+                    
+                    merged_data = this.merge_data(test_data);
+                    
+                    var number_proteins = test_data.proteins.length;
+                    
+                    var w=50000;
+                    var h=500;
+                    
+                    var xScale = d3.scale.linear()
+                                    .domain([-1, number_proteins+1])
+                                    .range([10, w]);
+                            
+                    var yScale = d3.scale.linear()
+                                    .domain([min_max[0]-1, min_max[1]+1])
+                                    .range([h, 0]);
+                            
+                    var N = number_proteins; 
+                    ticks=Array.apply(null, {length: N}).map(Number.call, Number)      
+                    var xAxis = d3.svg.axis()
+                                    .scale(xScale)
+                                    .tickValues(ticks)
+                                    .tickFormat(function(d){return test_data.proteins[d].name})
+                                    .ticks(number_proteins)
+                                    .orient("bottom");
+                    var yAxis = d3.svg.axis()
+                                    .scale(yScale)
+                                    .orient("left")
+                                    .ticks(5);
+                    
+                    var svg = d3.select("#rppa_distribution").append("svg").attr("width",w).attr("height",h);
+                    
+                    svg.selectAll("circle")
+			   .data(merged_data)
+			   .enter()
+			   .append("circle")
+			   .attr("cx", function(d) {
+			   		return xScale(d[0]);
+			   })
+			   .attr("cy", function(d) {
+			   		return yScale(d[1]);
+			   })
+			   .attr("r", function(d) {
+			   		return 5;
+			   })
+                           .style("fill", function(d){
+                               if (d[2]==0){
+                                   return "#6699FF";
+                               }
+                               else if (d[2]==1){
+                                   return "#00FF00";
+                               }
+                               else if (d[2]==2){
+                                   return "#CC6699";
+                               }
+                               else{
+                                   return "#FF3300";
+                               }
+                               
+                           });
+                    
+                    svg.append("g")
+                        .attr("class", "axis")
+                        .attr("transform", "translate(0," + (380) + ")")
+                        .call(xAxis);
+                    svg.append("g")
+                        .attr("class", "axis")
+                        .attr("transform", "translate(" + 50 + ",0)")
+                        .call(yAxis);
+                    
+                    
+                }
+                
+                //ucec
+                function userstory_create_neoplasm_histologic_grade_plots(){
+                    
+                    for (var i=0;i<$model.patients.length;i++){
+                        
+                        if ($model.patients[i].clinical["neoplasm_histologic_grade"]=="G1"){
+                            $visualization.dots[i].material.color = new THREE.Color( 0x6699FF);
+                        }
+                        else if($model.patients[i].clinical["neoplasm_histologic_grade"]=="G2"){
+                            $visualization.dots[i].material.color = new THREE.Color( 0x00FF00);
+                        }
+                        else if($model.patients[i].clinical["neoplasm_histologic_grade"]=="G3"){
+                            $visualization.dots[i].material.color = new THREE.Color( 0xCC6699);
+                        }
+                        else if($model.patients[i].clinical["neoplasm_histologic_grade"]=="High Grade"){
+                            $visualization.dots[i].material.color = new THREE.Color( 0xFF3300);
+                        }
+                        
+                    }
+                    
+                    tables_row = document.getElementById("tables");
+                    table_column = document.createElement('div');
+                    table_column.setAttribute('class',"col-md-3");
+                    table_column.setAttribute("id","group1");
+                    $(table_column).appendTo(tables_row);
+                    table_column = document.createElement('div');
+                    table_column.setAttribute('class',"col-md-3");
+                    table_column.setAttribute("id","group2");
+                    $(table_column).appendTo(tables_row);
+                    table_column = document.createElement('div');
+                    table_column.setAttribute('class',"col-md-3");
+                    table_column.setAttribute("id","group3");
+                    $(table_column).appendTo(tables_row);
+                    table_column = document.createElement('div');
+                    table_column.setAttribute('class',"col-md-3");
+                    table_column.setAttribute("id","group4");
+                    $(table_column).appendTo(tables_row);
+                    
+                    $("#group1").css("background-color", "#6699FF");
+                    $("#group1").html("<h1>Histologic grade G1</h1><table class=\"table table-bordered\" id=\"table1\"></table>");
+                
+                    $("#group2").css("background-color", "#00FF00");
+                    $("#group2").html("<h1>Histologic grade G2</h1><table class=\"table table-bordered\" id=\"table2\"></table>");
+                
+                    $("#group3").css("background-color", "#CC6699");
+                    $("#group3").html("<h1>Histologic grade G3</h1><table class=\"table table-bordered\" id=\"table3\"></table>");
+                    
+                    $("#group4").css("background-color", "#FF3300");
+                    $("#group4").html("<h1>High grade</h1><table class=\"table table-bordered\" id=\"table4\"></table>");
+                    
+                    for (var i=1;i<5;i++){
+                        
+                        var html_string="<thead><tr>";
+                        
+                        for (var k in $model.patients[0].clinical){
+                            html_string+="<th class=\"text-center\">"+k+"</th>";
+                        }
+                    
+                        html_string+="</tr></thead><tbody id=\"group"+i+"_body\"><tr id=\"group"+i+"_row_1\"></tr></tbody>";
+                        $("#table"+i).html(html_string);
+                        
+                    }
+                    
+                    for (var i=0;i<$model.patients.length;i++){
+                       
+                        if ($model.patients[i].clinical["neoplasm_histologic_grade"]=="G3"){
+                            html_string="";
+                            for (var k in $model.patients[i].clinical){
+                                html_string+="<td>"+$model.patients[i].clinical[k]+"</td>";
+                            }
+                            var number_rows = document.getElementById("table3").rows.length;
+                            
+                            
+                            $("#group3_row_"+(number_rows-1)).html(html_string);
+                            $("#group3_body").append("<tr id=\"group3_row_"+(number_rows+1)+"\"></tr>");
+                        }
+                        else if($model.patients[i].clinical["neoplasm_histologic_grade"]=="G2" || $model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current Reformed Smoker, Duration Not Specified"){
+                           
+                            html_string="";
+                            for (var k in $model.patients[i].clinical){
+                                html_string+="<td>"+$model.patients[i].clinical[k]+"</td>";
+                            }
+                            var number_rows = document.getElementById("table2").rows.length;
+                            
+                            
+                            $("#group2_row_"+(number_rows-1)).html(html_string);
+                            $("#group2_body").append("<tr id=\"group2_row_"+(number_rows+1)+"\"></tr>");
+                        }
+                        else if($model.patients[i].clinical["neoplasm_histologic_grade"]=="G1"){
+                            html_string="";
+                            for (var k in $model.patients[i].clinical){
+                                html_string+="<td>"+$model.patients[i].clinical[k]+"</td>";
+                            }
+                            var number_rows = document.getElementById("table1").rows.length;
+                            
+                           
+                            $("#group1_row_"+(number_rows-1)).html(html_string);
+                            $("#group1_body").append("<tr id=\"group1_row_"+(number_rows+1)+"\"></tr>");
+                            //console.log(i+": lifelong non");
+                        }
+                        else if($model.patients[i].clinical["neoplasm_histologic_grade"]=="High Grade"){
+                            html_string="";
+                            for (var k in $model.patients[i].clinical){
+                                html_string+="<td>"+$model.patients[i].clinical[k]+"</td>";
+                            }
+                            var number_rows = document.getElementById("table4").rows.length;
+                            
+                           
+                            $("#group4_row_"+(number_rows-1)).html(html_string);
+                            $("#group4_body").append("<tr id=\"group4_row_"+(number_rows+1)+"\"></tr>");
+                        }
+                        else{
+                            //console.log(i+": "+data[i].clinical["tobacco_smoking_history_indicator"]);
+                        } 
+                    }
+                    
+                    this.merge_data = function(data){
+                    
+                        merged_data = [];
+                    
+                        for (var i=0;i<data.proteins.length;i++){
+                            for (var k=0;k<data.proteins[i].groups.length;k++){
+                                for (var x=0;x<data.proteins[i].groups[k].values.length;x++){
+                                    point = [i-0.22+k*0.16,data.proteins[i].groups[k].values[x],k];
+                                    merged_data.push(point);
+                                }
+                            }
+                        }
+                        return merged_data;
+                    }
+                    
+                    this.find_min_max = function(data){
+                    
+                        var min=Number.POSITIVE_INFINITY;
+                        var max=Number.NEGATIVE_INFINITY;
+                    
+                        for (var i=0;i<data.proteins.length;i++){
+                            for (var k=0;k<data.proteins[i].groups.length;k++){
+                                for (var x=0;x<data.proteins[i].groups[k].values.length;x++){
+                                    if (parseFloat(data.proteins[i].groups[k].values[x])<min){
+                                        min=parseFloat(data.proteins[i].groups[k].values[x]);
+                                    }
+                                    if(parseFloat(data.proteins[i].groups[k].values[x])>max){
+                                        max=parseFloat(data.proteins[i].groups[k].values[x]);
+                                    }
+                                }
+                            }
+                        }
+                    
+                        return([min,max]);
+                    }
+                    
+                    this.preprocess_data = function(data){
+                    
+                        var proteins = [];
+                        for (var i=0;i<data[0].RPPA.length;i++){
+                            proteins.push({"name":data[0].RPPA[i].ID, "groups":[{"values":[]},{"values":[]},{"values":[]},{"values":[]}]});
+                        }
+                    
+                        for (var i=0;i<data.length;i++){
+                            for (var k=0;k<data[i].RPPA.length;k++){
+                                if (proteins[k].name==data[i].RPPA[k].ID){
+                                    if ($model.patients[i].clinical["neoplasm_histologic_grade"]=="G3"){
+                                        proteins[k].groups[2].values.push(data[i].RPPA[k].value);
+                                    }
+                                    else if($model.patients[i].clinical["neoplasm_histologic_grade"]=="G2"){
+                                        proteins[k].groups[1].values.push(data[i].RPPA[k].value);
+                                    }
+                                    else if($model.patients[i].clinical["neoplasm_histologic_grade"]=="G1"){
+                                        proteins[k].groups[0].values.push(data[i].RPPA[k].value);
+                                    }
+                                    else if ($model.patients[i].clinical["neoplasm_histologic_grade"]=="High Grade"){
+                                        proteins[k].groups[3].values.push(data[i].RPPA[k].value);
+                                    }
+                                }
+                                else{
+                                    console.log("error");
+                                }
+                            }
+                        }
+                        
+                        preprocessed_data = {"proteins":proteins};
+                        return(preprocessed_data);
+                    }
+                    
+                    test_data = this.preprocess_data($model.patients);
+                    
+                    min_max=this.find_min_max(test_data);
+                    
+                    merged_data = this.merge_data(test_data);
+                    
+                    var number_proteins = test_data.proteins.length;
+                    
+                    var w=50000;
+                    var h=500;
+                    
+                    var xScale = d3.scale.linear()
+                                    .domain([-1, number_proteins+1])
+                                    .range([10, w]);
+                            
+                    var yScale = d3.scale.linear()
+                                    .domain([min_max[0]-1, min_max[1]+1])
+                                    .range([h, 0]);
+                            
+                    var N = number_proteins; 
+                    ticks=Array.apply(null, {length: N}).map(Number.call, Number)      
+                    var xAxis = d3.svg.axis()
+                                    .scale(xScale)
+                                    .tickValues(ticks)
+                                    .tickFormat(function(d){return test_data.proteins[d].name})
+                                    .ticks(number_proteins)
+                                    .orient("bottom");
+                    var yAxis = d3.svg.axis()
+                                    .scale(yScale)
+                                    .orient("left")
+                                    .ticks(5);
+                    
+                    var svg = d3.select("#rppa_distribution").append("svg").attr("width",w).attr("height",h);
+                    
+                    svg.selectAll("circle")
+			   .data(merged_data)
+			   .enter()
+			   .append("circle")
+			   .attr("cx", function(d) {
+			   		return xScale(d[0]);
+			   })
+			   .attr("cy", function(d) {
+			   		return yScale(d[1]);
+			   })
+			   .attr("r", function(d) {
+			   		return 5;
+			   })
+                           .style("fill", function(d){
+                               if (d[2]==0){
+                                   return "#6699FF";
+                               }
+                               else if (d[2]==1){
+                                   return "#00FF00";
+                               }
+                               else if (d[2]==2){
+                                   return "#CC6699";
+                               }
+                               else{
+                                   return "#FF3300";
+                               }
+                               
+                           });
+                    
+                    svg.append("g")
+                        .attr("class", "axis")
+                        .attr("transform", "translate(0," + (380) + ")")
+                        .call(xAxis);
+                    svg.append("g")
+                        .attr("class", "axis")
+                        .attr("transform", "translate(" + 50 + ",0)")
+                        .call(yAxis);
+                    
+                }
+                
+                //coad
+                function userstory_create_histologic_diagnosis_plots(){
+                    
+                    for (var i=0;i<$model.patients.length;i++){
+                        if ($model.patients[i].clinical["histologic_diagnosis"]=="Colon Adenocarcinoma"){
+                            $visualization.dots[i].material.color = new THREE.Color(0x6699FF);
+                        }
+                        else if($model.patients[i].clinical["histologic_diagnosis"]=="Colon Mucinous Adenocarcinoma"){
+                            $visualization.dots[i].material.color = new THREE.Color(0xFF3300);
+                        }
+                    }
+                    
+                    tables_row = document.getElementById("tables");
+                    table_column = document.createElement('div');
+                    table_column.setAttribute('class',"col-md-6");
+                    table_column.setAttribute("id","group1");
+                    $(table_column).appendTo(tables_row);
+                    table_column = document.createElement('div');
+                    table_column.setAttribute('class',"col-md-6");
+                    table_column.setAttribute("id","group2");
+                    $(table_column).appendTo(tables_row);
+                    
+                    
+                    $("#group1").css("background-color", "#6699FF");
+                    $("#group1").html("<h1>Colon Adenocarcinoma</h1><table class=\"table table-bordered\" id=\"table1\"></table>");
+                
+                    $("#group2").css("background-color", "#FF3300");
+                    $("#group2").html("<h1>Colon Mucinous Adenocarcinoma</h1><table class=\"table table-bordered\" id=\"table2\"></table>");
+                    
+                    for (var i=1;i<3;i++){
+                        
+                        var html_string="<thead><tr>";
+                        
+                        for (var k in $model.patients[0].clinical){
+                            html_string+="<th class=\"text-center\">"+k+"</th>";
+                        }
+                    
+                        html_string+="</tr></thead><tbody id=\"group"+i+"_body\"><tr id=\"group"+i+"_row_1\"></tr></tbody>";
+                        $("#table"+i).html(html_string);
+                        
+                    }
+                    
+                    for (var i=0;i<$model.patients.length;i++){
+                       
+                        if($model.patients[i].clinical["histologic_diagnosis"]=="Colon Mucinous Adenocarcinoma" || $model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current Reformed Smoker, Duration Not Specified"){
+                           
+                            html_string="";
+                            for (var k in $model.patients[i].clinical){
+                                html_string+="<td>"+$model.patients[i].clinical[k]+"</td>";
+                            }
+                            var number_rows = document.getElementById("table2").rows.length;
+                            
+                            
+                            $("#group2_row_"+(number_rows-1)).html(html_string);
+                            $("#group2_body").append("<tr id=\"group2_row_"+(number_rows+1)+"\"></tr>");
+                        }
+                        else if($model.patients[i].clinical["histologic_diagnosis"]=="Colon Adenocarcinoma"){
+                            html_string="";
+                            for (var k in $model.patients[i].clinical){
+                                html_string+="<td>"+$model.patients[i].clinical[k]+"</td>";
+                            }
+                            var number_rows = document.getElementById("table1").rows.length;
+                            
+                           
+                            $("#group1_row_"+(number_rows-1)).html(html_string);
+                            $("#group1_body").append("<tr id=\"group1_row_"+(number_rows+1)+"\"></tr>");
+                            //console.log(i+": lifelong non");
+                        }
+                        else{
+                            //console.log(i+": "+data[i].clinical["tobacco_smoking_history_indicator"]);
+                        } 
+                    }
+                    
+                    this.merge_data = function(data){
+                    
+                        merged_data = [];
+                    
+                        for (var i=0;i<data.proteins.length;i++){
+                            for (var k=0;k<data.proteins[i].groups.length;k++){
+                                for (var x=0;x<data.proteins[i].groups[k].values.length;x++){
+                                    point = [i-0.22+k*0.16,data.proteins[i].groups[k].values[x],k];
+                                    merged_data.push(point);
+                                }
+                            }
+                        }
+                        return merged_data;
+                    }
+                    
+                    this.find_min_max = function(data){
+                    
+                        var min=Number.POSITIVE_INFINITY;
+                        var max=Number.NEGATIVE_INFINITY;
+                    
+                        for (var i=0;i<data.proteins.length;i++){
+                            for (var k=0;k<data.proteins[i].groups.length;k++){
+                                for (var x=0;x<data.proteins[i].groups[k].values.length;x++){
+                                    if (parseFloat(data.proteins[i].groups[k].values[x])<min){
+                                        min=parseFloat(data.proteins[i].groups[k].values[x]);
+                                    }
+                                    if(parseFloat(data.proteins[i].groups[k].values[x])>max){
+                                        max=parseFloat(data.proteins[i].groups[k].values[x]);
+                                    }
+                                }
+                            }
+                        }
+                    
+                        return([min,max]);
+                    }
+                    
+                    this.preprocess_data = function(data){
+                    
+                        var proteins = [];
+                        for (var i=0;i<data[0].RPPA.length;i++){
+                            proteins.push({"name":data[0].RPPA[i].ID, "groups":[{"values":[]},{"values":[]}]});
+                        }
+                    
+                        for (var i=0;i<data.length;i++){
+                            for (var k=0;k<data[i].RPPA.length;k++){
+                                if (proteins[k].name==data[i].RPPA[k].ID){
+                                    if ($model.patients[i].clinical["histologic_diagnosis"]=="Colon Adenocarcinoma"){
+                                        proteins[k].groups[0].values.push(data[i].RPPA[k].value);
+                                    }
+                                    else if($model.patients[i].clinical["histologic_diagnosis"]=="Colon Mucinous Adenocarcinoma"){
+                                        proteins[k].groups[1].values.push(data[i].RPPA[k].value);
+                                    }
+                                }
+                                else{
+                                    console.log("error");
+                                }
+                            }
+                        }
+                        
+                        preprocessed_data = {"proteins":proteins};
+                        return(preprocessed_data);
+                    }
+                    
+                    test_data = this.preprocess_data($model.patients);
+                    
+                    min_max=this.find_min_max(test_data);
+                    
+                    merged_data = this.merge_data(test_data);
+                    
+                    var number_proteins = test_data.proteins.length;
+                    
+                    var w=50000;
+                    var h=500;
+                    
+                    var xScale = d3.scale.linear()
+                                    .domain([-1, number_proteins+1])
+                                    .range([10, w]);
+                            
+                    var yScale = d3.scale.linear()
+                                    .domain([min_max[0]-1, min_max[1]+1])
+                                    .range([h, 0]);
+                            
+                    var N = number_proteins; 
+                    ticks=Array.apply(null, {length: N}).map(Number.call, Number)      
+                    var xAxis = d3.svg.axis()
+                                    .scale(xScale)
+                                    .tickValues(ticks)
+                                    .tickFormat(function(d){return test_data.proteins[d].name})
+                                    .ticks(number_proteins)
+                                    .orient("bottom");
+                    var yAxis = d3.svg.axis()
+                                    .scale(yScale)
+                                    .orient("left")
+                                    .ticks(5);
+                    
+                    var svg = d3.select("#rppa_distribution").append("svg").attr("width",w).attr("height",h);
+                    
+                    svg.selectAll("circle")
+			   .data(merged_data)
+			   .enter()
+			   .append("circle")
+			   .attr("cx", function(d) {
+			   		return xScale(d[0]);
+			   })
+			   .attr("cy", function(d) {
+			   		return yScale(d[1]);
+			   })
+			   .attr("r", function(d) {
+			   		return 5;
+			   })
+                           .style("fill", function(d){
+                               if (d[2]==0){
+                                   return "#6699FF";
+                               }
+                               else if (d[2]==1){
+                                   return "#FF3300";
+                               }
+                               
+                           });
+                    
+                    svg.append("g")
+                        .attr("class", "axis")
+                        .attr("transform", "translate(0," + (380) + ")")
+                        .call(xAxis);
+                    svg.append("g")
+                        .attr("class", "axis")
+                        .attr("transform", "translate(" + 50 + ",0)")
+                        .call(yAxis);
+                }
+                
+                function list_parameter_domain(parameter){
+                    
+                    console.log(parameter);
+                    var domain = {};
+                    for (var i=0;i<$model.patients.length;i++){
+                        if ($model.patients[i].clinical[parameter] in domain){
+                            domain[$model.patients[i].clinical[parameter]]=domain[$model.patients[i].clinical[parameter]]+1;
+                        }
+                        else{
+                            domain[$model.patients[i].clinical[parameter]]=1;
+                        }
+                    }
+                    console.log(domain);
+                    
+                    var string = "";
+                    for (var i in domain){
+                        console.log(i+": "+domain[i]);
+                        
+                    }
+                    console.log(i+"_selector");
+                }
+                
+                //list_parameter_domain(checkbox.id.substring(0, checkbox.id.length-9));
+                
                 if ($dataset=="brca2" && checkbox.id=="tumor type_checkbox"){
                     userstory_2_create_plots();
                 }
+                
+                if (checkbox.id=="tobacco_smoking_history_indicator_checkbox"){
+                    userstory_create_smoking_status_plots();
+                }
+                
+                if (checkbox.id=="neoplasm_histologic_grade_checkbox"){
+                    userstory_create_neoplasm_histologic_grade_plots();
+                }
+                
+                if (checkbox.id=="histologic_diagnosis_checkbox"){
+                    userstory_create_histologic_diagnosis_plots();
+                }
+                
             }
             
             function add_RPPA_list(){
+                
+                function list_parameter_domain(parameter){
+                    
+                    var domain = {};
+                    for (var i=0;i<$model.patients.length;i++){
+                        if ($model.patients[i].clinical[parameter] in domain){
+                            domain[$model.patients[i].clinical[parameter]]=domain[$model.patients[i].clinical[parameter]]+1;
+                        }
+                        else{
+                            domain[$model.patients[i].clinical[parameter]]=1;
+                        }
+                    }
+                    var string = "";
+                    for (var i in domain){
+                        //console.log(i+": "+domain[i]);
+                        string = string+i+": "+domain[i]+" ";
+                    }
+                    
+                    return (string);
+                    
+                }
                 
                 document.getElementById("clinical_controls").innerHTML="";
                 document.getElementById("rppa_controls").innerHTML="";
@@ -618,10 +1396,18 @@
                     $(column).appendTo(new_row);
                     
                     column = document.createElement('div');
-                    column.setAttribute('class',"col-md-5");
+                    column.setAttribute('class',"col-md-5 domain");
+                    column.innerHTML=list_parameter_domain(i);
+                    $(column).appendTo(new_row);
+                    
+                    column = document.createElement('div');
+                    column.setAttribute('class',"col-md-2");
                     column.innerHTML="<input type=\"checkbox\" onchange=\"clinical_checkbox_clicked(this)\" id=\""+i+"_checkbox\"/>";
                     $(column).appendTo(new_row);
+                    
+                    
                 }
+                $('[data-toggle="tooltip"]').tooltip();  
                    
                 controls = document.getElementById("rppa_controls");
                     
@@ -675,7 +1461,7 @@
                 });
                 
                 setInterval(function(){ $visualization.render() }, 5);
-            
+                
             });
         
         </script>
@@ -756,6 +1542,10 @@
             
             <div class="row">
                 <div class="col-md-12" id="rppa_distribution"></div>
+            </div>
+            
+            <div data-toggle="tooltip" data-placement="top" title="Hooray!">
+               Top
             </div>
             
         </div>

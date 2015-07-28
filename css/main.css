@@ -27,6 +27,11 @@
     max-height:400px;
 }
 
+#group4{
+    overflow-x:scroll;
+    max-height:400px;
+}
+
 #clinical_controls{
     height: 250px;
     overflow-y: scroll;
@@ -41,6 +46,12 @@
     height: 400px;
     overflow-y:scroll;
     overflow-x:scroll;
+}
+
+.domain{
+    overflow-y:scroll;
+    overflow-x:scroll;
+    height:100px;
 }
 
 /* ==========================================================================
