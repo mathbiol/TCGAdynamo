@@ -1,5 +1,7 @@
 .row {
   margin-bottom: 20px;
+  margin-left:5px;
+  margin-right:5px;
 }
 .dropdown-menu {
     max-height: 400px;
@@ -12,25 +14,6 @@
     overflow-y: scroll;
 }
 
-#group1{
-    overflow-x:scroll;
-    max-height:400px;
-}
-
-#group2{
-    overflow-x:scroll;
-    max-height:400px;
-}
-
-#group3{
-    overflow-x:scroll;
-    max-height:400px;
-}
-
-#group4{
-    overflow-x:scroll;
-    max-height:400px;
-}
 
 #clinical_controls{
     height: 250px;
