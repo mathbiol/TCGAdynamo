@@ -628,6 +628,8 @@
                         for (var i=0;i<data.proteins.length;i++){
                             for (var k=0;k<data.proteins[i].groups.length;k++){
                                 for (var x=0;x<data.proteins[i].groups[k].values.length;x++){
+                                    ;
+                                    
                                     point = [i-0.22+k*0.16,data.proteins[i].groups[k].values[x],k];
                                     merged_data.push(point);
                                 }
@@ -692,6 +694,8 @@
                 $("#rppa_distribution").html("");
                     
                 var svg = d3.select("#rppa_distribution").append("svg").attr("width",w).attr("height",h);
+                 
+                colors = {1:"#6699FF", 2: "#00FF00", 3:"#CC6699", 4:"#FF3300", 5:"#66FFFF", 6:"#99FF99", 7:"#99FF99" };    
                     
                 svg.selectAll("circle")
 			.data(merged_data)
@@ -707,19 +711,7 @@
 			   		return 5;
 			   })
                         .style("fill", function(d){
-                            if (d[2]==0){
-                                   return "#6699FF";
-                               }
-                               else if (d[2]==1){
-                                   return "#00FF00";
-                               }
-                               else if (d[2]==2){
-                                   return "#CC6699";
-                               }
-                               else{
-                                   return "#FF3300";
-                               }
-                               
+                                   return colors[d[2]+1];
                            });
                     
                 svg.append("g")
@@ -734,7 +726,20 @@
             
             function add_new_patient_table(){
                 
-                colors = {1:"#6699FF", 2: "#00FF00", 3:"#CC6699", 4:"#FF3300" };
+                colors = {1:"#6699FF", 2: "#00FF00", 3:"#CC6699", 4:"#FF3300", 5:"#66FFFF", 6:"#99FF99", 7:"#FFFFCC", 8:"#9999FF", 9:"#FF9900", 10:"#0099CC" };
+                colors2 = {1:0x6699FF, 2: 0x00FF00, 3:0xCC6699, 4:0xFF3300, 5:0x66FFFF, 6:0x99FF99, 7:0xFFFFCC, 8:0x9999FF, 9:0xFF9900, 10:0x0099CC};
+                
+                
+                console.log(colors[8]);
+                for (var i=0; i<this.selected_groups.length;i++){
+                    var parameter = this.selected_groups[i].substring(0,this.selected_groups[i].indexOf("__"));
+                    var group = this.selected_groups[i].substring(this.selected_groups[i].indexOf("__")+2,this.selected_groups[i].length-9);
+                    for (var k=0;k<$model.patients.length;k++){
+                        if ($model.patients[k].clinical[parameter]==group){
+                            $visualization.dots[k].material.color = new THREE.Color(colors2[i+1]);
+                        }
+                    }
+                }
                 
                 console.log(this.number_tables+" groups selected");
                 document.getElementById("tables").innerHTML="";
@@ -757,6 +762,8 @@
                 else{
                    column_size=2;
                 }
+                
+                
                 for (var i=0; i<this.selected_groups.length;i++){
                     
                     var parameter = this.selected_groups[i].substring(0,this.selected_groups[i].indexOf("__"));
@@ -767,6 +774,16 @@
                     table_column.setAttribute('class',"col-md-"+column_size);
                     table_column.setAttribute("id","group"+(i+1));
                     table_column.setAttribute("style", "overflow-x:scroll; overflow-y:scroll; height:420px");
+                    if (column_size==2){
+                        var new_width = ($("#tables").innerWidth()-20)/this.number_tables;
+                        console.log(new_width);
+                        table_column.setAttribute("style", "overflow-x:scroll; overflow-y:scroll; height:420px; width:"+new_width+"px");
+                    }
+                    if (column_size==1){
+                        var new_width = $("#tables").innerWidth();
+                        console.log(new_width);
+                        table_column.setAttribute("style", "overflow-x:scroll; overflow-y:scroll; height:420px; width:"+new_width+"px");
+                    }
                     $(table_column).appendTo(tables_row);
                     
                     $("#group"+(i+1)).css("background-color", colors[i+1]);
