@@ -23,7 +23,6 @@
         <script src="js/vendor/jquery-1.11.2.js"></script>
         <script src="http://d3js.org/d3.v2.min.js?2.8.1"></script>
         <script src="js/vendor/three.min.js"></script>
-        
         <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
         <script>
             
@@ -571,7 +570,18 @@
                 
             }
             
-            function rppa_weight_changed(slider){
+            function rppa_weight_changed(slider, initial_set_to_1){
+                
+                    if (!initial_set_to_1){
+                        var rppa_parameter = slider.id.substring(0,slider.id.length-7);
+                        this.selected_parameters.push(rppa_parameter);
+                        if (this.selected_parameters.length==1){
+                            history.pushState(this.selected_parameters, document.title, '?'+"rppa_"+rppa_parameter+'='+slider.value);
+                        }
+                        else{
+                            history.pushState(this.selected_parameters, document.title, document.URL+'&'+"rppa_"+rppa_parameter+'='+slider.value);
+                        }
+                    }
                     
                     console.log(slider.id+": "+slider.value+"; ");
                     var parameter = slider.id.substring(0,slider.id.length-7)
@@ -583,11 +593,23 @@
                 }
             
             function rppa_checkbox_clicked(checkbox){
+                
+                console.log(checkbox.id);
+                var checkbox_id = checkbox.id.substring(0, checkbox.id.length-9);
+                this.selected_parameters.push(checkbox_id);
+                
+                if (this.selected_parameters.length==1){
+                    history.pushState(this.selected_parameters, document.title, '?'+"rppa_"+checkbox_id+'=1.0');
+                }
+                else{
+                    history.pushState(this.selected_parameters, document.title, document.URL+'&'+"rppa_"+checkbox_id+'=1.0');
+                }
+                
                 var rppa_id = checkbox.id.substring(0,checkbox.id.length-9);
                 var slider_id = rppa_id+"_slider";
                 slider = document.getElementById(slider_id);
                 slider.value=1;
-                rppa_weight_changed(slider);
+                rppa_weight_changed(slider,1);
             }
             
             function add_new_patient_rppa_distribution(selected_groups){
@@ -729,8 +751,6 @@
                 colors = {1:"#6699FF", 2: "#00FF00", 3:"#CC6699", 4:"#FF3300", 5:"#66FFFF", 6:"#99FF99", 7:"#FFFFCC", 8:"#9999FF", 9:"#FF9900", 10:"#0099CC" };
                 colors2 = {1:0x6699FF, 2: 0x00FF00, 3:0xCC6699, 4:0xFF3300, 5:0x66FFFF, 6:0x99FF99, 7:0xFFFFCC, 8:0x9999FF, 9:0xFF9900, 10:0x0099CC};
                 
-                
-                console.log(colors[8]);
                 for (var i=0; i<this.selected_groups.length;i++){
                     var parameter = this.selected_groups[i].substring(0,this.selected_groups[i].indexOf("__"));
                     var group = this.selected_groups[i].substring(this.selected_groups[i].indexOf("__")+2,this.selected_groups[i].length-9);
@@ -833,7 +853,24 @@
             
             this.number_tables=0;
             this.selected_groups=[];
+            this.selected_parameters = [];
             function clinical_checkbox_clicked(checkbox){
+                
+                var checkbox_id = checkbox.id.substring(0, checkbox.id.length-9);
+                this.selected_parameters.push(checkbox_id);
+                
+                if (this.selected_parameters.length==1){
+                    var parameter = checkbox_id.substring(0,checkbox_id.indexOf("__"));
+                    var group = checkbox_id.substring(checkbox_id.indexOf("__")+2,checkbox_id.length);
+                        console.log(checkbox_id);
+                    history.pushState(this.selected_parameters, document.title, '?'+"clinical_"+parameter+'=' + group);
+                }
+                else{
+                    var parameter = checkbox_id.substring(0,checkbox_id.indexOf("__"));
+                    var group = checkbox_id.substring(checkbox_id.indexOf("__")+2,checkbox_id.length);
+                        
+                    history.pushState(this.selected_parameters, document.title, document.URL+'&'+"clinical_"+parameter+'=' + group);
+                }
                 
                 function userstory_create_smoking_status_plots(){
                     
@@ -1727,26 +1764,50 @@
                         
                     column = document.createElement('div');
                     column.setAttribute('class',"col-md-2");
-                    column.innerHTML="<input type=\"range\" min=\"0\" max=\"1\" step=\"0.01\" value=\"0\" style=\"width:60px\" id=\""+$model.patients[0].RPPA[i].ID+"_slider\" onchange=\"rppa_weight_changed(this)\"/>"
+                    column.innerHTML="<input type=\"range\" min=\"0\" max=\"1\" step=\"0.01\" value=\"0\" style=\"width:60px\" id=\""+$model.patients[0].RPPA[i].ID+"_slider\" onchange=\"rppa_weight_changed(this,0)\"/>"
                     $(column).appendTo(new_row);
                     }
             }
             
+            function add_dataset_to_url_history(){
+                
+                this.selected_parameters.push($dataset);
+                history.pushState(this.selected_parameters, document.title, '?dataset='+$dataset);
+                  
+            }
+            
             $(function(){
+                
+                story = document.URL.split("?")[1];
+                if (typeof story!= 'undefined'){
+                    steps = story.split("&");
+                    for (var i=0;i<steps.length;i++){
+                        console.log(steps[i]);
+                        if (steps[i].substring(0,8)=="clinical"){
+                            console.log("a");
+                        }
+                        else if (steps[i].substring(0,4)=="rppa"){
+                            console.log("b");
+                        }
+                    }
+                }
+                
                 console.log($("#visuals").innerWidth());
                 $visualization = new Visualization();
                 $model = new Model();
                 
                 $(".dataset_selection").click(function(e){
-                    
                     console.log(e.target.id+" selected");
                     loadJSON(function(response) {
+                        
                         $model.init_dataset(JSON.parse(response));
                         $visualization.init_dots();
                         add_RPPA_list();
+                        
                     }, e.target.id);
                     $dataset = e.target.id;
                      
+                        add_dataset_to_url_history();
                 });
                 
                 setInterval(function(){ $visualization.render() }, 5);
