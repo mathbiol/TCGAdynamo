@@ -614,8 +614,6 @@
             
             function add_new_patient_rppa_distribution(selected_groups){
                 
-                
-                
                 this.selected_groups = selected_groups;
                 function preprocess_data(data){
                     var proteins = [];
@@ -629,7 +627,7 @@
                     for (var g=0;g<this.selected_groups.length;g++){
                         var parameter = this.selected_groups[g].substring(0,this.selected_groups[g].indexOf("__"));
                         var group = this.selected_groups[g].substring(this.selected_groups[g].indexOf("__")+2,this.selected_groups[g].length-9);
-                        console.log(parameter+": "+group);
+                        //console.log(parameter+": "+group);
                         for (var i=0;i<data.length;i++){
                             if (data[i].clinical[parameter]==group){
                                 for (var k=0;k<data[0].RPPA.length;k++){
@@ -761,7 +759,7 @@
                     }
                 }
                 
-                console.log(this.number_tables+" groups selected");
+                //console.log(this.number_tables+" groups selected");
                 document.getElementById("tables").innerHTML="";
                 var column_size = 0;
                 if (this.number_tables==1){
@@ -1776,39 +1774,95 @@
                   
             }
             
-            $(function(){
-                
-                story = document.URL.split("?")[1];
-                if (typeof story!= 'undefined'){
-                    steps = story.split("&");
-                    for (var i=0;i<steps.length;i++){
-                        console.log(steps[i]);
-                        if (steps[i].substring(0,8)=="clinical"){
-                            console.log("a");
-                        }
-                        else if (steps[i].substring(0,4)=="rppa"){
-                            console.log("b");
-                        }
+            function click_story_buttons(){
+                for (var i=0;i<$story.length;i++){
+                    console.log($story[i]);
+                    if (steps[i].substring(0,8)=="clinical"){
+                        var parameter = $story[i].split("=")[0].substring(9,$story[i].split("=")[0].length);
+                        var value = $story[i].split("=")[1];
+                        var button = document.getElementById(parameter+"__"+value+"_checkbox");
+                        button.checked=true;
+                        clinical_checkbox_clicked(button);
                     }
+                    else if (steps[i].substring(0,4)=="rppa"){
+                        var parameter = $story[i].split("=")[0].substring(5,$story[i].split("=")[0].length);
+                        var button = document.getElementById(parameter+"_checkbox");
+                        button.checked=true;
+                        rppa_checkbox_clicked(button);
+                    }
+                    
+                    
+                    
                 }
-                
+            }
+            
+            $(function(){
                 console.log($("#visuals").innerWidth());
                 $visualization = new Visualization();
                 $model = new Model();
+                $story_to_tell=false;
+                $story = [];
                 
                 $(".dataset_selection").click(function(e){
                     console.log(e.target.id+" selected");
                     loadJSON(function(response) {
-                        
                         $model.init_dataset(JSON.parse(response));
                         $visualization.init_dots();
                         add_RPPA_list();
+                        if ($story_to_tell){
+                            click_story_buttons();
+                            console.log("story to tell");
+                        }
+                        else{
+                            console.log("no story to tell");
+                        }
                         
                     }, e.target.id);
                     $dataset = e.target.id;
-                     
-                        add_dataset_to_url_history();
+                    
+                    add_dataset_to_url_history();
+                    
                 });
+                
+                story = document.URL.split("?")[1];
+                if (typeof story!= 'undefined'){
+                    
+                    dataset = story.split("#")[0];
+                    var dataset = dataset.substring(8,dataset.length);
+                    steps = story.split("#")[1];
+                    steps = steps.substring(1);
+                    console.log(steps.length);
+                    if (steps.length>0){
+                        steps = steps.split("&");
+                        console.log("there is a story to tell");
+                        $story_to_tell=true;
+                        for (var i=0;i<steps.length;i++){
+                            if (steps[i].substring(0,8)=="clinical"){
+                                $story.push(steps[i]);
+                                //console.log("clinical");
+                                //console.log(button.checked);
+                                //clinical_checkbox_clicked(button);
+                            }
+                            else if(steps[i].substring(0,4)=="rppa"){
+                                $story.push(steps[i]);
+                                //console.log("rppa");
+                                //rppa_checkbox_clicked()
+                            }
+                        }
+                    }
+                    else{
+                        console.log("there is no story");
+                        $story_to_tell=false;
+                        $story = [];
+                    }
+                    
+                    var button = document.getElementById(dataset);
+                    var evnt = button["click"];
+                    evnt.call(button);
+                    
+                    
+                    
+                }
                 
                 setInterval(function(){ $visualization.render() }, 5);
                 
