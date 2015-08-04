@@ -614,7 +614,6 @@
             
             function add_new_patient_rppa_distribution(selected_groups){
                 
-                this.selected_groups = selected_groups;
                 function preprocess_data(data){
                     var proteins = [];
                     for (var i=0;i<data[0].RPPA.length;i++){
@@ -679,6 +678,9 @@
                         return([min,max]);
                     }
                 
+                $("#rppa_distribution").html("");
+                if (this.number_tables>0){
+                
                 test_data = preprocess_data($model.patients);
                     
                 min_max=this.find_min_max(test_data);
@@ -711,7 +713,6 @@
                                 .orient("left")
                                 .ticks(20);
                         
-                $("#rppa_distribution").html("");
                     
                 var svg = d3.select("#rppa_distribution").append("svg").attr("width",w).attr("height",h);
                  
@@ -742,12 +743,21 @@
                         .attr("class", "axis")
                         .attr("transform", "translate(" + 50 + ",0)")
                         .call(yAxis);
+                
+                }
+                
             }
             
             function add_new_patient_table(){
                 
                 colors = {1:"#6699FF", 2: "#00FF00", 3:"#CC6699", 4:"#FF3300", 5:"#66FFFF", 6:"#99FF99", 7:"#FFFFCC", 8:"#9999FF", 9:"#FF9900", 10:"#0099CC" };
-                colors2 = {1:0x6699FF, 2: 0x00FF00, 3:0xCC6699, 4:0xFF3300, 5:0x66FFFF, 6:0x99FF99, 7:0xFFFFCC, 8:0x9999FF, 9:0xFF9900, 10:0x0099CC};
+                colors2 = {0: 0x000000, 1:0x6699FF, 2: 0x00FF00, 3:0xCC6699, 4:0xFF3300, 5:0x66FFFF, 6:0x99FF99, 7:0xFFFFCC, 8:0x9999FF, 9:0xFF9900, 10:0x0099CC};
+                
+                for (var k=0;k<$model.patients.length;k++){
+                        if ($model.patients[k].clinical[parameter]==group){
+                            $visualization.dots[k].material.color = new THREE.Color(colors2[0]);
+                        }
+                }
                 
                 for (var i=0; i<this.selected_groups.length;i++){
                     var parameter = this.selected_groups[i].substring(0,this.selected_groups[i].indexOf("__"));
@@ -849,26 +859,29 @@
                 
             }
             
+            function assemble_history_url(){
+                
+                history.replaceState(this.selected_parameters, document.title, '');
+                
+                history.pushState(this.selected_parameters, document.title, '?dataset='+$dataset);
+                
+                for (var i=0;i<this.selected_groups.length;i++){
+                    
+                    var parameter = this.selected_groups[i].substring(0,this.selected_groups[i].indexOf("__"));
+                    var group = this.selected_groups[i].substring(this.selected_groups[i].indexOf("__")+2,this.selected_groups[i].length-9);
+                    history.pushState(this.selected_parameters, document.title, document.URL+'&'+"clinical_"+parameter+'=' + group);
+                    
+                }
+//                for (var i=0;i<this.selected_parameters.length;i++){
+//                    
+//                }
+            }
+            
             this.number_tables=0;
             this.selected_groups=[];
             this.selected_parameters = [];
             function clinical_checkbox_clicked(checkbox){
                 
-                var checkbox_id = checkbox.id.substring(0, checkbox.id.length-9);
-                this.selected_parameters.push(checkbox_id);
-                
-                if (this.selected_parameters.length==1){
-                    var parameter = checkbox_id.substring(0,checkbox_id.indexOf("__"));
-                    var group = checkbox_id.substring(checkbox_id.indexOf("__")+2,checkbox_id.length);
-                        console.log(checkbox_id);
-                    history.pushState(this.selected_parameters, document.title, '?'+"clinical_"+parameter+'=' + group);
-                }
-                else{
-                    var parameter = checkbox_id.substring(0,checkbox_id.indexOf("__"));
-                    var group = checkbox_id.substring(checkbox_id.indexOf("__")+2,checkbox_id.length);
-                        
-                    history.pushState(this.selected_parameters, document.title, document.URL+'&'+"clinical_"+parameter+'=' + group);
-                }
                 
                 function userstory_create_smoking_status_plots(){
                     
@@ -1616,7 +1629,7 @@
                 
                 //list_parameter_domain(checkbox.id.substring(0, checkbox.id.length-9));
                 
-                this.number_tables++;
+                
                 if ($dataset=="brca2" && checkbox.id=="tumor type_checkbox"){
                     userstory_2_create_plots();
                 }
@@ -1634,12 +1647,33 @@
                 }
                 
                 else{
-                    this.selected_groups.push(checkbox.id);
-                    add_new_patient_table();
+                    if (checkbox.checked==true){
+                        this.number_tables++;
+                        var checkbox_id = checkbox.id.substring(0, checkbox.id.length-9);
+                        this.selected_parameters.push(checkbox_id);
+                        
+                        
+                        //var parameter = checkbox_id.substring(0,checkbox_id.indexOf("__"));
+                        //var group = checkbox_id.substring(checkbox_id.indexOf("__")+2,checkbox_id.length);
+                        //history.pushState(this.selected_parameters, document.title, document.URL+'&'+"clinical_"+parameter+'=' + group);
+                        
+                        this.selected_groups.push(checkbox.id);
+                        assemble_history_url();
+                        add_new_patient_table();
+                    }
+                    else{
+                        this.number_tables--;
+                        console.log("checkbox unselected");
+                        var index = this.selected_groups.indexOf(checkbox.id);
+                        console.log(index);
+                        this.selected_groups.splice(index, 1);
+                        
+                        assemble_history_url();
+                        add_new_patient_table();
+                        add_new_patient_rppa_distribution(this.selected_groups);
+                    }
                     //console.log(checkbox.id+": "+this.number_tables);
                 }
-                
-                
                 
             }
             
@@ -1777,10 +1811,12 @@
             function click_story_buttons(){
                 for (var i=0;i<$story.length;i++){
                     console.log($story[i]);
+                    $story[i] = $story[i].replace("%20"," ");
                     if (steps[i].substring(0,8)=="clinical"){
                         var parameter = $story[i].split("=")[0].substring(9,$story[i].split("=")[0].length);
                         var value = $story[i].split("=")[1];
                         var button = document.getElementById(parameter+"__"+value+"_checkbox");
+                        console.log(parameter+"__"+value+"_checkbox");
                         button.checked=true;
                         clinical_checkbox_clicked(button);
                     }
@@ -1827,13 +1863,18 @@
                 story = document.URL.split("?")[1];
                 if (typeof story!= 'undefined'){
                     
-                    dataset = story.split("#")[0];
-                    var dataset = dataset.substring(8,dataset.length);
-                    steps = story.split("#")[1];
-                    steps = steps.substring(1);
-                    console.log(steps.length);
+                    dataset = story.split("&")[0];
+                    
+                    if (dataset.charAt(dataset.length-1)=="#"){
+                        var dataset = dataset.substring(8,dataset.length-1);
+                    }
+                    else{
+                        var dataset = dataset.substring(8,dataset.length);
+                    }
+                    steps = story.split("&");
+                    steps.shift();
                     if (steps.length>0){
-                        steps = steps.split("&");
+                        //steps = steps.split("&");
                         console.log("there is a story to tell");
                         $story_to_tell=true;
                         for (var i=0;i<steps.length;i++){
