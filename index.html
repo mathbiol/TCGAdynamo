@@ -598,7 +598,7 @@
                 if (checkbox.checked==true){
                     var checkbox_id = checkbox.id.substring(0, checkbox.id.length-9);
                     this.selected_parameters.push(checkbox_id);
-                    assemble_history_url();
+                    assemble_history_url2();
                 
                     var rppa_id = checkbox.id.substring(0,checkbox.id.length-9);
                     var slider_id = rppa_id+"_slider";
@@ -612,7 +612,7 @@
                     var index = this.selected_parameters.indexOf(checkbox_id);
                     console.log(index);
                     this.selected_parameters.splice(index, 1);
-                    assemble_history_url();
+                    assemble_history_url2();
                     
                     var rppa_id = checkbox.id.substring(0,checkbox.id.length-9);
                     var slider_id = rppa_id+"_slider";
@@ -658,8 +658,6 @@
                         for (var i=0;i<data.proteins.length;i++){
                             for (var k=0;k<data.proteins[i].groups.length;k++){
                                 for (var x=0;x<data.proteins[i].groups[k].values.length;x++){
-                                    ;
-                                    
                                     point = [i-0.22+k*0.16,data.proteins[i].groups[k].values[x],k];
                                     merged_data.push(point);
                                 }
@@ -901,6 +899,27 @@
 //                for (var i=0;i<this.selected_parameters.length;i++){
 //                    
 //                }
+            }
+            
+            function assemble_history_url2(){
+                
+                history.replaceState(this.selected_parameters, document.title, '');
+                
+                history.pushState(this.selected_parameters, document.title, '?dataset='+$dataset);
+                
+                for (var i=1;i<this.selected_parameters.length;i++){
+                    if (this.selected_parameters[i].indexOf("__")>-1){
+                        var parameter = this.selected_parameters[i].substring(0,this.selected_parameters[i].indexOf("__"));
+                        var group = this.selected_parameters[i].substring(this.selected_parameters[i].indexOf("__")+2,this.selected_parameters[i].length-9);
+                        history.pushState(this.selected_parameters, document.title, document.URL+'&'+"clinical_"+parameter+'=' + group);
+                    }
+                    else{
+                        console.log("rppa: "+this.selected_parameters[i]);
+                        history.pushState(this.selected_parameters, document.title, document.URL+'&'+"rppa_"+this.selected_parameters[i]+"=1.0"); 
+                    }
+                }
+                
+                
             }
             
             this.number_tables=0;
@@ -1849,7 +1868,7 @@
                         var button = document.getElementById(parameter+"__"+value+"_checkbox");
                         console.log(parameter+"__"+value+"_checkbox");
                         button.checked=true;
-                        clinical_checkbox_clicked(button);
+                        clinical_checkbox_clicked2(button);
                     }
                     else if (steps[i].substring(0,4)=="rppa"){
                         var parameter = $story[i].split("=")[0].substring(5,$story[i].split("=")[0].length);
@@ -1858,23 +1877,123 @@
                         rppa_checkbox_clicked(button);
                     }
                     
-                    
-                    
                 }
             }
             
-            function add_new_patient_rppa_dist2(){
+            function generate_rppa_distr_plot(){
+                
+                function generate_merged_points(){
+                    
+                    merged_data = [];
+                    
+                    var step = 0.8/(Object.keys(this.selected_patient_groups).length+1);
+                    var offset=step;
+                    var temp_counter=1;
+                    var min=Number.POSITIVE_INFINITY;
+                    var max=Number.NEGATIVE_INFINITY;
+                    for (var i in this.selected_patient_groups){
+                        var parameter = i.split("__")[0];
+                        var value = i.split("__")[1];
+                        for (var x=0;x<this.selected_patient_groups[i].length;x++){
+                            for (var k=0;k<$model.patients[0].RPPA.length;k++){
+                                var x_pos=k-0.4+offset;
+                                point=[x_pos,parseFloat($model.patients[this.selected_patient_groups[i][x]].RPPA[k].value),temp_counter];
+                                if (parseFloat($model.patients[this.selected_patient_groups[i][x]].RPPA[k].value)>max){
+                                    max = parseFloat($model.patients[this.selected_patient_groups[i][x]].RPPA[k].value);
+                                }
+                                
+                                if (parseFloat($model.patients[this.selected_patient_groups[i][x]].RPPA[k].value)<min){
+                                    min = parseFloat($model.patients[this.selected_patient_groups[i][x]].RPPA[k].value);
+                                }
+                                //console.log(x_pos);
+                                merged_data.push(point);
+                            }
+                        }
+                        temp_counter++;
+                        offset=offset+step;  
+                    }
+                    
+                    return {"data":merged_data, "min":min, "max":max};
+                }
                 
                 $("#rppa_distribution").html("");
+                if (this.number_selected_groups>0){
+                
+                data_min_max = generate_merged_points();
+                
+                merged_data=data_min_max["data"];
                 
                 
+                var number_proteins = $model.patients[0].RPPA.length;
+                    
+                var w=50000;
+                var h=1000;
+                    
+                var xScale = d3.scale.linear()
+                                .domain([-1, number_proteins+1])
+                                .range([10, w]);
+                            
+                var yScale = d3.scale.linear()
+                                .domain([data_min_max["min"], data_min_max["max"]])
+                                .range([h, 0]);
+                        
+                var N = number_proteins; 
+                ticks=Array.apply(null, {length: N}).map(Number.call, Number)      
+                var xAxis = d3.svg.axis()
+                                .scale(xScale)
+                                .tickValues(ticks)
+                                .tickFormat(function(d){return $model.patients[0].RPPA[d].ID})
+                                .ticks(number_proteins)
+                                .orient("bottom");
+                var yAxis = d3.svg.axis()
+                                .scale(yScale)
+                                .orient("left")
+                                .ticks(20);
+                        
+                var svg = d3.select("#rppa_distribution").append("svg").attr("width",w).attr("height",h);
+                
+                
+                
+                colors = {1:"#6699FF", 2: "#00FF00", 3:"#CC6699", 4:"#FF3300", 5:"#66FFFF", 6:"#99FF99", 7:"#99FF99" };
+                
+                svg.selectAll("circle")
+			.data(merged_data)
+			.enter()
+			.append("circle")
+			.attr("cx", function(d) {
+			   		return xScale(d[0]);
+			})
+			.attr("cy", function(d) {
+			   		return yScale(d[1]);
+			})
+			.attr("r", function(d) {
+			   		return 5;
+			   })
+                        .style("fill", function(d){
+                                   return colors[d[2]];
+                           });
+                           
+                svg.append("g")
+                        .attr("class", "axis")
+                        .attr("transform", "translate(0," + 500 + ")")
+                        .call(xAxis);
+                svg.append("g")
+                        .attr("class", "axis")
+                        .attr("transform", "translate(" + 50 + ",0)")
+                        .call(yAxis);
+                }
                 
             }
-           
+            
             function generate_patient_tables(){
                 
                 colors = {1:"#6699FF", 2: "#00FF00", 3:"#CC6699", 4:"#FF3300", 5:"#66FFFF", 6:"#99FF99", 7:"#FFFFCC", 8:"#9999FF", 9:"#FF9900", 10:"#0099CC" };
                 colors2 = {0: 0x000000, 1:0x6699FF, 2: 0x00FF00, 3:0xCC6699, 4:0xFF3300, 5:0x66FFFF, 6:0x99FF99, 7:0xFFFFCC, 8:0x9999FF, 9:0xFF9900, 10:0x0099CC};
+                
+                for (var k=0;k<$model.patients.length;k++){
+                    $visualization.dots[k].material.color = new THREE.Color(colors2[0]);   
+                }
+                
                 
                 var temp_counter=0;
                 for (var i in this.selected_patient_groups){
@@ -1907,7 +2026,6 @@
                 else{
                    column_size=2;
                 }
-                
                 var table_counter=0;
                 for (var i in this.selected_patient_groups){
                     if (this.selected_patient_groups[i].length>0){
@@ -1974,6 +2092,7 @@
                 
                 if (checkbox.checked==true){
                     //console.log(checkbox.id);
+                    this.selected_parameters.push(checkbox.id);
                     var parameter = checkbox.id.split("__")[0];
                     var parameter_value = checkbox.id.split("__")[1].substring(0,checkbox.id.split("__")[1].length-9);
                     //console.log(parameter+"; "+parameter_value);
@@ -1981,22 +2100,29 @@
                     
                     for(var i=0;i<$model.patients.length;i++){
                         if ($model.patients[i].clinical[parameter]==parameter_value){
-                            console.log(i+": "+$model.patients[i].clinical[parameter]);
+                            //console.log(i+": "+$model.patients[i].clinical[parameter]);
                             this.selected_patient_groups[parameter+"__"+parameter_value].push(i);
-                            
                         }
                     }
                     this.number_selected_groups++;
                     generate_patient_tables();
-                    
-                    this.selected_groups.push(checkbox.id);
-                    console.log(this.selected_groups);
-                    add_new_patient_rppa_distribution(this.selected_groups);
+                    generate_rppa_distr_plot();
+                    assemble_history_url2();
+                    //add_new_patient_rppa_distribution(this.selected_groups);
                 }
                 else{
+                    var index = this.selected_parameters.indexOf(checkbox.id);
+                    console.log(index);
                     console.log(checkbox.id);
-                    this.selected_patient_groups[parameter]=[];
+                    this.selected_parameters.splice(index, 1);
+                    var parameter = checkbox.id.split("__")[0];
+                    var parameter_value = checkbox.id.split("__")[1].substring(0,checkbox.id.split("__")[1].length-9);
+                    this.selected_patient_groups[parameter+"__"+parameter_value]=[];
                     this.number_selected_groups--;
+                    console.log(parameter);
+                    generate_patient_tables();
+                    generate_rppa_distr_plot();
+                    assemble_history_url2();
                 }
                 
             }
