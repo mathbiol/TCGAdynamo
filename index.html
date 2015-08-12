@@ -23,6 +23,7 @@
         <script src="js/vendor/jquery-1.11.2.js"></script>
         <script src="http://d3js.org/d3.v2.min.js?2.8.1"></script>
         <script src="js/vendor/three.min.js"></script>
+        <script type="text/javascript" src="tsne.js"></script>
         <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
         <script>
             
@@ -37,6 +38,7 @@
                 this.tsne_selected=0;
                 this.all_edges = [];
                 this.protein_weights = [];
+                this.tsne_selected=0;
                 
                 this.recompute = function(){
                     
@@ -199,6 +201,8 @@
                 
                 this.update = function(){
                     
+                    if (!$model.tsne_selected==1){
+                    
                     var max_x=0;
                     var max_y=0;
                     var Fr = 0;
@@ -270,6 +274,7 @@
                         max_y=Math.abs($visualization.dots[i].position.y);
                     }
                 }
+                
                 var max_x=0;
                 var max_y=0;
                 for (var i=0;i<$model.n_patients;i++){
@@ -305,7 +310,8 @@
                     $visualization.camera.left=new_cam*$visualization.width/-2;
                     $visualization.camera.bottom=new_cam*$visualization.height/-2;
                     $visualization.camera.updateProjectionMatrix();
-                }   
+                }  
+                    }
                 
                 }
                 
@@ -592,7 +598,7 @@
                     $model.recompute();
                 }
             
-            this.selected_rppas = [];
+            $selected_rppas = [];
             function rppa_checkbox_clicked(checkbox){
                 
                 if (checkbox.checked==true){
@@ -605,6 +611,8 @@
                     slider = document.getElementById(slider_id);
                     slider.value=1;
                     rppa_weight_changed(slider,1);
+                    
+                    $selected_rppas.push(checkbox.id.substring(0,checkbox.id.length-9));
                 }
                 else{
                     var checkbox_id = checkbox.id.substring(0, checkbox.id.length-9);
@@ -2131,6 +2139,10 @@
                 
             }
             
+            function add_layout_button(){
+                
+            }
+            
             $(function(){
                 console.log($("#visuals").innerWidth());
                 $visualization = new Visualization();
@@ -2140,6 +2152,7 @@
                 
                 $(".dataset_selection").click(function(e){
                     console.log(e.target.id+" selected");
+                    document.getElementById("layout_button").setAttribute("style","display:inline");
                     loadJSON(function(response) {
                         $model.init_dataset(JSON.parse(response));
                         $visualization.init_dots();
@@ -2156,7 +2169,22 @@
                     $dataset = e.target.id;
                     
                     add_dataset_to_url_history();
+                    add_layout_button();
                     
+                });
+                
+                $(".layout_selection").click(function(e){
+                    
+                    if ( e.target.id=="tsne"){
+                        console.log("tsne selected");
+                        $model.tsne_selected=1;
+                        console.log($selected_rppas);
+                        tsne_layout = new tsne($model.patients, $visualization.dots, $selected_rppas);
+                    }
+                    
+                    else{
+                        $model.tsne_selected=0;
+                    }
                 });
                 
                 story = document.URL.split("?")[1];
@@ -2259,16 +2287,16 @@
                 </ul>
                 </div>
                 </div>
-                <div class="col-md-4">
-                <div class="dropdown">
-                <button class="btn btn-default dropdown-toggle" type="button" id="menu2" data-toggle="dropdown">Userstories
-                    <span class="caret"></span>
-                </button>
-                <ul class="dropdown-menu" role="menu" aria-labelledby="menu2">
-                    <li role="presentation"><a class="userstory_selection" role="menuitem" tabindex="-1" href="#" id="userstory_lcsc">smoking status in lusc</a></li>
-                    <li role="presentation"><a class="userstory_selection" role="menuitem" tabindex="-1" href="#" id="userstory_brca">risk classification of brca</a></li>
-                </ul>
-                </div>
+                <div class="col-md-5" id="layout_button" style="display:none">
+                    <div class="dropdown">
+                        <button class="btn btn-default dropdown-toggle" type="button" id="menu1" data-toggle="dropdown">Layout
+                        <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu" role="menu" aria-labelledby="menu1">
+                            <li role="presentation"><a class="layout_selection" role="menuitem" tabindex="-1" href="#" id="tsne">t-sne</a></li>
+                            <li role="presentation"><a class="layout_selection" role="menuitem" tabindex="-1" href="#" id="force">force layout</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
             <div class="row">
