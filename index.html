@@ -1886,7 +1886,9 @@
                     
                     merged_data = [];
                     
-                    var step = 0.8/(Object.keys(this.selected_patient_groups).length+1);
+                    console.log(this.number_selected_groups);
+                    var step = 0.8/(this.number_selected_groups+1);
+                    console.log(step);
                     var offset=step;
                     var temp_counter=1;
                     var min=Number.POSITIVE_INFINITY;
@@ -1909,8 +1911,10 @@
                                 merged_data.push(point);
                             }
                         }
-                        temp_counter++;
-                        offset=offset+step;  
+                        if (this.selected_patient_groups[i].length>0){
+                            temp_counter++;
+                            offset=offset+step;  
+                        }
                     }
                     
                     return {"data":merged_data, "min":min, "max":max};
@@ -1997,8 +2001,8 @@
                 
                 var temp_counter=0;
                 for (var i in this.selected_patient_groups){
-                    temp_counter++;
                     if (this.selected_patient_groups[i].length>0){
+                    temp_counter++;
                         for (var k=0;k<this.selected_patient_groups[i].length;k++){
                             $visualization.dots[this.selected_patient_groups[i][k]].material.color = new THREE.Color(colors2[temp_counter]);
                         }
