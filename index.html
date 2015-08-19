@@ -1,1960 +1,193 @@
-<!doctype html>
-<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang=""> <![endif]-->
-<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8" lang=""> <![endif]-->
-<!--[if IE 8]>         <html class="no-js lt-ie9" lang=""> <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang=""> <!--<![endif]-->
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-        <title>Userstories</title>
-        <meta name="description" content="">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="apple-touch-icon" href="apple-touch-icon.png">
-        <link rel="stylesheet" href="css/bootstrap.min.css">
-        <style>
-            body {
-                padding-top: 50px;
-                padding-bottom: 20px;
-            }
-        </style>
-        <link rel="stylesheet" href="css/bootstrap-theme.min.css">
-        <link rel="stylesheet" href="css/main.css">
-        <script src="js/vendor/modernizr-2.8.3-respond-1.4.2.min.js"></script>
-        <script src="js/vendor/jquery-1.11.2.js"></script>
-        <script src="http://d3js.org/d3.v2.min.js?2.8.1"></script>
-        <script src="js/vendor/three.min.js"></script>
-        <script type="text/javascript" src="tsne.js"></script>
-        <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-        <script>
-            
-            function Model(){
-                this.n_patients=0;
-                this.n_features=0;
-                this.patients;
-                this.distances = [];
-                this.node_degree = [];
-                this.edges = [];
-                this.n_nearest_connect=2;
-                this.tsne_selected=0;
-                this.all_edges = [];
-                this.protein_weights = [];
-                this.tsne_selected=0;
-                
-                this.recompute = function(){
+<html>
+    
+<head>
+    <title>Hello Web Workers</title>
+    <script src="http://d3js.org/d3.v2.min.js?2.8.1"></script>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="js/libs/jqueryui/css/base/jquery.ui.all.css">
+    <script src="js/vendor/jquery-1.11.2.js"></script>
+    <script src="js/libs/jqueryui/jquery-ui.js"></script>
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+</head>
+<body onresize="adjust_controls()">
+    <div class="container-fluid" id="outer_container">
+        
+        <div class="row">
+            <div class="col-md-2">
+            <div class="dropdown">
+            <button class="btn btn-default dropdown-toggle" type="button" id="menu1" data-toggle="dropdown">Select Dataset
+                <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu" role="menu" aria-labelledby="menu1">
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="acc">acc</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="blca">blca</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="brca">brca</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="cesc">cesc</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="chol">chol</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="cntl">cntl</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="coad">coad</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="dlbc">dlbc</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="esca">esca</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="fppp">fppp</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="gbm">gbm</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="hnsc">hnsc</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="kich">kich</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="kirp">kirp</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="laml">laml</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="lcml">lcml</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="lgg">lgg</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="lihc">lihc</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="lnnh">lnnh</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="luad">luad</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="lusc">lusc</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="meso">meso</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="ov">ov</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="paad">paad</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="pcpg">pcpg</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="prad">prad</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="read">read</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="sarc">sarc</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="skcm">skcm</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="stad">stad</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="tgct">tgct</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="thym">thym</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="ucec">ucec</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="ucs">ucs</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="uvm">uvm</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="brca2">brca2</a></li>
+            </ul>
+            </div>
+            </div>
+        <div class="col-md-5" id="layout_button" style="display:none">
+            <div class="dropdown">
+                <button class="btn btn-default dropdown-toggle" type="button" id="menu2" data-toggle="dropdown">Layout
+                    <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu" role="menu" aria-labelledby="menu1">
+                    <li role="presentation"><a class="layout_selection" role="menuitem" tabindex="-1" href="#" id="tsne">t-sne</a></li>
+                    <li role="presentation"><a class="layout_selection" role="menuitem" tabindex="-1" href="#" id="force">force layout</a></li>
+                </ul>
+            </div>
+        </div>
+        </div>
+        <div class="row " >
+            <div class="col-md-7" id="visuals"></div>
+            <div class="col-md-5 " id="parameter_controls">
+                <div class="row" >
+                    <div class="col-md-12" id="clinical_controls"></div>   
+                </div>
+                <div class="row">
+                    <div class="col-md-12" id="rppa_controls"></div>   
+                </div>
+            </div>
+        </div>
+        
+        <div class="row" id="table_container">
+        </div>
+        
+        <div class="row">
+            <div class="col-md-12" id="rppa_distribution"></div>
+        </div>
+        
+    </div>
+    <script>
+        
+        function adjust_controls(){
+            var viewportHeight = window.innerHeight;      
+            $("#parameter_controls").height(viewportHeight-10);
+            $("#clinical_controls").height((viewportHeight/3)*2);
+            $("#rppa_controls").height((viewportHeight/3));
+        }
+        
+        function loadJSON(callback, which) {  
                     
-                    var considered_proteins = [];
-                    var protein_counter=0;
-                    for (var i=0;i<this.n_features;i++){
-                        if (this.protein_weights[i]!=0){
-                            considered_proteins[protein_counter]=i;
-                            protein_counter++;
-                        }
-                    }
-                    
-                    for (var i=0;i<this.n_patients;i++){
-                        this.edges[i] = [];
-                        for (var k=0;k<this.n_patients;k++){
-                            this.edges[i][k]=0;
-                        }
-                    }
-                    
-                    compute_euclidean_distance = function(a,b){
-                        
-                        var sum = 0;
-                        
-                        for (var i=0;i<protein_counter;i++){
-                            sum = sum+$model.protein_weights[considered_proteins[i]]*(Math.pow($model.patients[a].RPPA[i].value-$model.patients[b].RPPA[i].value,2));
-                        }
-                        
-                        sum=Math.sqrt(sum);
-                        return(sum);
-                    }
-                    
-                    for (var i=0;i<this.n_patients-1;i++){
-                        this.distances[i] = [];
-                        for (var k=i+1;k<this.n_patients;k++){
-                            this.distances[i][k-i-1]=compute_euclidean_distance(i,k);
-                        }
-                    }
-                    
-                    find_nearest_neighbors = function(a){
-                        
-                        var temp_counter=0;
-                        var temp_distance=-1;
-                        var temp_max_distance;
-                        var temp_max_index;
-                        var nearest_distances = [];
-                        var nearest_indices = [];
-                        for (var i=0;i<$model.n_patients;i++){
-                            
-                            if (i!=a){
-                                
-                                if (i<a){
-                                    temp_distance = $model.distances[i][a-i-1];
-                                }
-                                else{
-                                    temp_distance = $model.distances[a][i-a-1];
-                                }
-                                
-                                
-                                
-                                if(temp_counter<$model.n_nearest_connect){
-                                    nearest_distances[temp_counter]=temp_distance;
-                                    nearest_indices[temp_counter]=i;
-                                    temp_counter++;
-                                }
-                                else{
-                                    temp_max_distance = nearest_distances[0];
-                                    temp_max_index = 0;
-                                    for (var k=1;k<$model.n_nearest_connect;k++){
-                                        if (nearest_distances[k]>temp_max_distance){
-                                            temp_max_distance = nearest_distances[k];
-                                            temp_max_index=k;
-                                        }
-                                    }
-                                    
-                                    if (temp_distance<temp_max_distance){
-                                        nearest_distances[temp_max_index]=temp_distance;
-                                        nearest_indices[temp_max_index]=i;
-                                    }
-                                    
-                                } 
-                            }
-                        } 
-                        return(nearest_indices);
-                    }
-                    
-                    for (var i=0;i<this.n_patients;i++){
-                        this.node_degree[i]=0;
-                        for (var k=0;k<this.n_patients;k++){
-                            this.edges[i][k]=0;
-                        }
-                    }
-                    
-                    if (protein_counter>0){
-                        var edge_counter=0;
-                        for (var i=0;i<this.n_patients;i++){
-                       
-                            neighbors = find_nearest_neighbors(i);
-                            
-                            for (var k=0;k<neighbors.length;k++){
-                                if (neighbors[k]>i){
-                                    this.edges[i][neighbors[k]-i-1]=1;
-                                    this.node_degree[i]++;
-                                    this.node_degree[neighbors[k]]++;
-                                }
-                                else{
-                                    this.edges[neighbors[k]][i-neighbors[k]-1]=1;
-                                    this.node_degree[i]++;
-                                    this.node_degree[neighbors[k]]++;
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                this.init_dataset = function(patient_data){
-                    
-                    this.patients = patient_data;
-                    this.n_patients = this.patients.length;
-                    this.n_features = this.patients[0].RPPA.length;
-                    for (var i=0;i<$model.n_features;i++){
-                        this.protein_weights[i]=0;
-                    }
-                    this.recompute();
-                    
-                }
-                
-            }
-            
-            function Visualization(){
-                this.scene = new THREE.Scene();
-                this.width = $("#visuals").innerWidth();
-                this.height = 650;
-                this.canvas = document.createElement('canvas');
-                document.getElementById('visuals').appendChild(this.canvas);
-                this.renderer = new THREE.WebGLRenderer({canvas: this.canvas,  antialiasing: true });
-                this.renderer.setSize(this.width, this.height);
-                this.camera_parameter=30;
-                this.camera = new THREE.OrthographicCamera( this.width*this.camera_parameter / - 2, this.width*this.camera_parameter / 2, this.height*this.camera_parameter / 2, this.height*this.camera_parameter / - 2, - 500, 1000 );
-                this.camera.position.x = 0;
-                this.camera.position.y = 0;
-                this.camera.position.z = 100;
-                this.dots=[];
-                
-                this.init_dots = function() {
-                    delete this.scene;
-                    this.scene = new THREE.Scene();
-                    this.dots=[];
-                    this.geometry = new THREE.SphereGeometry(200,0,0);
-                    for (var i=0;i<$model.n_patients;i++){
-                        this.material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0, 0  ) } );
-                        // this.material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0.7, 0  ) } );
-                        this.dots[i] = new THREE.Mesh( this.geometry, this.material);
-                        random_x = (Math.random() * this.camera_parameter*750/3) - this.camera_parameter*390/3;
-                        random_y = (Math.random() * this.camera_parameter*580/3) - this.camera_parameter*280/3;
-                        this.dots[i].position.x = random_x;
-                        this.dots[i].position.y = random_y;
-                        this.scene.add(this.dots[i]);
-                    }
-                }
-                
-                this.update = function(){
-                    
-                    if (!$model.tsne_selected==1){
-                    
-                    var max_x=0;
-                    var max_y=0;
-                    var Fr = 0;
-                    var Fa = 0;
-                    var Fg = 0;
-                    var distance = 0;
-                    var kr = -1200;
-                    var kg = 0.002;
-                    var Ftotal = 0;
-                    var vector_between_x;
-                    var vector_between_y;
-                    var gravity_vector_x;
-                    var gravity_vector_y;
-                    var gravity_vector_length;
-                    var velocity;
-                    
-                    for (var i=0;i<$model.n_patients;i++){
-                        for (var k=i+1;k<$model.n_patients;k++){
-                            distance = Math.sqrt(Math.pow(($visualization.dots[i].position.x-$visualization.dots[k].position.x),2)+Math.pow(($visualization.dots[i].position.y-$visualization.dots[k].position.y),2));
-                            vector_between_x = $visualization.dots[i].position.x-$visualization.dots[k].position.x;
-                            vector_between_y = $visualization.dots[i].position.y-$visualization.dots[k].position.y;
-                            vector_between_x = vector_between_x/distance;
-                            vector_between_y = vector_between_y/distance;
-                            
-                            //compute Fr as suggested in the paper
-                            Fr = kr*(4/distance);
-                            
-                            //if the two patients are similar comptue Fa, else set Fa=0
-                            if ($model.edges[i][k-i-1]==1){
-                                Fa = 1.5*Math.log((1+distance));
-                            }
-                            else{
-                                Fa=0;
-                            }
-                            Ftotal = Fr + Fa;
-                        
-                            //set new positions
-                            $visualization.dots[k].position.x=$visualization.dots[k].position.x+vector_between_x*Ftotal*0.8;
-                            $visualization.dots[k].position.y=$visualization.dots[k].position.y+vector_between_y*Ftotal*0.8;
-                
-                            $visualization.dots[i].position.x=$visualization.dots[i].position.x-vector_between_x*Ftotal*0.8;
-                            $visualization.dots[i].position.y=$visualization.dots[i].position.y-vector_between_y*Ftotal*0.8;
-                        }
-                    }
-                //finally go over all nodes and compute the gravity
-                for (var i=0;i<$model.n_patients;i++){
-                    gravity_vector_x=-$visualization.dots[i].position.x;
-                    gravity_vector_y=-$visualization.dots[i].position.y;
-                    
-                    gravity_vector_length=Math.sqrt(Math.pow(gravity_vector_x,2)+Math.pow(gravity_vector_y,2));
-                    
-                    
-                    if ($model.n_nearest_connect>0)
-                        Fg = (kg/Math.log($model.n_nearest_connect+1))*($model.node_degree[i]+1)*gravity_vector_length;
-                    else{
-                        Fg = (kg/1)*($model.node_degree[i]+1)*gravity_vector_length;
-                    }
-                    
-                    gravity_vector_x=gravity_vector_x/gravity_vector_length;
-                    gravity_vector_y=gravity_vector_y/gravity_vector_length;
-                    $visualization.dots[i].position.x=$visualization.dots[i].position.x+gravity_vector_x*Fg*0.8;
-                    $visualization.dots[i].position.y=$visualization.dots[i].position.y+gravity_vector_y*Fg*0.8;
-                    
-                    if (Math.abs($visualization.dots[i].position.x)>max_x){
-                        max_index = i;
-                        max_x=Math.abs($visualization.dots[i].position.x);
-                    }
-                    if (Math.abs($visualization.dots[i].position.y)>max_y){
-                        max_y=Math.abs($visualization.dots[i].position.y);
-                    }
-                }
-                
-                var max_x=0;
-                var max_y=0;
-                for (var i=0;i<$model.n_patients;i++){
-                   
-                    if (Math.abs($visualization.dots[i].position.x)>max_x){
-                        max_index = i;
-                        max_x=Math.abs($visualization.dots[i].position.x);
-                    }
-                    if (Math.abs($visualization.dots[i].position.y)>max_y){
-                        max_y=Math.abs($visualization.dots[i].position.y);
-                    }
-                }
-                
-                //console.log("max: "+max_x+"; "+max_index);
-                var new_cam_x;
-                var new_cam_y;
-                var new_cam=-1;
-                
-                new_cam_x=((max_x+400)/$visualization.width)*2;
-                new_cam_y=((max_y+400)/$visualization.height)*2;
-                
-                if (new_cam_x>new_cam_y){
-                    new_cam=new_cam_x;
-                }
-                else{
-                    new_cam=new_cam_y;
-                }
-                
-                if (new_cam!=$visualization.camera_parameter ){
-                    $visualization.camera_parameter=new_cam;
-                    $visualization.camera.top=new_cam*$visualization.height/2;
-                    $visualization.camera.right=new_cam*$visualization.width/2;
-                    $visualization.camera.left=new_cam*$visualization.width/-2;
-                    $visualization.camera.bottom=new_cam*$visualization.height/-2;
-                    $visualization.camera.updateProjectionMatrix();
-                }  
-                    }
-                
-                }
-                
-                this.renderer.setClearColor( 0xffffff, 1);
-                
-                this.render = function(){
-                    this.update();
-                    this.renderer.render( this.scene, this.camera );
-                }
-                
-            }
-            
-            function loadJSON(callback, which) {  
-                    delete $visualization.scene;
                     var file_string = "json_data/"+which+"_data.json";
                     console.log("loading "+file_string);
                     var xobj = new XMLHttpRequest();
                     xobj.overrideMimeType("application/json");
                     xobj.open('GET', file_string, true);
                     xobj.onreadystatechange = function () {
-                    if (xobj.readyState == 4 && xobj.status == "200") {
-                        callback(xobj.responseText);
-                    }
+                        if (xobj.readyState == 4 && xobj.status == "200") {
+                            callback(xobj.responseText);
+                        }
                     };
                     xobj.send(); 
-                }
+        }
+        
+        function build_group_tables(){
             
-            function userstory_2_create_plots(){
+            var table_container = document.getElementById("table_container");
+            $(table_container).empty();
+            
+            for (var i in selected_groups){
+                console.log(i);
+                var table_row = document.createElement("div");
+                table_row.setAttribute("class", "row");
+                $(table_row).appendTo(table_container);
+                var table_header = document.createElement("h1");
+                table_header.innerHTML = i.split("__")[0]+": "+i.split("__")[1];
+                $(table_header).appendTo(table_row);
                 
-                $model.n_nearest_connect=12;
+                var table_div = document.createElement("div");
+                table_div.setAttribute("style", "overflow-x:scroll; overflow-y:scroll; max-height:400px");
+                $(table_div).appendTo(table_row);
+                table_div.innerHTML="<table class=\"table table-bordered\" id=\""+i+"_table\"></table>";
                 
-                for (var i=0;i<$model.patients.length;i++){
-                    
-                    if ($model.patients[i].clinical["tumor type"]=="3"){
-                        $visualization.dots[i].material.color = new THREE.Color( 0xFF3300);
-                    }
-                    else if ($model.patients[i].clinical["tumor type"]=="2"){
-                        $visualization.dots[i].material.color = new THREE.Color( 0x00FF00);
-                    }
-                    else if ($model.patients[i].clinical["tumor type"]=="1"){
-                        $visualization.dots[i].material.color = new THREE.Color( 0x6699FF);
-                    }
-                    
+                var html_string="<thead><tr>";
+                
+                for (var k in $patients[0].clinical){
+                    html_string+="<th class=\"text-center\">"+k+"</th>";
                 }
                 
-                tables_row = document.getElementById("tables");
-                table_column = document.createElement('div');
-                table_column.setAttribute('class',"col-md-4");
-                table_column.setAttribute("id","group1");
-                $(table_column).appendTo(tables_row);
-                table_column = document.createElement('div');
-                table_column.setAttribute('class',"col-md-4");
-                table_column.setAttribute("id","group2");
-                $(table_column).appendTo(tables_row);
-                table_column = document.createElement('div');
-                table_column.setAttribute('class',"col-md-4");
-                table_column.setAttribute("id","group3");
-                $(table_column).appendTo(tables_row);
+                html_string+="</tr></thead><tbody id=\""+i+"_table_body\"><tr id=\""+i+"_table_row_1\"></tr></tbody>";
                 
-                $("#group1").css("background-color", "#6699FF");
-                $("#group1").html("<h1>Tumor Type 1</h1><table class=\"table table-bordered\" id=\"table1\"></table>");
+                $("#"+i+"_table").html(html_string);
                 
-                $("#group2").css("background-color", "#00FF00");
-                $("#group2").html("<h1>Tumor Type 2</h1><table class=\"table table-bordered\" id=\"table2\"></table>");
-                
-                $("#group3").css("background-color", "#FF3300");
-                $("#group3").html("<h1>Tumor Type 3</h1><table class=\"table table-bordered\" id=\"table3\"></table>");
-                
-                for (var i=1;i<4;i++){
-                        
-                    var html_string="<thead><tr>";
-                        
-                    for (var k in $model.patients[0].clinical){
-                        html_string+="<th class=\"text-center\">"+k+"</th>";
+                for (var k=0;k<selected_groups[i].length;k++){
+                    html_string="";
+                    for (var x in $patients[k].clinical){
+                        html_string+="<td>"+$patients[k].clinical[x]+"</td>";
                     }
-                    
-                    html_string+="</tr></thead><tbody id=\"group"+i+"_body\"><tr id=\"group"+i+"_row_1\"></tr></tbody>";
-                    $("#table"+i).html(html_string);
-                        
+                    var number_rows = document.getElementById(i+"_table").rows.length;
+                    $("#"+i+"_table_row_"+(number_rows-1)).html(html_string);
+                    $("#"+i+"_table_body").append("<tr id=\""+i+"_table_row_"+(number_rows+1)+"\"></tr>");
                 }
                 
-                for (var i=0;i<$model.patients.length;i++){
-                        if ($model.patients[i].clinical["tumor type"]=="3"){
-                            html_string="";
-                            for (var k in $model.patients[i].clinical){
-                                html_string+="<td>"+$model.patients[i].clinical[k]+"</td>";
-                            }
-                            var number_rows = document.getElementById("table3").rows.length;
-                            
-                            
-                            $("#group3_row_"+(number_rows-1)).html(html_string);
-                            $("#group3_body").append("<tr id=\"group3_row_"+(number_rows+1)+"\"></tr>");
-                        }
-                        else if($model.patients[i].clinical["tumor type"]=="2"){
-                            html_string="";
-                            for (var k in $model.patients[i].clinical){
-                                html_string+="<td>"+$model.patients[i].clinical[k]+"</td>";
-                            }
-                            var number_rows = document.getElementById("table2").rows.length;
-                            
-                            
-                            $("#group2_row_"+(number_rows-1)).html(html_string);
-                            $("#group2_body").append("<tr id=\"group2_row_"+(number_rows+1)+"\"></tr>");
-                        }
-                        else if($model.patients[i].clinical["tumor type"]=="1"){
-                            html_string="";
-                            for (var k in $model.patients[i].clinical){
-                                html_string+="<td>"+$model.patients[i].clinical[k]+"</td>";
-                            }
-                            var number_rows = document.getElementById("table1").rows.length;
-                            
-                           
-                            $("#group1_row_"+(number_rows-1)).html(html_string);
-                            $("#group1_body").append("<tr id=\"group1_row_"+(number_rows+1)+"\"></tr>");
-                            //console.log(i+": lifelong non");
-                        }
-                        else{
-                            //console.log(i+": "+data[i].clinical["tobacco_smoking_history_indicator"]);
-                        }
-                    }
-                    
-                this.merge_data = function(data){
-                    
-                        merged_data = [];
-                    
-                        for (var i=0;i<data.proteins.length;i++){
-                            for (var k=0;k<data.proteins[i].groups.length;k++){
-                                for (var x=0;x<data.proteins[i].groups[k].values.length;x++){
-                                    point = [i-0.22+k*0.16,data.proteins[i].groups[k].values[x],k];
-                                    merged_data.push(point);
-                                }
-                            }
-                        }
-                        return merged_data;
-                    }
-                    
-                this.find_min_max = function(data){
-                    
-                        var min=Number.POSITIVE_INFINITY;
-                        var max=Number.NEGATIVE_INFINITY;
-                    
-                        for (var i=0;i<data.proteins.length;i++){
-                            for (var k=0;k<data.proteins[i].groups.length;k++){
-                                for (var x=0;x<data.proteins[i].groups[k].values.length;x++){
-                                    if (parseFloat(data.proteins[i].groups[k].values[x])<min){
-                                        min=parseFloat(data.proteins[i].groups[k].values[x]);
-                                    }
-                                    if(parseFloat(data.proteins[i].groups[k].values[x])>max){
-                                        max=parseFloat(data.proteins[i].groups[k].values[x]);
-                                    }
-                                }
-                            }
-                        }
-                    
-                        return([min,max]);
-                    }
-                    
-                this.preprocess_data = function(data){
-                    
-                    var proteins = [];
-                    for (var i=0;i<data[0].RPPA.length;i++){
-                        proteins.push({"name":data[0].RPPA[i].ID, "groups":[{"values":[]},{"values":[]},{"values":[]}]});
-                    }
-                    
-                    for (var i=0;i<data.length;i++){
-                        for (var k=0;k<data[i].RPPA.length;k++){
-                            if (proteins[k].name==data[i].RPPA[k].ID){
-                                if ($model.patients[i].clinical["tumor type"]=="3"){
-                                        proteins[k].groups[2].values.push(data[i].RPPA[k].value);
-                                    }
-                                    else if($model.patients[i].clinical["tumor type"]=="2"){
-                                        proteins[k].groups[1].values.push(data[i].RPPA[k].value);
-                                    }
-                                    else if($model.patients[i].clinical["tumor type"]=="1"){
-                                        proteins[k].groups[0].values.push(data[i].RPPA[k].value);
-                                    }
-                                }
-                                else{
-                                    console.log("error");
-                                }
-                            }
-                    }
-                        
-                    preprocessed_data = {"proteins":proteins};
-                    return(preprocessed_data);
-                }
-                    
-                test_data = this.preprocess_data($model.patients);
-                    
-                min_max=this.find_min_max(test_data);
-                    
-                merged_data = this.merge_data(test_data);
-                    
-                var number_proteins = test_data.proteins.length;
-                    
+                //table_row.innerHTML="<table class=\"table table-bordered\" id=\""+i+"_table\"></table>";
+                
+            }
+        }
+        
+        function draw_rppa_distribution(){
+            
+            var myWorker = new Worker('rppa_data_preprocessor.js');
+            
+            function draw_d3_plot(points, min, max){
+                
+                $("#rppa_distribution").empty();
+                
                 var w=50000;
                 var h=1000;
-                    
+                
+                var number_proteins = $patients[0].RPPA.length;
+                
                 var xScale = d3.scale.linear()
                                 .domain([-1, number_proteins+1])
                                 .range([10, w]);
                             
                 var yScale = d3.scale.linear()
-                                .domain([min_max[0], 4000])
+                                .domain([min, max])
                                 .range([h, 0]);
-                            
-                var N = number_proteins; 
-                ticks=Array.apply(null, {length: N}).map(Number.call, Number)      
+                        
+                        
+                var N = number_proteins;
+                ticks=Array.apply(null, {length: N}).map(Number.call, Number)
+                        
                 var xAxis = d3.svg.axis()
                                 .scale(xScale)
                                 .tickValues(ticks)
-                                .tickFormat(function(d){return test_data.proteins[d].name})
-                                .ticks(number_proteins)
-                                .orient("bottom");
-                var yAxis = d3.svg.axis()
-                                .scale(yScale)
-                                .orient("left")
-                                .ticks(20);
-                    
-                var svg = d3.select("#rppa_distribution").append("svg").attr("width",w).attr("height",h);
-                    
-                svg.selectAll("circle")
-			.data(merged_data)
-			.enter()
-			.append("circle")
-			.attr("cx", function(d) {
-			   		return xScale(d[0]);
-			})
-			.attr("cy", function(d) {
-			   		return yScale(d[1]);
-			})
-			.attr("r", function(d) {
-			   		return 5;
-			   })
-                        .style("fill", function(d){
-                            if (d[2]==0){
-                                   return "#6699FF";
-                               }
-                               else if (d[2]==1){
-                                   return "#00FF00";
-                               }
-                               else if (d[2]==2){
-                                   return "#CC6699";
-                               }
-                               else{
-                                   return "#FF3300";
-                               }
-                               
-                           });
-                    
-                svg.append("g")
-                        .attr("class", "axis")
-                        .attr("transform", "translate(0," + (500) + ")")
-                        .call(xAxis);
-                svg.append("g")
-                        .attr("class", "axis")
-                        .attr("transform", "translate(" + 50 + ",0)")
-                        .call(yAxis);
-                             
-                
-               
-                
-            }
-            
-            function rppa_weight_changed(slider, initial_set_to_1){
-                
-                    if (!initial_set_to_1){
-                        var rppa_parameter = slider.id.substring(0,slider.id.length-7);
-                        this.selected_parameters.push(rppa_parameter);
-                        if (this.selected_parameters.length==1){
-                            history.pushState(this.selected_parameters, document.title, '?'+"rppa_"+rppa_parameter+'='+slider.value);
-                        }
-                        else{
-                            history.pushState(this.selected_parameters, document.title, document.URL+'&'+"rppa_"+rppa_parameter+'='+slider.value);
-                        }
-                    }
-                    
-                    console.log(slider.id+": "+slider.value+"; ");
-                    var parameter = slider.id.substring(0,slider.id.length-7)
-                    for (var i=0;i<$model.n_features;i++){
-                        if ($model.patients[0].RPPA[i].ID==slider.id.substring(0,slider.id.length-7))
-                            $model.protein_weights[i] = slider.value;
-                    }
-                    $model.recompute();
-                }
-            
-            $selected_rppas = [];
-            function rppa_checkbox_clicked(checkbox){
-                
-                if (checkbox.checked==true){
-                    var checkbox_id = checkbox.id.substring(0, checkbox.id.length-9);
-                    this.selected_parameters.push(checkbox_id);
-                    assemble_history_url2();
-                
-                    var rppa_id = checkbox.id.substring(0,checkbox.id.length-9);
-                    var slider_id = rppa_id+"_slider";
-                    slider = document.getElementById(slider_id);
-                    slider.value=1;
-                    rppa_weight_changed(slider,1);
-                    
-                    $selected_rppas.push(checkbox.id.substring(0,checkbox.id.length-9));
-                }
-                else{
-                    var checkbox_id = checkbox.id.substring(0, checkbox.id.length-9);
-                    
-                    var index = this.selected_parameters.indexOf(checkbox_id);
-                    console.log(index);
-                    this.selected_parameters.splice(index, 1);
-                    assemble_history_url2();
-                    
-                    var rppa_id = checkbox.id.substring(0,checkbox.id.length-9);
-                    var slider_id = rppa_id+"_slider";
-                    slider = document.getElementById(slider_id);
-                    slider.value=0;
-                    rppa_weight_changed(slider,1);
-                }
-                
-            }
-            
-            function add_new_patient_rppa_distribution(selected_groups){
-                
-                function preprocess_data(data){
-                    var proteins = [];
-                    for (var i=0;i<data[0].RPPA.length;i++){
-                        proteins.push({"name":data[0].RPPA[i].ID, "groups":[]});
-                        for (var k=0;k<this.selected_groups.length;k++){
-                            proteins[i].groups.push({"values":[]});
-                        }
-                    }
-                    
-                    for (var g=0;g<this.selected_groups.length;g++){
-                        var parameter = this.selected_groups[g].substring(0,this.selected_groups[g].indexOf("__"));
-                        var group = this.selected_groups[g].substring(this.selected_groups[g].indexOf("__")+2,this.selected_groups[g].length-9);
-                        //console.log(parameter+": "+group);
-                        for (var i=0;i<data.length;i++){
-                            if (data[i].clinical[parameter]==group){
-                                for (var k=0;k<data[0].RPPA.length;k++){
-                                    proteins[k].groups[g].values.push(data[i].RPPA[k].value);
-                                }
-                            }
-                        }
-                    }
-                    
-                    preprocessed_data = {"proteins":proteins};
-                    return(preprocessed_data);
-                }
-                
-                this.merge_data = function(data){
-                    
-                        merged_data = [];
-                    
-                        for (var i=0;i<data.proteins.length;i++){
-                            for (var k=0;k<data.proteins[i].groups.length;k++){
-                                for (var x=0;x<data.proteins[i].groups[k].values.length;x++){
-                                    point = [i-0.22+k*0.16,data.proteins[i].groups[k].values[x],k];
-                                    merged_data.push(point);
-                                }
-                            }
-                        }
-                        return merged_data;
-                    }
-                    
-                this.find_min_max = function(data){
-                    
-                        var min=Number.POSITIVE_INFINITY;
-                        var max=Number.NEGATIVE_INFINITY;
-                    
-                        for (var i=0;i<data.proteins.length;i++){
-                            for (var k=0;k<data.proteins[i].groups.length;k++){
-                                for (var x=0;x<data.proteins[i].groups[k].values.length;x++){
-                                    if (parseFloat(data.proteins[i].groups[k].values[x])<min){
-                                        min=parseFloat(data.proteins[i].groups[k].values[x]);
-                                    }
-                                    if(parseFloat(data.proteins[i].groups[k].values[x])>max){
-                                        max=parseFloat(data.proteins[i].groups[k].values[x]);
-                                    }
-                                }
-                            }
-                        }
-                    
-                        return([min,max]);
-                    }
-                
-                $("#rppa_distribution").html("");
-                if (this.number_selected_groups>0){
-                
-                test_data = preprocess_data($model.patients);
-                    
-                min_max=this.find_min_max(test_data);
-                    
-                merged_data = this.merge_data(test_data);
-                
-                var number_proteins = test_data.proteins.length;
-                    
-                var w=50000;
-                var h=1000;
-                    
-                var xScale = d3.scale.linear()
-                                .domain([-1, number_proteins+1])
-                                .range([10, w]);
-                            
-                var yScale = d3.scale.linear()
-                                .domain([min_max[0], min_max[1]])
-                                .range([h, 0]);
-                            
-                var N = number_proteins; 
-                ticks=Array.apply(null, {length: N}).map(Number.call, Number)      
-                var xAxis = d3.svg.axis()
-                                .scale(xScale)
-                                .tickValues(ticks)
-                                .tickFormat(function(d){return test_data.proteins[d].name})
-                                .ticks(number_proteins)
-                                .orient("bottom");
-                var yAxis = d3.svg.axis()
-                                .scale(yScale)
-                                .orient("left")
-                                .ticks(20);
-                        
-                    
-                var svg = d3.select("#rppa_distribution").append("svg").attr("width",w).attr("height",h);
-                 
-                colors = {1:"#6699FF", 2: "#00FF00", 3:"#CC6699", 4:"#FF3300", 5:"#66FFFF", 6:"#99FF99", 7:"#99FF99" };    
-                    
-                svg.selectAll("circle")
-			.data(merged_data)
-			.enter()
-			.append("circle")
-			.attr("cx", function(d) {
-			   		return xScale(d[0]);
-			})
-			.attr("cy", function(d) {
-			   		return yScale(d[1]);
-			})
-			.attr("r", function(d) {
-			   		return 5;
-			   })
-                        .style("fill", function(d){
-                                   return colors[d[2]+1];
-                           });
-                    
-                svg.append("g")
-                        .attr("class", "axis")
-                        .attr("transform", "translate(0," + (500) + ")")
-                        .call(xAxis);
-                svg.append("g")
-                        .attr("class", "axis")
-                        .attr("transform", "translate(" + 50 + ",0)")
-                        .call(yAxis);
-                
-                }
-                
-            }
-            
-            function add_new_patient_table(){
-                
-                colors = {1:"#6699FF", 2: "#00FF00", 3:"#CC6699", 4:"#FF3300", 5:"#66FFFF", 6:"#99FF99", 7:"#FFFFCC", 8:"#9999FF", 9:"#FF9900", 10:"#0099CC" };
-                colors2 = {0: 0x000000, 1:0x6699FF, 2: 0x00FF00, 3:0xCC6699, 4:0xFF3300, 5:0x66FFFF, 6:0x99FF99, 7:0xFFFFCC, 8:0x9999FF, 9:0xFF9900, 10:0x0099CC};
-                
-                for (var k=0;k<$model.patients.length;k++){
-                        if ($model.patients[k].clinical[parameter]==group){
-                            $visualization.dots[k].material.color = new THREE.Color(colors2[0]);
-                        }
-                }
-                
-                for (var i=0; i<this.selected_groups.length;i++){
-                    var parameter = this.selected_groups[i].substring(0,this.selected_groups[i].indexOf("__"));
-                    var group = this.selected_groups[i].substring(this.selected_groups[i].indexOf("__")+2,this.selected_groups[i].length-9);
-                    for (var k=0;k<$model.patients.length;k++){
-                        if ($model.patients[k].clinical[parameter]==group){
-                            $visualization.dots[k].material.color = new THREE.Color(colors2[i+1]);
-                        }
-                    }
-                }
-                
-                //console.log(this.number_tables+" groups selected");
-                document.getElementById("tables").innerHTML="";
-                var column_size = 0;
-                if (this.number_tables==1){
-                    column_size=12;
-                }
-                else if (this.number_tables==2){
-                    column_size=6;
-                }
-                else if (this.number_tables==3){
-                    column_size=4;
-                }
-                else if (this.number_tables==4){
-                    column_size=3;
-                }
-                else if (this.number_tables>6){
-                   column_size=1;
-                }
-                else{
-                   column_size=2;
-                }
-                
-                
-                for (var i=0; i<this.selected_groups.length;i++){
-                    
-                    var parameter = this.selected_groups[i].substring(0,this.selected_groups[i].indexOf("__"));
-                    var group = this.selected_groups[i].substring(this.selected_groups[i].indexOf("__")+2,this.selected_groups[i].length-9);
-                    
-                    tables_row = document.getElementById("tables");
-                    table_column = document.createElement('div');
-                    table_column.setAttribute('class',"col-md-"+column_size);
-                    table_column.setAttribute("id","group"+(i+1));
-                    table_column.setAttribute("style", "overflow-x:scroll; overflow-y:scroll; height:420px");
-                    if (column_size==2){
-                        var new_width = ($("#tables").innerWidth()-20)/this.number_tables;
-                        console.log(new_width);
-                        table_column.setAttribute("style", "overflow-x:scroll; overflow-y:scroll; height:420px; width:"+new_width+"px");
-                    }
-                    if (column_size==1){
-                        var new_width = $("#tables").innerWidth();
-                        console.log(new_width);
-                        table_column.setAttribute("style", "overflow-x:scroll; overflow-y:scroll; height:420px; width:"+new_width+"px");
-                    }
-                    $(table_column).appendTo(tables_row);
-                    
-                    $("#group"+(i+1)).css("background-color", colors[i+1]);
-                    
-                    table_header = document.createElement("h1");
-                    table_header.innerHTML=parameter+": "+group;
-                    $(table_header).appendTo(table_column);
-                    
-                    table_container = document.createElement('div');
-                    table_container.setAttribute("id","group"+(i+1)+"_table");
-                    table_container.setAttribute("style", "overflow-x:scroll; overflow-y:scroll; max-height:400px");
-                    $(table_container).appendTo(table_column);
-                    
-                    $("#group"+(i+1)+"_table").html("<table class=\"table table-bordered\" id=\"table"+(i+1)+"\"></table>");
-                    
-                    var html_string="<thead><tr>";
-                        
-                    for (var k in $model.patients[0].clinical){
-                        html_string+="<th class=\"text-center\">"+k+"</th>";
-                    }
-                    
-                    html_string+="</tr></thead><tbody id=\"group"+(i+1)+"_body\"><tr id=\"group"+(i+1)+"_row_1\"></tr></tbody>";
-                        
-                    $("#table"+(i+1)).html(html_string);
-                    
-                    for (var k=0; k<$model.patients.length;k++){
-                        if ($model.patients[k].clinical[parameter]==group)
-                        {
-                            html_string="";
-                            for (var x in $model.patients[k].clinical){
-                                html_string+="<td>"+$model.patients[k].clinical[x]+"</td>";
-                            }
-                            var number_rows = document.getElementById("table"+(i+1)).rows.length;
-                            
-                            $("#group"+(i+1)+"_row_"+(number_rows-1)).html(html_string);
-                            $("#group"+(i+1)+"_body").append("<tr id=\"group"+(i+1)+"_row_"+(number_rows+1)+"\"></tr>");
-                        }
-                    }
-                    
-                    //console.log(parameter+": "+group);
-                }
-                
-                add_new_patient_rppa_distribution(this.selected_groups);
-                
-                
-            }
-            
-            function assemble_history_url(){
-                
-                history.replaceState(this.selected_parameters, document.title, '');
-                
-                history.pushState(this.selected_parameters, document.title, '?dataset='+$dataset);
-                
-                for (var i=1;i<this.selected_parameters.length;i++){
-//                    console.log(this.selected_parameters[i]);
-                    if (this.selected_parameters[i].indexOf("__")>-1){
-//                        console.log("clinical: "+this.selected_parameters[i]);
-                        var parameter = this.selected_parameters[i].substring(0,this.selected_parameters[i].indexOf("__"));
-                        var group = this.selected_parameters[i].substring(this.selected_parameters[i].indexOf("__")+2,this.selected_parameters[i].length);
-                        history.pushState(this.selected_parameters, document.title, document.URL+'&'+"clinical_"+parameter+'=' + group);
-                    }
-                    else{
-                        console.log("rppa: "+this.selected_parameters[i]);
-                        history.pushState(this.selected_parameters, document.title, document.URL+'&'+"rppa_"+this.selected_parameters[i]+"=1.0"); 
-                    }
-                }
-                
-//                for (var i=0;i<this.selected_groups.length;i++){
-//                    
-//                    console.log(selected_groups[i]);
-//                    var parameter = this.selected_groups[i].substring(0,this.selected_groups[i].indexOf("__"));
-//                    var group = this.selected_groups[i].substring(this.selected_groups[i].indexOf("__")+2,this.selected_groups[i].length-9);
-//                    history.pushState(this.selected_parameters, document.title, document.URL+'&'+"clinical_"+parameter+'=' + group);
-//                    
-//                }
-//                for (var i=0;i<this.selected_parameters.length;i++){
-//                    
-//                }
-            }
-            
-            function assemble_history_url2(){
-                
-                history.replaceState(this.selected_parameters, document.title, '');
-                
-                history.pushState(this.selected_parameters, document.title, '?dataset='+$dataset);
-                
-                for (var i=1;i<this.selected_parameters.length;i++){
-                    if (this.selected_parameters[i].indexOf("__")>-1){
-                        var parameter = this.selected_parameters[i].substring(0,this.selected_parameters[i].indexOf("__"));
-                        var group = this.selected_parameters[i].substring(this.selected_parameters[i].indexOf("__")+2,this.selected_parameters[i].length-9);
-                        history.pushState(this.selected_parameters, document.title, document.URL+'&'+"clinical_"+parameter+'=' + group);
-                    }
-                    else{
-                        console.log("rppa: "+this.selected_parameters[i]);
-                        history.pushState(this.selected_parameters, document.title, document.URL+'&'+"rppa_"+this.selected_parameters[i]+"=1.0"); 
-                    }
-                }
-                
-                
-            }
-            
-            this.number_tables=0;
-            this.selected_groups=[];
-            this.selected_parameters = [];
-            function clinical_checkbox_clicked(checkbox){
-                
-                
-                function userstory_create_smoking_status_plots(){
-                    
-                    for (var i=0;i<$model.patients.length;i++){
-                        
-                        if ($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current reformed smoker for < or = 15 years"){
-                            $visualization.dots[i].material.color = new THREE.Color( 0x6699FF);
-                        }
-                        else if($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current reformed smoker for > 15 years" || $model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current Reformed Smoker, Duration Not Specified"){
-                            $visualization.dots[i].material.color = new THREE.Color( 0x00FF00);
-                        }
-                        else if($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Lifelong Non-smoker"){
-                            $visualization.dots[i].material.color = new THREE.Color( 0xCC6699);
-                        }
-                        else if($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current smoker"){
-                            $visualization.dots[i].material.color = new THREE.Color( 0xFF3300);
-                        }
-                        
-                    }
-                    
-                    tables_row = document.getElementById("tables");
-                    table_column = document.createElement('div');
-                    table_column.setAttribute('class',"col-md-3");
-                    table_column.setAttribute("id","group1");
-                    $(table_column).appendTo(tables_row);
-                    table_column = document.createElement('div');
-                    table_column.setAttribute('class',"col-md-3");
-                    table_column.setAttribute("id","group2");
-                    $(table_column).appendTo(tables_row);
-                    table_column = document.createElement('div');
-                    table_column.setAttribute('class',"col-md-3");
-                    table_column.setAttribute("id","group3");
-                    $(table_column).appendTo(tables_row);
-                    table_column = document.createElement('div');
-                    table_column.setAttribute('class',"col-md-3");
-                    table_column.setAttribute("id","group4");
-                    $(table_column).appendTo(tables_row);
-                    
-                    $("#group1").css("background-color", "#6699FF");
-                    $("#group1").html("<h1>Lifelong Non-smoker</h1><table class=\"table table-bordered\" id=\"table1\"></table>");
-                
-                    $("#group2").css("background-color", "#00FF00");
-                    $("#group2").html("<h1>Current Reformed Smoker for > 15 yrs.</h1><table class=\"table table-bordered\" id=\"table2\"></table>");
-                
-                    $("#group3").css("background-color", "#CC6699");
-                    $("#group3").html("<h1>Current reformed smoker for < or = 15 years</h1><table class=\"table table-bordered\" id=\"table3\"></table>");
-                    
-                    $("#group4").css("background-color", "#FF3300");
-                    $("#group4").html("<h1>Current smoker</h1><table class=\"table table-bordered\" id=\"table4\"></table>");
-                    
-                    for (var i=1;i<5;i++){
-                        
-                        var html_string="<thead><tr>";
-                        
-                        for (var k in $model.patients[0].clinical){
-                            html_string+="<th class=\"text-center\">"+k+"</th>";
-                        }
-                    
-                        html_string+="</tr></thead><tbody id=\"group"+i+"_body\"><tr id=\"group"+i+"_row_1\"></tr></tbody>";
-                        $("#table"+i).html(html_string);
-                        
-                    }
-                    
-                    for (var i=0;i<$model.patients.length;i++){
-                       
-                        if ($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current reformed smoker for < or = 15 years"){
-                            html_string="";
-                            for (var k in $model.patients[i].clinical){
-                                html_string+="<td>"+$model.patients[i].clinical[k]+"</td>";
-                            }
-                            var number_rows = document.getElementById("table3").rows.length;
-                            
-                            
-                            $("#group3_row_"+(number_rows-1)).html(html_string);
-                            $("#group3_body").append("<tr id=\"group3_row_"+(number_rows+1)+"\"></tr>");
-                        }
-                        else if($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current reformed smoker for > 15 years" || $model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current Reformed Smoker, Duration Not Specified"){
-                           
-                            html_string="";
-                            for (var k in $model.patients[i].clinical){
-                                html_string+="<td>"+$model.patients[i].clinical[k]+"</td>";
-                            }
-                            var number_rows = document.getElementById("table2").rows.length;
-                            
-                            
-                            $("#group2_row_"+(number_rows-1)).html(html_string);
-                            $("#group2_body").append("<tr id=\"group2_row_"+(number_rows+1)+"\"></tr>");
-                        }
-                        else if($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Lifelong Non-smoker"){
-                            html_string="";
-                            for (var k in $model.patients[i].clinical){
-                                html_string+="<td>"+$model.patients[i].clinical[k]+"</td>";
-                            }
-                            var number_rows = document.getElementById("table1").rows.length;
-                            
-                           
-                            $("#group1_row_"+(number_rows-1)).html(html_string);
-                            $("#group1_body").append("<tr id=\"group1_row_"+(number_rows+1)+"\"></tr>");
-                            //console.log(i+": lifelong non");
-                        }
-                        else if($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current smoker"){
-                            html_string="";
-                            for (var k in $model.patients[i].clinical){
-                                html_string+="<td>"+$model.patients[i].clinical[k]+"</td>";
-                            }
-                            var number_rows = document.getElementById("table4").rows.length;
-                            
-                           
-                            $("#group4_row_"+(number_rows-1)).html(html_string);
-                            $("#group4_body").append("<tr id=\"group4_row_"+(number_rows+1)+"\"></tr>");
-                        }
-                        else{
-                            //console.log(i+": "+data[i].clinical["tobacco_smoking_history_indicator"]);
-                        }
-                        
-                    }
-                    
-                    this.merge_data = function(data){
-                    
-                        merged_data = [];
-                    
-                        for (var i=0;i<data.proteins.length;i++){
-                            for (var k=0;k<data.proteins[i].groups.length;k++){
-                                for (var x=0;x<data.proteins[i].groups[k].values.length;x++){
-                                    point = [i-0.22+k*0.16,data.proteins[i].groups[k].values[x],k];
-                                    merged_data.push(point);
-                                }
-                            }
-                        }
-                        return merged_data;
-                    }
-                    
-                    this.find_min_max = function(data){
-                    
-                        var min=Number.POSITIVE_INFINITY;
-                        var max=Number.NEGATIVE_INFINITY;
-                    
-                        for (var i=0;i<data.proteins.length;i++){
-                            for (var k=0;k<data.proteins[i].groups.length;k++){
-                                for (var x=0;x<data.proteins[i].groups[k].values.length;x++){
-                                    if (parseFloat(data.proteins[i].groups[k].values[x])<min){
-                                        min=parseFloat(data.proteins[i].groups[k].values[x]);
-                                    }
-                                    if(parseFloat(data.proteins[i].groups[k].values[x])>max){
-                                        max=parseFloat(data.proteins[i].groups[k].values[x]);
-                                    }
-                                }
-                            }
-                        }
-                    
-                        return([min,max]);
-                    }
-                    
-                    this.preprocess_data = function(data){
-                    
-                        var proteins = [];
-                        for (var i=0;i<data[0].RPPA.length;i++){
-                            proteins.push({"name":data[0].RPPA[i].ID, "groups":[{"values":[]},{"values":[]},{"values":[]},{"values":[]}]});
-                        }
-                    
-                        for (var i=0;i<data.length;i++){
-                            for (var k=0;k<data[i].RPPA.length;k++){
-                                if (proteins[k].name==data[i].RPPA[k].ID){
-                                    if ($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current reformed smoker for < or = 15 years"){
-                                        proteins[k].groups[2].values.push(data[i].RPPA[k].value);
-                                    }
-                                    else if($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current reformed smoker for > 15 years" || $model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current Reformed Smoker, Duration Not Specified"){
-                                        proteins[k].groups[1].values.push(data[i].RPPA[k].value);
-                                    }
-                                    else if($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Lifelong Non-smoker"){
-                                        proteins[k].groups[0].values.push(data[i].RPPA[k].value);
-                                    }
-                                    else if ($model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current smoker"){
-                                        proteins[k].groups[3].values.push(data[i].RPPA[k].value);
-                                    }
-                                }
-                                else{
-                                    console.log("error");
-                                }
-                            }
-                        }
-                        
-                        preprocessed_data = {"proteins":proteins};
-                        return(preprocessed_data);
-                    }
-                    
-                    test_data = this.preprocess_data($model.patients);
-                    
-                    min_max=this.find_min_max(test_data);
-                    
-                    merged_data = this.merge_data(test_data);
-                    
-                    var number_proteins = test_data.proteins.length;
-                    
-                    var w=50000;
-                    var h=500;
-                    
-                    var xScale = d3.scale.linear()
-                                    .domain([-1, number_proteins+1])
-                                    .range([10, w]);
-                            
-                    var yScale = d3.scale.linear()
-                                    .domain([min_max[0]-1, min_max[1]+1])
-                                    .range([h, 0]);
-                            
-                    var N = number_proteins; 
-                    ticks=Array.apply(null, {length: N}).map(Number.call, Number)      
-                    var xAxis = d3.svg.axis()
-                                    .scale(xScale)
-                                    .tickValues(ticks)
-                                    .tickFormat(function(d){return test_data.proteins[d].name})
-                                    .ticks(number_proteins)
-                                    .orient("bottom");
-                    var yAxis = d3.svg.axis()
-                                    .scale(yScale)
-                                    .orient("left")
-                                    .ticks(5);
-                    
-                    var svg = d3.select("#rppa_distribution").append("svg").attr("width",w).attr("height",h);
-                    
-                    svg.selectAll("circle")
-			   .data(merged_data)
-			   .enter()
-			   .append("circle")
-			   .attr("cx", function(d) {
-			   		return xScale(d[0]);
-			   })
-			   .attr("cy", function(d) {
-			   		return yScale(d[1]);
-			   })
-			   .attr("r", function(d) {
-			   		return 5;
-			   })
-                           .style("fill", function(d){
-                               if (d[2]==0){
-                                   return "#6699FF";
-                               }
-                               else if (d[2]==1){
-                                   return "#00FF00";
-                               }
-                               else if (d[2]==2){
-                                   return "#CC6699";
-                               }
-                               else{
-                                   return "#FF3300";
-                               }
-                               
-                           });
-                    
-                    svg.append("g")
-                        .attr("class", "axis")
-                        .attr("transform", "translate(0," + (380) + ")")
-                        .call(xAxis);
-                    svg.append("g")
-                        .attr("class", "axis")
-                        .attr("transform", "translate(" + 50 + ",0)")
-                        .call(yAxis);
-                    
-                    
-                }
-                
-                //ucec
-                function userstory_create_neoplasm_histologic_grade_plots(){
-                    
-                    for (var i=0;i<$model.patients.length;i++){
-                        
-                        if ($model.patients[i].clinical["neoplasm_histologic_grade"]=="G1"){
-                            $visualization.dots[i].material.color = new THREE.Color( 0x6699FF);
-                        }
-                        else if($model.patients[i].clinical["neoplasm_histologic_grade"]=="G2"){
-                            $visualization.dots[i].material.color = new THREE.Color( 0x00FF00);
-                        }
-                        else if($model.patients[i].clinical["neoplasm_histologic_grade"]=="G3"){
-                            $visualization.dots[i].material.color = new THREE.Color( 0xCC6699);
-                        }
-                        else if($model.patients[i].clinical["neoplasm_histologic_grade"]=="High Grade"){
-                            $visualization.dots[i].material.color = new THREE.Color( 0xFF3300);
-                        }
-                        
-                    }
-                    
-                    tables_row = document.getElementById("tables");
-                    table_column = document.createElement('div');
-                    table_column.setAttribute('class',"col-md-3");
-                    table_column.setAttribute("id","group1");
-                    $(table_column).appendTo(tables_row);
-                    table_column = document.createElement('div');
-                    table_column.setAttribute('class',"col-md-3");
-                    table_column.setAttribute("id","group2");
-                    $(table_column).appendTo(tables_row);
-                    table_column = document.createElement('div');
-                    table_column.setAttribute('class',"col-md-3");
-                    table_column.setAttribute("id","group3");
-                    $(table_column).appendTo(tables_row);
-                    table_column = document.createElement('div');
-                    table_column.setAttribute('class',"col-md-3");
-                    table_column.setAttribute("id","group4");
-                    $(table_column).appendTo(tables_row);
-                    
-                    $("#group1").css("background-color", "#6699FF");
-                    $("#group1").html("<h1>Histologic grade G1</h1><table class=\"table table-bordered\" id=\"table1\"></table>");
-                
-                    $("#group2").css("background-color", "#00FF00");
-                    $("#group2").html("<h1>Histologic grade G2</h1><table class=\"table table-bordered\" id=\"table2\"></table>");
-                
-                    $("#group3").css("background-color", "#CC6699");
-                    $("#group3").html("<h1>Histologic grade G3</h1><table class=\"table table-bordered\" id=\"table3\"></table>");
-                    
-                    $("#group4").css("background-color", "#FF3300");
-                    $("#group4").html("<h1>High grade</h1><table class=\"table table-bordered\" id=\"table4\"></table>");
-                    
-                    for (var i=1;i<5;i++){
-                        
-                        var html_string="<thead><tr>";
-                        
-                        for (var k in $model.patients[0].clinical){
-                            html_string+="<th class=\"text-center\">"+k+"</th>";
-                        }
-                    
-                        html_string+="</tr></thead><tbody id=\"group"+i+"_body\"><tr id=\"group"+i+"_row_1\"></tr></tbody>";
-                        $("#table"+i).html(html_string);
-                        
-                    }
-                    
-                    for (var i=0;i<$model.patients.length;i++){
-                       
-                        if ($model.patients[i].clinical["neoplasm_histologic_grade"]=="G3"){
-                            html_string="";
-                            for (var k in $model.patients[i].clinical){
-                                html_string+="<td>"+$model.patients[i].clinical[k]+"</td>";
-                            }
-                            var number_rows = document.getElementById("table3").rows.length;
-                            
-                            
-                            $("#group3_row_"+(number_rows-1)).html(html_string);
-                            $("#group3_body").append("<tr id=\"group3_row_"+(number_rows+1)+"\"></tr>");
-                        }
-                        else if($model.patients[i].clinical["neoplasm_histologic_grade"]=="G2" || $model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current Reformed Smoker, Duration Not Specified"){
-                           
-                            html_string="";
-                            for (var k in $model.patients[i].clinical){
-                                html_string+="<td>"+$model.patients[i].clinical[k]+"</td>";
-                            }
-                            var number_rows = document.getElementById("table2").rows.length;
-                            
-                            
-                            $("#group2_row_"+(number_rows-1)).html(html_string);
-                            $("#group2_body").append("<tr id=\"group2_row_"+(number_rows+1)+"\"></tr>");
-                        }
-                        else if($model.patients[i].clinical["neoplasm_histologic_grade"]=="G1"){
-                            html_string="";
-                            for (var k in $model.patients[i].clinical){
-                                html_string+="<td>"+$model.patients[i].clinical[k]+"</td>";
-                            }
-                            var number_rows = document.getElementById("table1").rows.length;
-                            
-                           
-                            $("#group1_row_"+(number_rows-1)).html(html_string);
-                            $("#group1_body").append("<tr id=\"group1_row_"+(number_rows+1)+"\"></tr>");
-                            //console.log(i+": lifelong non");
-                        }
-                        else if($model.patients[i].clinical["neoplasm_histologic_grade"]=="High Grade"){
-                            html_string="";
-                            for (var k in $model.patients[i].clinical){
-                                html_string+="<td>"+$model.patients[i].clinical[k]+"</td>";
-                            }
-                            var number_rows = document.getElementById("table4").rows.length;
-                            
-                           
-                            $("#group4_row_"+(number_rows-1)).html(html_string);
-                            $("#group4_body").append("<tr id=\"group4_row_"+(number_rows+1)+"\"></tr>");
-                        }
-                        else{
-                            //console.log(i+": "+data[i].clinical["tobacco_smoking_history_indicator"]);
-                        } 
-                    }
-                    
-                    this.merge_data = function(data){
-                    
-                        merged_data = [];
-                    
-                        for (var i=0;i<data.proteins.length;i++){
-                            for (var k=0;k<data.proteins[i].groups.length;k++){
-                                for (var x=0;x<data.proteins[i].groups[k].values.length;x++){
-                                    point = [i-0.22+k*0.16,data.proteins[i].groups[k].values[x],k];
-                                    merged_data.push(point);
-                                }
-                            }
-                        }
-                        return merged_data;
-                    }
-                    
-                    this.find_min_max = function(data){
-                    
-                        var min=Number.POSITIVE_INFINITY;
-                        var max=Number.NEGATIVE_INFINITY;
-                    
-                        for (var i=0;i<data.proteins.length;i++){
-                            for (var k=0;k<data.proteins[i].groups.length;k++){
-                                for (var x=0;x<data.proteins[i].groups[k].values.length;x++){
-                                    if (parseFloat(data.proteins[i].groups[k].values[x])<min){
-                                        min=parseFloat(data.proteins[i].groups[k].values[x]);
-                                    }
-                                    if(parseFloat(data.proteins[i].groups[k].values[x])>max){
-                                        max=parseFloat(data.proteins[i].groups[k].values[x]);
-                                    }
-                                }
-                            }
-                        }
-                    
-                        return([min,max]);
-                    }
-                    
-                    this.preprocess_data = function(data){
-                    
-                        var proteins = [];
-                        for (var i=0;i<data[0].RPPA.length;i++){
-                            proteins.push({"name":data[0].RPPA[i].ID, "groups":[{"values":[]},{"values":[]},{"values":[]},{"values":[]}]});
-                        }
-                    
-                        for (var i=0;i<data.length;i++){
-                            for (var k=0;k<data[i].RPPA.length;k++){
-                                if (proteins[k].name==data[i].RPPA[k].ID){
-                                    if ($model.patients[i].clinical["neoplasm_histologic_grade"]=="G3"){
-                                        proteins[k].groups[2].values.push(data[i].RPPA[k].value);
-                                    }
-                                    else if($model.patients[i].clinical["neoplasm_histologic_grade"]=="G2"){
-                                        proteins[k].groups[1].values.push(data[i].RPPA[k].value);
-                                    }
-                                    else if($model.patients[i].clinical["neoplasm_histologic_grade"]=="G1"){
-                                        proteins[k].groups[0].values.push(data[i].RPPA[k].value);
-                                    }
-                                    else if ($model.patients[i].clinical["neoplasm_histologic_grade"]=="High Grade"){
-                                        proteins[k].groups[3].values.push(data[i].RPPA[k].value);
-                                    }
-                                }
-                                else{
-                                    console.log("error");
-                                }
-                            }
-                        }
-                        
-                        preprocessed_data = {"proteins":proteins};
-                        return(preprocessed_data);
-                    }
-                    
-                    test_data = this.preprocess_data($model.patients);
-                    
-                    min_max=this.find_min_max(test_data);
-                    
-                    merged_data = this.merge_data(test_data);
-                    
-                    var number_proteins = test_data.proteins.length;
-                    
-                    var w=50000;
-                    var h=500;
-                    
-                    var xScale = d3.scale.linear()
-                                    .domain([-1, number_proteins+1])
-                                    .range([10, w]);
-                            
-                    var yScale = d3.scale.linear()
-                                    .domain([min_max[0]-1, min_max[1]+1])
-                                    .range([h, 0]);
-                            
-                    var N = number_proteins; 
-                    ticks=Array.apply(null, {length: N}).map(Number.call, Number)      
-                    var xAxis = d3.svg.axis()
-                                    .scale(xScale)
-                                    .tickValues(ticks)
-                                    .tickFormat(function(d){return test_data.proteins[d].name})
-                                    .ticks(number_proteins)
-                                    .orient("bottom");
-                    var yAxis = d3.svg.axis()
-                                    .scale(yScale)
-                                    .orient("left")
-                                    .ticks(5);
-                    
-                    var svg = d3.select("#rppa_distribution").append("svg").attr("width",w).attr("height",h);
-                    
-                    svg.selectAll("circle")
-			   .data(merged_data)
-			   .enter()
-			   .append("circle")
-			   .attr("cx", function(d) {
-			   		return xScale(d[0]);
-			   })
-			   .attr("cy", function(d) {
-			   		return yScale(d[1]);
-			   })
-			   .attr("r", function(d) {
-			   		return 5;
-			   })
-                           .style("fill", function(d){
-                               if (d[2]==0){
-                                   return "#6699FF";
-                               }
-                               else if (d[2]==1){
-                                   return "#00FF00";
-                               }
-                               else if (d[2]==2){
-                                   return "#CC6699";
-                               }
-                               else{
-                                   return "#FF3300";
-                               }
-                               
-                           });
-                    
-                    svg.append("g")
-                        .attr("class", "axis")
-                        .attr("transform", "translate(0," + (380) + ")")
-                        .call(xAxis);
-                    svg.append("g")
-                        .attr("class", "axis")
-                        .attr("transform", "translate(" + 50 + ",0)")
-                        .call(yAxis);
-                    
-                }
-                
-                //coad
-                function userstory_create_histologic_diagnosis_plots(){
-                    
-                    for (var i=0;i<$model.patients.length;i++){
-                        if ($model.patients[i].clinical["histologic_diagnosis"]=="Colon Adenocarcinoma"){
-                            $visualization.dots[i].material.color = new THREE.Color(0x6699FF);
-                        }
-                        else if($model.patients[i].clinical["histologic_diagnosis"]=="Colon Mucinous Adenocarcinoma"){
-                            $visualization.dots[i].material.color = new THREE.Color(0xFF3300);
-                        }
-                    }
-                    
-                    tables_row = document.getElementById("tables");
-                    table_column = document.createElement('div');
-                    table_column.setAttribute('class',"col-md-6");
-                    table_column.setAttribute("id","group1");
-                    $(table_column).appendTo(tables_row);
-                    table_column = document.createElement('div');
-                    table_column.setAttribute('class',"col-md-6");
-                    table_column.setAttribute("id","group2");
-                    $(table_column).appendTo(tables_row);
-                    
-                    
-                    $("#group1").css("background-color", "#6699FF");
-                    $("#group1").html("<h1>Colon Adenocarcinoma</h1><table class=\"table table-bordered\" id=\"table1\"></table>");
-                
-                    $("#group2").css("background-color", "#FF3300");
-                    $("#group2").html("<h1>Colon Mucinous Adenocarcinoma</h1><table class=\"table table-bordered\" id=\"table2\"></table>");
-                    
-                    for (var i=1;i<3;i++){
-                        
-                        var html_string="<thead><tr>";
-                        
-                        for (var k in $model.patients[0].clinical){
-                            html_string+="<th class=\"text-center\">"+k+"</th>";
-                        }
-                    
-                        html_string+="</tr></thead><tbody id=\"group"+i+"_body\"><tr id=\"group"+i+"_row_1\"></tr></tbody>";
-                        $("#table"+i).html(html_string);
-                        
-                    }
-                    
-                    for (var i=0;i<$model.patients.length;i++){
-                       
-                        if($model.patients[i].clinical["histologic_diagnosis"]=="Colon Mucinous Adenocarcinoma" || $model.patients[i].clinical["tobacco_smoking_history_indicator"]=="Current Reformed Smoker, Duration Not Specified"){
-                           
-                            html_string="";
-                            for (var k in $model.patients[i].clinical){
-                                html_string+="<td>"+$model.patients[i].clinical[k]+"</td>";
-                            }
-                            var number_rows = document.getElementById("table2").rows.length;
-                            
-                            
-                            $("#group2_row_"+(number_rows-1)).html(html_string);
-                            $("#group2_body").append("<tr id=\"group2_row_"+(number_rows+1)+"\"></tr>");
-                        }
-                        else if($model.patients[i].clinical["histologic_diagnosis"]=="Colon Adenocarcinoma"){
-                            html_string="";
-                            for (var k in $model.patients[i].clinical){
-                                html_string+="<td>"+$model.patients[i].clinical[k]+"</td>";
-                            }
-                            var number_rows = document.getElementById("table1").rows.length;
-                            
-                           
-                            $("#group1_row_"+(number_rows-1)).html(html_string);
-                            $("#group1_body").append("<tr id=\"group1_row_"+(number_rows+1)+"\"></tr>");
-                            //console.log(i+": lifelong non");
-                        }
-                        else{
-                            //console.log(i+": "+data[i].clinical["tobacco_smoking_history_indicator"]);
-                        } 
-                    }
-                    
-                    this.merge_data = function(data){
-                    
-                        merged_data = [];
-                    
-                        for (var i=0;i<data.proteins.length;i++){
-                            for (var k=0;k<data.proteins[i].groups.length;k++){
-                                for (var x=0;x<data.proteins[i].groups[k].values.length;x++){
-                                    point = [i-0.22+k*0.16,data.proteins[i].groups[k].values[x],k];
-                                    merged_data.push(point);
-                                }
-                            }
-                        }
-                        return merged_data;
-                    }
-                    
-                    this.find_min_max = function(data){
-                    
-                        var min=Number.POSITIVE_INFINITY;
-                        var max=Number.NEGATIVE_INFINITY;
-                    
-                        for (var i=0;i<data.proteins.length;i++){
-                            for (var k=0;k<data.proteins[i].groups.length;k++){
-                                for (var x=0;x<data.proteins[i].groups[k].values.length;x++){
-                                    if (parseFloat(data.proteins[i].groups[k].values[x])<min){
-                                        min=parseFloat(data.proteins[i].groups[k].values[x]);
-                                    }
-                                    if(parseFloat(data.proteins[i].groups[k].values[x])>max){
-                                        max=parseFloat(data.proteins[i].groups[k].values[x]);
-                                    }
-                                }
-                            }
-                        }
-                    
-                        return([min,max]);
-                    }
-                    
-                    this.preprocess_data = function(data){
-                    
-                        var proteins = [];
-                        for (var i=0;i<data[0].RPPA.length;i++){
-                            proteins.push({"name":data[0].RPPA[i].ID, "groups":[{"values":[]},{"values":[]}]});
-                        }
-                    
-                        for (var i=0;i<data.length;i++){
-                            for (var k=0;k<data[i].RPPA.length;k++){
-                                if (proteins[k].name==data[i].RPPA[k].ID){
-                                    if ($model.patients[i].clinical["histologic_diagnosis"]=="Colon Adenocarcinoma"){
-                                        proteins[k].groups[0].values.push(data[i].RPPA[k].value);
-                                    }
-                                    else if($model.patients[i].clinical["histologic_diagnosis"]=="Colon Mucinous Adenocarcinoma"){
-                                        proteins[k].groups[1].values.push(data[i].RPPA[k].value);
-                                    }
-                                }
-                                else{
-                                    console.log("error");
-                                }
-                            }
-                        }
-                        
-                        preprocessed_data = {"proteins":proteins};
-                        return(preprocessed_data);
-                    }
-                    
-                    test_data = this.preprocess_data($model.patients);
-                    
-                    min_max=this.find_min_max(test_data);
-                    
-                    merged_data = this.merge_data(test_data);
-                    
-                    var number_proteins = test_data.proteins.length;
-                    
-                    var w=50000;
-                    var h=500;
-                    
-                    var xScale = d3.scale.linear()
-                                    .domain([-1, number_proteins+1])
-                                    .range([10, w]);
-                            
-                    var yScale = d3.scale.linear()
-                                    .domain([min_max[0]-1, min_max[1]+1])
-                                    .range([h, 0]);
-                            
-                    var N = number_proteins; 
-                    ticks=Array.apply(null, {length: N}).map(Number.call, Number)      
-                    var xAxis = d3.svg.axis()
-                                    .scale(xScale)
-                                    .tickValues(ticks)
-                                    .tickFormat(function(d){return test_data.proteins[d].name})
-                                    .ticks(number_proteins)
-                                    .orient("bottom");
-                    var yAxis = d3.svg.axis()
-                                    .scale(yScale)
-                                    .orient("left")
-                                    .ticks(5);
-                    
-                    var svg = d3.select("#rppa_distribution").append("svg").attr("width",w).attr("height",h);
-                    
-                    svg.selectAll("circle")
-			   .data(merged_data)
-			   .enter()
-			   .append("circle")
-			   .attr("cx", function(d) {
-			   		return xScale(d[0]);
-			   })
-			   .attr("cy", function(d) {
-			   		return yScale(d[1]);
-			   })
-			   .attr("r", function(d) {
-			   		return 5;
-			   })
-                           .style("fill", function(d){
-                               if (d[2]==0){
-                                   return "#6699FF";
-                               }
-                               else if (d[2]==1){
-                                   return "#FF3300";
-                               }
-                               
-                           });
-                    
-                    svg.append("g")
-                        .attr("class", "axis")
-                        .attr("transform", "translate(0," + (380) + ")")
-                        .call(xAxis);
-                    svg.append("g")
-                        .attr("class", "axis")
-                        .attr("transform", "translate(" + 50 + ",0)")
-                        .call(yAxis);
-                }
-                
-                function list_parameter_domain(parameter){
-                    
-                    console.log(parameter);
-                    var domain = {};
-                    for (var i=0;i<$model.patients.length;i++){
-                        if ($model.patients[i].clinical[parameter] in domain){
-                            domain[$model.patients[i].clinical[parameter]]=domain[$model.patients[i].clinical[parameter]]+1;
-                        }
-                        else{
-                            domain[$model.patients[i].clinical[parameter]]=1;
-                        }
-                    }
-                    console.log(domain);
-                    
-                    var string = "";
-                    for (var i in domain){
-                        console.log(i+": "+domain[i]);
-                        
-                    }
-                    console.log(i+"_selector");
-                }
-                
-                //list_parameter_domain(checkbox.id.substring(0, checkbox.id.length-9));
-                
-                
-                if ($dataset=="brca2" && checkbox.id=="tumor type_checkbox"){
-                    userstory_2_create_plots();
-                }
-                
-                if (checkbox.id=="tobacco_smoking_history_indicator_checkbox"){
-                    userstory_create_smoking_status_plots();
-                }
-                
-                if (checkbox.id=="neoplasm_histologic_grade_checkbox"){
-                    userstory_create_neoplasm_histologic_grade_plots();
-                }
-                
-                if (checkbox.id=="histologic_diagnosis_checkbox"){
-                    userstory_create_histologic_diagnosis_plots();
-                }
-                
-                else{
-                    if (checkbox.checked==true){
-                        this.number_tables++;
-                        var checkbox_id = checkbox.id.substring(0, checkbox.id.length-9);
-                        this.selected_parameters.push(checkbox_id);
-                        
-                        console.log(this.selected_parameters);
-                        //var parameter = checkbox_id.substring(0,checkbox_id.indexOf("__"));
-                        //var group = checkbox_id.substring(checkbox_id.indexOf("__")+2,checkbox_id.length);
-                        //history.pushState(this.selected_parameters, document.title, document.URL+'&'+"clinical_"+parameter+'=' + group);
-                        
-                        this.selected_groups.push(checkbox.id);
-                        assemble_history_url();
-                        add_new_patient_table();
-                    }
-                    else{
-                        this.number_tables--;
-                        console.log("checkbox unselected");
-                        var index = this.selected_groups.indexOf(checkbox.id);
-                        console.log(index);
-                        this.selected_groups.splice(index, 1);
-                        
-                        var checkbox_id = checkbox.id.substring(0, checkbox.id.length-9);
-                        var index = this.selected_parameters.indexOf(checkbox_id);
-                        console.log(index);
-                        this.selected_parameters.splice(index, 1);
-                        
-                        assemble_history_url();
-                        add_new_patient_table();
-                        add_new_patient_rppa_distribution(this.selected_groups);
-                    }
-                    //console.log(checkbox.id+": "+this.number_tables);
-                }
-                
-            }
-            
-            function add_RPPA_list(){
-                
-                function list_parameter_domain(parameter){
-                    
-                    var domain = {};
-                    var counter=0;
-                    for (var i=0;i<$model.patients.length;i++){
-                        if ($model.patients[i].clinical[parameter] in domain){
-                            domain[$model.patients[i].clinical[parameter]]=domain[$model.patients[i].clinical[parameter]]+1;
-                        }
-                        else{
-                            domain[$model.patients[i].clinical[parameter]]=1;
-                            counter++;
-                        }
-                    }
-                    var string = "";
-                    for (var i in domain){
-                        //console.log(i+": "+domain[i]);
-                        string = string+i+": "+domain[i]+" ";
-                    }
-                    
-                    return ({"string":string, "count":counter});
-                    
-                }
-                
-                function add_domain_and_checkbox(column, parameter){
-                    
-                    var domain = {};
-                    for (var i=0;i<$model.patients.length;i++){
-                        console.log()
-                        if ($model.patients[i].clinical[parameter] in domain){
-                            domain[$model.patients[i].clinical[parameter]]=domain[$model.patients[i].clinical[parameter]]+1;
-                        }
-                        else{
-                            
-                            domain[$model.patients[i].clinical[parameter]]=1;
-                        }
-                    }
-                    
-                    for (var i in domain){
-                        
-                        row = document.createElement('div');
-                        row.setAttribute('class',"row");
-                        
-                        column2 = document.createElement('div');
-                        column2.setAttribute('class',"col-md-8");
-                        column2.innerHTML=i+": "+domain[i];
-                        $(column2).appendTo(row);
-                        
-                        column3 = document.createElement('div');
-                        column3.setAttribute('class',"col-md-2");
-                        column3.innerHTML="<input type=\"checkbox\" onchange=\"clinical_checkbox_clicked2(this)\" id=\""+parameter+"__"+i+"_checkbox\"/>";
-                        $(column3).appendTo(row);
-                        $(row).appendTo(column);
-                        
-                    }
-                    
-                }
-                
-                document.getElementById("clinical_controls").innerHTML="";
-                document.getElementById("rppa_controls").innerHTML="";
-                    
-                controls = document.getElementById("clinical_controls");
-                wrapper_row = document.createElement('div');
-                wrapper_row.setAttribute('class',"row");
-                    
-                $(wrapper_row).appendTo(controls);
-                for (var i in $model.patients[0].clinical){
-                    new_row = document.createElement('div');
-                    new_row.setAttribute('class',"row");
-                    $(new_row).appendTo(wrapper_row);
-                    
-                    column = document.createElement('div');
-                    column.setAttribute('class',"col-md-5");
-                    column.innerHTML=i;
-                    $(column).appendTo(new_row);
-                    
-                    column = document.createElement('div');
-                    column.setAttribute('class',"col-md-7 domain");
-                    //column.innerHTML=list_parameter_domain(i)["string"];
-                    add_domain_and_checkbox(column,i);
-                    $(column).appendTo(new_row);
-                    
-                    //column = document.createElement('div');
-                    //column.setAttribute('class',"col-md-2");
-                    //column.innerHTML="<input type=\"checkbox\" onchange=\"clinical_checkbox_clicked(this)\" id=\""+i+"_checkbox\"/>";
-                    //$(column).appendTo(new_row);
-                        
-                }
-                
-                controls = document.getElementById("rppa_controls");
-                    
-                wrapper_row = document.createElement('div');
-                wrapper_row.setAttribute('class',"row");
-                    
-                $(wrapper_row).appendTo(controls);
-                for (var i=0;i<$model.patients[0].RPPA.length;i++){
-                        
-                    new_row = document.createElement('div');
-                    new_row.setAttribute('class',"row");
-                    $(new_row).appendTo(wrapper_row);
-                    
-                    column = document.createElement('div');
-                    column.setAttribute('class',"col-md-5");
-                    column.innerHTML=$model.patients[0].RPPA[i].ID;
-                    $(column).appendTo(new_row);
-                        
-                    column = document.createElement('div');
-                    column.setAttribute('class',"col-md-3");
-                    column.innerHTML="<input type=\"checkbox\" onchange=\"rppa_checkbox_clicked(this)\" id=\""+$model.patients[0].RPPA[i].ID+"_checkbox\"/>";
-                    $(column).appendTo(new_row);
-                        
-                    column = document.createElement('div');
-                    column.setAttribute('class',"col-md-2");
-                    column.innerHTML="weight:";
-                    $(column).appendTo(new_row);
-                        
-                    column = document.createElement('div');
-                    column.setAttribute('class',"col-md-2");
-                    column.innerHTML="<input type=\"range\" min=\"0\" max=\"1\" step=\"0.01\" value=\"0\" style=\"width:60px\" id=\""+$model.patients[0].RPPA[i].ID+"_slider\" onchange=\"rppa_weight_changed(this,0)\"/>"
-                    $(column).appendTo(new_row);
-                    }
-            }
-            
-            function add_dataset_to_url_history(){
-                
-                this.selected_parameters.push($dataset);
-                history.pushState(this.selected_parameters, document.title, '?dataset='+$dataset);
-                  
-            }
-            
-            function click_story_buttons(){
-                for (var i=0;i<$story.length;i++){
-                    console.log($story[i]);
-                    $story[i] = $story[i].replace("%20"," ");
-                    if (steps[i].substring(0,8)=="clinical"){
-                        var parameter = $story[i].split("=")[0].substring(9,$story[i].split("=")[0].length);
-                        var value = $story[i].split("=")[1];
-                        var button = document.getElementById(parameter+"__"+value+"_checkbox");
-                        console.log(parameter+"__"+value+"_checkbox");
-                        button.checked=true;
-                        clinical_checkbox_clicked2(button);
-                    }
-                    else if (steps[i].substring(0,4)=="rppa"){
-                        var parameter = $story[i].split("=")[0].substring(5,$story[i].split("=")[0].length);
-                        var button = document.getElementById(parameter+"_checkbox");
-                        button.checked=true;
-                        rppa_checkbox_clicked(button);
-                    }
-                    
-                }
-            }
-            
-            function generate_rppa_distr_plot(){
-                
-                function generate_merged_points(){
-                    
-                    merged_data = [];
-                    
-                    console.log(this.number_selected_groups);
-                    var step = 0.8/(this.number_selected_groups+1);
-                    console.log(step);
-                    var offset=step;
-                    var temp_counter=1;
-                    var min=Number.POSITIVE_INFINITY;
-                    var max=Number.NEGATIVE_INFINITY;
-                    for (var i in this.selected_patient_groups){
-                        var parameter = i.split("__")[0];
-                        var value = i.split("__")[1];
-                        for (var x=0;x<this.selected_patient_groups[i].length;x++){
-                            for (var k=0;k<$model.patients[0].RPPA.length;k++){
-                                var x_pos=k-0.4+offset;
-                                point=[x_pos,parseFloat($model.patients[this.selected_patient_groups[i][x]].RPPA[k].value),temp_counter];
-                                if (parseFloat($model.patients[this.selected_patient_groups[i][x]].RPPA[k].value)>max){
-                                    max = parseFloat($model.patients[this.selected_patient_groups[i][x]].RPPA[k].value);
-                                }
-                                
-                                if (parseFloat($model.patients[this.selected_patient_groups[i][x]].RPPA[k].value)<min){
-                                    min = parseFloat($model.patients[this.selected_patient_groups[i][x]].RPPA[k].value);
-                                }
-                                //console.log(x_pos);
-                                merged_data.push(point);
-                            }
-                        }
-                        if (this.selected_patient_groups[i].length>0){
-                            temp_counter++;
-                            offset=offset+step;  
-                        }
-                    }
-                    
-                    return {"data":merged_data, "min":min, "max":max};
-                }
-                
-                $("#rppa_distribution").html("");
-                if (this.number_selected_groups>0){
-                
-                data_min_max = generate_merged_points();
-                
-                merged_data=data_min_max["data"];
-                
-                
-                var number_proteins = $model.patients[0].RPPA.length;
-                    
-                var w=50000;
-                var h=1000;
-                    
-                var xScale = d3.scale.linear()
-                                .domain([-1, number_proteins+1])
-                                .range([10, w]);
-                            
-                var yScale = d3.scale.linear()
-                                .domain([data_min_max["min"], data_min_max["max"]])
-                                .range([h, 0]);
-                        
-                var N = number_proteins; 
-                ticks=Array.apply(null, {length: N}).map(Number.call, Number)      
-                var xAxis = d3.svg.axis()
-                                .scale(xScale)
-                                .tickValues(ticks)
-                                .tickFormat(function(d){return $model.patients[0].RPPA[d].ID})
+                                .tickFormat(function(d){return $patients[0].RPPA[d].ID})
                                 .ticks(number_proteins)
                                 .orient("bottom");
                 var yAxis = d3.svg.axis()
@@ -1963,28 +196,26 @@
                                 .ticks(20);
                         
                 var svg = d3.select("#rppa_distribution").append("svg").attr("width",w).attr("height",h);
-                
-                
                 
                 colors = {1:"#6699FF", 2: "#00FF00", 3:"#CC6699", 4:"#FF3300", 5:"#66FFFF", 6:"#99FF99", 7:"#99FF99" };
                 
                 svg.selectAll("circle")
-			.data(merged_data)
+			.data(points)
 			.enter()
 			.append("circle")
 			.attr("cx", function(d) {
-			   		return xScale(d[0]);
+			    return xScale(d[0]);
 			})
 			.attr("cy", function(d) {
-			   		return yScale(d[1]);
+			    return yScale(d[1]);
 			})
 			.attr("r", function(d) {
-			   		return 5;
-			   })
+			    return 5;
+			})
                         .style("fill", function(d){
-                                   return colors[d[2]];
-                           });
-                           
+                            return colors[d[2]];
+                        });
+                        
                 svg.append("g")
                         .attr("class", "axis")
                         .attr("transform", "translate(0," + 500 + ")")
@@ -1993,330 +224,171 @@
                         .attr("class", "axis")
                         .attr("transform", "translate(" + 50 + ",0)")
                         .call(yAxis);
-                }
                 
             }
             
-            function generate_patient_tables(){
+            function draw_d3_plot2(points, min, max){
                 
-                colors = {1:"#6699FF", 2: "#00FF00", 3:"#CC6699", 4:"#FF3300", 5:"#66FFFF", 6:"#99FF99", 7:"#FFFFCC", 8:"#9999FF", 9:"#FF9900", 10:"#0099CC" };
-                colors2 = {0: 0x000000, 1:0x6699FF, 2: 0x00FF00, 3:0xCC6699, 4:0xFF3300, 5:0x66FFFF, 6:0x99FF99, 7:0xFFFFCC, 8:0x9999FF, 9:0xFF9900, 10:0x0099CC};
+                $("#rppa_distribution").empty();
                 
-                for (var k=0;k<$model.patients.length;k++){
-                    $visualization.dots[k].material.color = new THREE.Color(colors2[0]);   
-                }
+                var base = d3.select("#rppa_distribution");
+                var chart = base.append("canvas")
+                    .attr("width", 32767)
+                    .attr("height", 1000);
+
+                var context = chart.node().getContext("2d");
+                var data = [1,2,13,20,23];
                 
-                
-                var temp_counter=0;
-                for (var i in this.selected_patient_groups){
-                    if (this.selected_patient_groups[i].length>0){
-                    temp_counter++;
-                        for (var k=0;k<this.selected_patient_groups[i].length;k++){
-                            $visualization.dots[this.selected_patient_groups[i][k]].material.color = new THREE.Color(colors2[temp_counter]);
-                        }
-                    }
-                }
-                
-                document.getElementById("tables").innerHTML="";
-                
-                var column_size = 0;
-                if (this.number_selected_groups==1){
-                    column_size=12;
-                }
-                else if (this.number_selected_groups==2){
-                    column_size=6;
-                }
-                else if (this.number_selected_groups==3){
-                    column_size=4;
-                }
-                else if (this.number_selected_groups==4){
-                    column_size=3;
-                }
-                else if (this.number_selected_groups>6){
-                   column_size=1;
-                }
-                else{
-                   column_size=2;
-                }
-                var table_counter=0;
-                for (var i in this.selected_patient_groups){
-                    if (this.selected_patient_groups[i].length>0){
-                        table_counter++;
-                        tables_row = document.getElementById("tables");
-                        table_column = document.createElement('div');
-                        table_column.setAttribute('class',"col-md-"+column_size);
-                        table_column.setAttribute("id","group"+table_counter);
-                        table_column.setAttribute("style", "overflow-x:scroll; overflow-y:scroll; height:420px");
-                        if (column_size==2){
-                            var new_width = ($("#tables").innerWidth()-20)/this.number_selected_groups;
-                            table_column.setAttribute("style", "overflow-x:scroll; overflow-y:scroll; height:420px; width:"+new_width+"px");
-                        }
-                        if (column_size==1){
-                            var new_width = $("#tables").innerWidth();
-                            table_column.setAttribute("style", "overflow-x:scroll; overflow-y:scroll; height:420px; width:"+new_width+"px");
-                        }
-                        $(table_column).appendTo(tables_row);
-                        $("#group"+table_counter).css("background-color", colors[table_counter]);
-                        table_header = document.createElement("h1");
-                        
-                        var parameter = i.split("__")[0];
-                        var group = i.split("__")[1];
-                        table_header.innerHTML=parameter+": "+group;
-                        $(table_header).appendTo(table_column);
-                    
-                        table_container = document.createElement('div');
-                        table_container.setAttribute("id","group"+table_counter+"_table");
-                        table_container.setAttribute("style", "overflow-x:scroll; overflow-y:scroll; max-height:400px");
-                        $(table_container).appendTo(table_column);
-                        
-                        $("#group"+table_counter+"_table").html("<table class=\"table table-bordered\" id=\"table"+table_counter+"\"></table>");
-                    
-                        var html_string="<thead><tr>";
-                        for (var k in $model.patients[0].clinical){
-                            html_string+="<th class=\"text-center\">"+k+"</th>";
-                        }
-                        
-                        html_string+="</tr></thead><tbody id=\"group"+table_counter+"_body\"><tr id=\"group"+table_counter+"_row_1\"></tr></tbody>";
-                        
-                        $("#table"+table_counter).html(html_string);
-                        
-                        for (var k=0;k<this.selected_patient_groups[i].length;k++){
-                            html_string="";
-                            for (var x in $model.patients[this.selected_patient_groups[i][k]].clinical){
-                                html_string+="<td>"+$model.patients[this.selected_patient_groups[i][k]].clinical[x]+"</td>";
-                            }
-                            var number_rows = document.getElementById("table"+table_counter).rows.length;
-                            
-                            $("#group"+table_counter+"_row_"+(number_rows-1)).html(html_string);
-                            $("#group"+table_counter+"_body").append("<tr id=\"group"+table_counter+"_row_"+(number_rows+1)+"\"></tr>");
-                        }
-                    }
-                    
-                }
-                
-                
-            }
+                var number_proteins = $patients[0].RPPA.length;
+
+                var xScale = d3.scale.linear()
+                    .domain([-1, number_proteins])
+                    .range([10,32000]);
             
-            this.selected_patient_groups={};
-            this.number_selected_groups=0;
-            this.rppa_values_of_selected_patient_groups={};
-            function clinical_checkbox_clicked2(checkbox){
-                
-                if (checkbox.checked==true){
-                    //console.log(checkbox.id);
-                    this.selected_parameters.push(checkbox.id);
-                    var parameter = checkbox.id.split("__")[0];
-                    var parameter_value = checkbox.id.split("__")[1].substring(0,checkbox.id.split("__")[1].length-9);
-                    //console.log(parameter+"; "+parameter_value);
-                    this.selected_patient_groups[parameter+"__"+parameter_value]=[];
-                    
-                    for(var i=0;i<$model.patients.length;i++){
-                        if ($model.patients[i].clinical[parameter]==parameter_value){
-                            //console.log(i+": "+$model.patients[i].clinical[parameter]);
-                            this.selected_patient_groups[parameter+"__"+parameter_value].push(i);
-                        }
-                    }
-                    this.number_selected_groups++;
-                    generate_patient_tables();
-                    generate_rppa_distr_plot();
-                    assemble_history_url2();
-                    //add_new_patient_rppa_distribution(this.selected_groups);
-                }
-                else{
-                    var index = this.selected_parameters.indexOf(checkbox.id);
-                    console.log(index);
-                    console.log(checkbox.id);
-                    this.selected_parameters.splice(index, 1);
-                    var parameter = checkbox.id.split("__")[0];
-                    var parameter_value = checkbox.id.split("__")[1].substring(0,checkbox.id.split("__")[1].length-9);
-                    this.selected_patient_groups[parameter+"__"+parameter_value]=[];
-                    this.number_selected_groups--;
-                    console.log(parameter);
-                    generate_patient_tables();
-                    generate_rppa_distr_plot();
-                    assemble_history_url2();
-                }
-                
-            }
-            
-            function add_layout_button(){
-                
-            }
-            
-            $(function(){
-                console.log($("#visuals").innerWidth());
-                $visualization = new Visualization();
-                $model = new Model();
-                $story_to_tell=false;
-                $story = [];
-                
-                $(".dataset_selection").click(function(e){
-                    console.log(e.target.id+" selected");
-                    document.getElementById("layout_button").setAttribute("style","display:inline");
-                    loadJSON(function(response) {
-                        $model.init_dataset(JSON.parse(response));
-                        $visualization.init_dots();
-                        add_RPPA_list();
-                        if ($story_to_tell){
-                            click_story_buttons();
-                            console.log("story to tell");
-                        }
-                        else{
-                            console.log("no story to tell");
-                        }
-                        
-                    }, e.target.id);
-                    $dataset = e.target.id;
-                    
-                    add_dataset_to_url_history();
-                    add_layout_button();
-                    
+                var yScale = d3.scale.linear()
+                    .domain([min, max])
+                    .range([1000, 0]);
+
+                points.forEach(function(d, i) {
+                    context.beginPath();
+                    context.arc(xScale(points[i][0]), yScale(points[i][1]), 5,0, 2*Math.PI);
+                    context.fillStyle="red";
+                    context.fill();
+                    context.closePath();
                 });
                 
-                $(".layout_selection").click(function(e){
-                    
-                    if ( e.target.id=="tsne"){
-                        console.log("tsne selected");
-                        $model.tsne_selected=1;
-                        console.log($selected_rppas);
-                        tsne_layout = new tsne($model.patients, $visualization.dots, $selected_rppas);
-                    }
-                    
-                    else{
-                        $model.tsne_selected=0;
-                    }
-                });
-                
-                story = document.URL.split("?")[1];
-                if (typeof story!= 'undefined'){
-                    
-                    dataset = story.split("&")[0];
-                    
-                    if (dataset.charAt(dataset.length-1)=="#"){
-                        var dataset = dataset.substring(8,dataset.length-1);
-                    }
-                    else{
-                        var dataset = dataset.substring(8,dataset.length);
-                    }
-                    steps = story.split("&");
-                    steps.shift();
-                    if (steps.length>0){
-                        //steps = steps.split("&");
-                        console.log("there is a story to tell");
-                        $story_to_tell=true;
-                        for (var i=0;i<steps.length;i++){
-                            if (steps[i].substring(0,8)=="clinical"){
-                                $story.push(steps[i]);
-                                //console.log("clinical");
-                                //console.log(button.checked);
-                                //clinical_checkbox_clicked(button);
-                            }
-                            else if(steps[i].substring(0,4)=="rppa"){
-                                $story.push(steps[i]);
-                                //console.log("rppa");
-                                //rppa_checkbox_clicked()
-                            }
-                        }
-                    }
-                    else{
-                        console.log("there is no story");
-                        $story_to_tell=false;
-                        $story = [];
-                    }
-                    
-                    var button = document.getElementById(dataset);
-                    var evnt = button["click"];
-                    evnt.call(button);
-                    
-                    
-                    
-                }
-                
-                setInterval(function(){ $visualization.render() }, 5);
-                
-            });
+            }
+            
+            myWorker.addEventListener("message", function (event) {
+                draw_d3_plot2(event.data["data"], event.data["min"], event.data["max"]);
+            }, false);
+            
+            myWorker.postMessage({"patients":$patients, "groups":selected_groups});
+            
+        }
         
-        </script>
-    </head>
-    <body>
-        <div class="container-fluid" id="outer_container">
+        var selected_groups = {};
+        function clinical_checkbox_clicked(checkbox){
             
-            <div class="row">
-                <div class="col-md-1">
-                <div class="dropdown">
-                <button class="btn btn-default dropdown-toggle" type="button" id="menu1" data-toggle="dropdown">Select Dataset
-                    <span class="caret"></span>
-                </button>
-                <ul class="dropdown-menu" role="menu" aria-labelledby="menu1">
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="acc">acc</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="blca">blca</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="brca">brca</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="cesc">cesc</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="chol">chol</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="cntl">cntl</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="coad">coad</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="dlbc">dlbc</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="esca">esca</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="fppp">fppp</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="gbm">gbm</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="hnsc">hnsc</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="kich">kich</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="kirp">kirp</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="laml">laml</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="lcml">lcml</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="lgg">lgg</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="lihc">lihc</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="lnnh">lnnh</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="luad">luad</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="lusc">lusc</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="meso">meso</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="ov">ov</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="paad">paad</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="pcpg">pcpg</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="prad">prad</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="read">read</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="sarc">sarc</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="skcm">skcm</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="stad">stad</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="tgct">tgct</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="thym">thym</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="ucec">ucec</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="ucs">ucs</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="uvm">uvm</a></li>
-                    <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="brca2">brca2</a></li>
-                </ul>
-                </div>
-                </div>
-                <div class="col-md-5" id="layout_button" style="display:none">
-                    <div class="dropdown">
-                        <button class="btn btn-default dropdown-toggle" type="button" id="menu1" data-toggle="dropdown">Layout
-                        <span class="caret"></span>
-                        </button>
-                        <ul class="dropdown-menu" role="menu" aria-labelledby="menu1">
-                            <li role="presentation"><a class="layout_selection" role="menuitem" tabindex="-1" href="#" id="tsne">t-sne</a></li>
-                            <li role="presentation"><a class="layout_selection" role="menuitem" tabindex="-1" href="#" id="force">force layout</a></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-7" id="visuals"></div>
-                <div class="col-md-5 box" id="parameter_controls">
-                    <div class="row" style="margin-top:-20px"></div>
-                    <div class="col-md-12" id="clinical_controls"></div>
-                    <div class="row"></div>
-                    <div class="col-md-12" id="rppa_controls"></div>
-                </div>
-            </div>
+            var selected_group = checkbox.id.substring(0,checkbox.id.length-9);
+            var parameter = checkbox.id.split("__")[0];
+            var value = checkbox.id.split("__")[1];
+            var value = value.substring(0,value.length-9);
+            console.log(parameter+" --> "+value+" clicked");
             
-            <div class="row" id="tables">
-            </div>
+            var myWorker = new Worker('selected_group_finder.js');
             
-            <div class="row">
-                <div class="col-md-12" id="rppa_distribution"></div>
-            </div>
+            myWorker.addEventListener("message", function (event) {
+                selected_groups[selected_group] = event.data;
+                build_group_tables();
+                draw_rppa_distribution();
+                $(".parameter_checkbox").removeAttr("disabled");
+            }, false);
+            
+            $(".parameter_checkbox").attr("disabled","true");
+            myWorker.postMessage({"patients":$patients, "parameter":parameter, "value":value});
+            
+        }
+        
+        function add_clinical_controls(){
+            
+            $("#clinical_controls").empty();
+            
+            controls = document.getElementById("clinical_controls"); 
+            
+            for (var i in $patients[0].clinical){
+                
+                new_row = document.createElement('div');
+                new_row.setAttribute('class',"row");
+                $(new_row).appendTo(controls);
+                
+                column = document.createElement('div');
+                column.setAttribute('class',"col-md-5");
+                column.innerHTML=i;
+                $(column).appendTo(new_row);
+                
+                column = document.createElement('div');
+                column.setAttribute('class',"col-md-7 domain");
+                
+                var domain = {};
+                for (var k=0;k<$patients.length;k++){
+                   if ($patients[k].clinical[i] in domain){
+                        domain[$patients[k].clinical[i]]=domain[$patients[k].clinical[i]]+1;
+                    }
+                    else{                        
+                        domain[$patients[k].clinical[i]]=1;
+                    }
+                }
+                
+                for (var k in domain){
+                    row = document.createElement('div');
+                    row.setAttribute('class',"row");
+                    
+                    column2 = document.createElement('div');
+                    column2.setAttribute('class',"col-md-8");
+                    column2.innerHTML=k+": "+domain[k];
+                    $(column2).appendTo(row);
+                        
+                    column3 = document.createElement('div');
+                    column3.setAttribute('class',"col-md-2");
+                    column3.innerHTML="<input class=\"parameter_checkbox\" type=\"checkbox\" onchange=\"clinical_checkbox_clicked(this)\" id=\""+i+"__"+k+"_checkbox\"/>";
+                    $(column3).appendTo(row);
+                    $(row).appendTo(column);
+                }
+                $(column).appendTo(new_row);
+            }
+            controls.setAttribute("style","border: 1px solid");
+        }
+        
+        function add_rppa_controls(){
+            
+            controls = document.getElementById("rppa_controls");
             
             
-        </div>
-    </body>
+            for (var i=0;i<$patients[0].RPPA.length;i++){
+                        
+                new_row = document.createElement('div');
+                new_row.setAttribute('class',"row");
+                $(new_row).appendTo(controls);
+                    
+                column = document.createElement('div');
+                column.setAttribute('class',"col-md-5");
+                column.innerHTML=$patients[0].RPPA[i].ID;
+                $(column).appendTo(new_row);
+                        
+                column = document.createElement('div');
+                column.setAttribute('class',"col-md-3");
+                column.innerHTML="<input type=\"checkbox\" onchange=\"rppa_checkbox_clicked(this)\" id=\""+$patients[0].RPPA[i].ID+"_checkbox\"/>";
+                $(column).appendTo(new_row);
+                        
+                column = document.createElement('div');
+                column.setAttribute('class',"col-md-2");
+                column.innerHTML="weight:";
+                $(column).appendTo(new_row);
+                        
+                column = document.createElement('div');
+                column.setAttribute('class',"col-md-2");
+                column.innerHTML="<input type=\"range\" min=\"0\" max=\"1\" step=\"0.01\" value=\"0\" style=\"width:60px\" id=\""+$patients[0].RPPA[i].ID+"_slider\" onchange=\"rppa_weight_changed(this,0)\"/>"
+                $(column).appendTo(new_row);
+            }
+            
+            controls.setAttribute("style","border: 1px solid");
+            
+        }
+        
+        $(".dataset_selection").click(function(e){
+            
+            console.log(e.target.id+" selected");
+            document.getElementById("layout_button").setAttribute("style","display:inline");
+            loadJSON(function(response) {
+                $patients = JSON.parse(response);
+                add_clinical_controls();
+                add_rppa_controls();
+                adjust_controls();
+            }, e.target.id);            
+        });
+        
+    </script>
+</body>
 </html>
+
