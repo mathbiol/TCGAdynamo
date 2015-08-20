@@ -91,7 +91,6 @@
                 <!--<canvas id="rppa_plot"></canvas>
                 <svg id="rppa_plot_axis"></svg>-->
                 <div id="chart">
-                    <canvas id="background"></canvas>
                     <canvas id="foreground"></canvas>
                     <svg></svg>
                 </div>
@@ -272,6 +271,9 @@
             }
             
             function draw_d3_plot4(points, min, max){
+                
+                $("#rppa_distribution").empty();
+                $("#rppa_distribution").html("<div id=\"chart\"><canvas id=\"foreground\"></canvas><svg></svg></div>");
                 
                 var m = [30, 10, 10, 10],
                     w = 32767 - m[1] - m[3],
