@@ -9,6 +9,7 @@
     <script src="js/vendor/jquery-1.11.2.js"></script>
     <script src="js/libs/jqueryui/jquery-ui.js"></script>
     <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <script src="js/vendor/three.min.js"></script>
 </head>
 <body onresize="adjust_controls()">
     <div class="container-fluid" id="outer_container">
@@ -72,19 +73,18 @@
         </div>
         </div>
         <div class="row " >
-            <div class="col-md-7" id="visuals"></div>
-            <div class="col-md-5 " id="parameter_controls">
+            <div class="col-md-7" id="visuals">
+            </div>
+            <div class="col-md-5 " id="parameter_controls" style="float:right">
                 <div class="row" >
                     <div class="col-md-12" id="clinical_controls"></div>   
                 </div>
-                <div class="row">
+                <div class="row" id="rppa_controls_wrapper">
                     <div class="col-md-12" id="rppa_controls"></div>   
                 </div>
             </div>
         </div>
         
-        <div class="row" id="table_container">
-        </div>
         
         <div class="row">
             <div class="col-md-12" id="rppa_distribution">
@@ -97,15 +97,329 @@
             </div>
         </div>
         
+        <div class="row" id="table_container">
+        </div>
+        
+        
         
     </div>
     <script>
         
+        function model(){
+            this.n_patients=0;
+            this.n_features=0;
+            this.patients;
+            this.distances = [];
+            this.node_degree = [];
+            this.edges = [];
+            this.n_nearest_connect=2;
+            this.tsne_selected=0;
+            this.all_edges = [];
+            this.protein_weights = [];
+            this.tsne_selected=0;
+
+            this.recompute = function(){
+
+                var considered_proteins = [];
+                var protein_counter=0;
+                for (var i=0;i<this.n_features;i++){
+                    if (this.protein_weights[i]!=0){
+                        considered_proteins[protein_counter]=i;
+                        protein_counter++;
+                    }
+                }
+
+                for (var i=0;i<this.n_patients;i++){
+                    this.edges[i] = [];
+                    for (var k=0;k<this.n_patients;k++){
+                        this.edges[i][k]=0;
+                    }
+                }
+
+                compute_euclidean_distance = function(a,b){
+
+                    var sum = 0;
+
+                    for (var i=0;i<protein_counter;i++){
+                        sum = sum+$model.protein_weights[considered_proteins[i]]*(Math.pow($model.patients[a].RPPA[i].value-$model.patients[b].RPPA[i].value,2));
+                    }
+
+                    sum=Math.sqrt(sum);
+                    return(sum);
+                }
+
+                for (var i=0;i<this.n_patients-1;i++){
+                    this.distances[i] = [];
+                    for (var k=i+1;k<this.n_patients;k++){
+                        this.distances[i][k-i-1]=compute_euclidean_distance(i,k);
+                    }
+                }
+
+                find_nearest_neighbors = function(a){
+
+                    var temp_counter=0;
+                    var temp_distance=-1;
+                    var temp_max_distance;
+                    var temp_max_index;
+                    var nearest_distances = [];
+                    var nearest_indices = [];
+                    for (var i=0;i<$model.n_patients;i++){
+
+                        if (i!=a){
+
+                            if (i<a){
+                                temp_distance = $model.distances[i][a-i-1];
+                            }
+                            else{
+                                temp_distance = $model.distances[a][i-a-1];
+                            }
+
+
+
+                            if(temp_counter<$model.n_nearest_connect){
+                                nearest_distances[temp_counter]=temp_distance;
+                                nearest_indices[temp_counter]=i;
+                                temp_counter++;
+                            }
+                            else{
+                                temp_max_distance = nearest_distances[0];
+                                temp_max_index = 0;
+                                for (var k=1;k<$model.n_nearest_connect;k++){
+                                    if (nearest_distances[k]>temp_max_distance){
+                                        temp_max_distance = nearest_distances[k];
+                                        temp_max_index=k;
+                                    }
+                                }
+
+                                if (temp_distance<temp_max_distance){
+                                    nearest_distances[temp_max_index]=temp_distance;
+                                    nearest_indices[temp_max_index]=i;
+                                }
+
+                            } 
+                        }
+                    } 
+                    return(nearest_indices);
+                }
+
+                for (var i=0;i<this.n_patients;i++){
+                    this.node_degree[i]=0;
+                    for (var k=0;k<this.n_patients;k++){
+                        this.edges[i][k]=0;
+                    }
+                }
+
+                if (protein_counter>0){
+                    var edge_counter=0;
+                    for (var i=0;i<this.n_patients;i++){
+
+                        neighbors = find_nearest_neighbors(i);
+
+                        for (var k=0;k<neighbors.length;k++){
+                            if (neighbors[k]>i){
+                                this.edges[i][neighbors[k]-i-1]=1;
+                                this.node_degree[i]++;
+                                this.node_degree[neighbors[k]]++;
+                            }
+                            else{
+                                this.edges[neighbors[k]][i-neighbors[k]-1]=1;
+                                this.node_degree[i]++;
+                                this.node_degree[neighbors[k]]++;
+                            }
+                        }
+                    }
+                }
+            }
+
+            this.init_dataset = function(patient_data){
+
+                this.patients = patient_data;
+                this.n_patients = this.patients.length;
+                this.n_features = this.patients[0].RPPA.length;
+                for (var i=0;i<$model.n_features;i++){
+                    this.protein_weights[i]=0;
+                }
+                this.recompute();
+
+            }
+        }
+        
+        function visualization(){
+            
+                this.scene = new THREE.Scene();
+                this.width = $("#visuals").innerWidth();
+                this.height = window.innerHeight;
+                this.canvas = document.createElement('canvas');
+                document.getElementById('visuals').appendChild(this.canvas);
+                this.renderer = new THREE.WebGLRenderer({canvas: this.canvas,  antialiasing: true });
+                this.renderer.setSize(this.width, this.height);
+                this.camera_parameter=30;
+                this.camera = new THREE.OrthographicCamera( this.width*this.camera_parameter / - 2, this.width*this.camera_parameter / 2, this.height*this.camera_parameter / 2, this.height*this.camera_parameter / - 2, - 500, 1000 );
+                this.camera.position.x = 0;
+                this.camera.position.y = 0;
+                this.camera.position.z = 100;
+                this.dots=[];
+                
+                this.init_dots = function() {
+                    delete this.scene;
+                    this.scene = new THREE.Scene();
+                    this.dots=[];
+                    this.geometry = new THREE.SphereGeometry(200,0,0);
+                    for (var i=0;i<$patients.length;i++){
+                        this.material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0, 0  ) } );
+                        // this.material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0.7, 0  ) } );
+                        this.dots[i] = new THREE.Mesh( this.geometry, this.material);
+                        random_x = (Math.random() * this.camera_parameter*750/3) - this.camera_parameter*390/3;
+                        random_y = (Math.random() * this.camera_parameter*580/3) - this.camera_parameter*280/3;
+                        this.dots[i].position.x = random_x;
+                        this.dots[i].position.y = random_y;
+                        this.scene.add(this.dots[i]);
+                    }
+                }
+                
+                this.on_resize = function(){
+                    for (var i=0;i<$patients.length;i++){
+                        
+                        this.dots[i].position.x = 0;
+                        this.dots[i].position.y = 0;
+                    }
+                }
+                
+                this.update = function(){
+                    
+                    if (!$model.tsne_selected==1){
+                    
+                        var max_x=0;
+                        var max_y=0;
+                        var Fr = 0;
+                        var Fa = 0;
+                        var Fg = 0;
+                        var distance = 0;
+                        var kr = -1200;
+                        var kg = 0.002;
+                        var Ftotal = 0;
+                        var vector_between_x;
+                        var vector_between_y;
+                        var gravity_vector_x;
+                        var gravity_vector_y;
+                        var gravity_vector_length;
+                        var velocity;
+
+                        for (var i=0;i<$model.n_patients;i++){
+                            for (var k=i+1;k<$model.n_patients;k++){
+                                distance = Math.sqrt(Math.pow(($visualization.dots[i].position.x-$visualization.dots[k].position.x),2)+Math.pow(($visualization.dots[i].position.y-$visualization.dots[k].position.y),2));
+                                vector_between_x = $visualization.dots[i].position.x-$visualization.dots[k].position.x;
+                                vector_between_y = $visualization.dots[i].position.y-$visualization.dots[k].position.y;
+                                vector_between_x = vector_between_x/distance;
+                                vector_between_y = vector_between_y/distance;
+
+                                //compute Fr as suggested in the paper
+                                Fr = kr*(4/distance);
+
+                                //if the two patients are similar comptue Fa, else set Fa=0
+                                if ($model.edges[i][k-i-1]==1){
+                                    Fa = 1.5*Math.log((1+distance));
+                                }
+                                else{
+                                    Fa=0;
+                                }
+                                Ftotal = Fr + Fa;
+
+                                //set new positions
+                                $visualization.dots[k].position.x=$visualization.dots[k].position.x+vector_between_x*Ftotal*0.8;
+                                $visualization.dots[k].position.y=$visualization.dots[k].position.y+vector_between_y*Ftotal*0.8;
+
+                                $visualization.dots[i].position.x=$visualization.dots[i].position.x-vector_between_x*Ftotal*0.8;
+                                $visualization.dots[i].position.y=$visualization.dots[i].position.y-vector_between_y*Ftotal*0.8;
+                            }
+                        }
+                    //finally go over all nodes and compute the gravity
+                    for (var i=0;i<$model.n_patients;i++){
+                        gravity_vector_x=-$visualization.dots[i].position.x;
+                        gravity_vector_y=-$visualization.dots[i].position.y;
+
+                        gravity_vector_length=Math.sqrt(Math.pow(gravity_vector_x,2)+Math.pow(gravity_vector_y,2));
+
+
+                        if ($model.n_nearest_connect>0)
+                            Fg = (kg/Math.log($model.n_nearest_connect+1))*($model.node_degree[i]+1)*gravity_vector_length;
+                        else{
+                            Fg = (kg/1)*($model.node_degree[i]+1)*gravity_vector_length;
+                        }
+
+                        gravity_vector_x=gravity_vector_x/gravity_vector_length;
+                        gravity_vector_y=gravity_vector_y/gravity_vector_length;
+                        $visualization.dots[i].position.x=$visualization.dots[i].position.x+gravity_vector_x*Fg*0.8;
+                        $visualization.dots[i].position.y=$visualization.dots[i].position.y+gravity_vector_y*Fg*0.8;
+
+                        if (Math.abs($visualization.dots[i].position.x)>max_x){
+                            max_index = i;
+                            max_x=Math.abs($visualization.dots[i].position.x);
+                        }
+                        if (Math.abs($visualization.dots[i].position.y)>max_y){
+                            max_y=Math.abs($visualization.dots[i].position.y);
+                        }
+                    }
+
+                    var max_x=0;
+                    var max_y=0;
+                    for (var i=0;i<$model.n_patients;i++){
+
+                        if (Math.abs($visualization.dots[i].position.x)>max_x){
+                            max_index = i;
+                            max_x=Math.abs($visualization.dots[i].position.x);
+                        }
+                        if (Math.abs($visualization.dots[i].position.y)>max_y){
+                            max_y=Math.abs($visualization.dots[i].position.y);
+                        }
+                    }
+
+                    //console.log("max: "+max_x+"; "+max_index);
+                        var new_cam_x;
+                        var new_cam_y;
+                        var new_cam=-1;
+
+                        new_cam_x=((max_x+400)/$visualization.width)*2;
+                        new_cam_y=((max_y+400)/$visualization.height)*2;
+
+                        if (new_cam_x>new_cam_y){
+                            new_cam=new_cam_x;
+                        }
+                        else{
+                            new_cam=new_cam_y;
+                        }
+
+                        if (new_cam!=$visualization.camera_parameter ){
+                            $visualization.camera_parameter=new_cam;
+                            $visualization.camera.top=new_cam*$visualization.height/2;
+                            $visualization.camera.right=new_cam*$visualization.width/2;
+                            $visualization.camera.left=new_cam*$visualization.width/-2;
+                            $visualization.camera.bottom=new_cam*$visualization.height/-2;
+                            $visualization.camera.updateProjectionMatrix();
+                        }  
+                    }
+                
+                }
+                
+                this.renderer.setClearColor( 0xffffff, 1);
+                
+                this.render = function(){
+                    this.update();
+                    this.renderer.render( this.scene, this.camera );
+                }
+                
+            }
+        
         function adjust_controls(){
-            var viewportHeight = window.innerHeight;      
-            $("#parameter_controls").height(viewportHeight-10);
+            var viewportHeight = window.innerHeight;
+            
+            $("#parameter_controls").height(viewportHeight-4);
             $("#clinical_controls").height((viewportHeight/3)*2);
-            $("#rppa_controls").height((viewportHeight/3));
+            $("#rppa_controls").height((viewportHeight/3)-26);
+           
+            $visualization.renderer.setSize( (window.innerWidth/12)*7, window.innerHeight );
+           
+            
         }
         
         function loadJSON(callback, which) {  
@@ -128,8 +442,10 @@
             var table_container = document.getElementById("table_container");
             $(table_container).empty();
             
+            var table_counter=0;
             for (var i in selected_groups){
                 console.log(i);
+                table_counter++;
                 var table_row = document.createElement("div");
                 table_row.setAttribute("class", "row");
                 $(table_row).appendTo(table_container);
@@ -140,7 +456,7 @@
                 var table_div = document.createElement("div");
                 table_div.setAttribute("style", "overflow-x:scroll; overflow-y:scroll; max-height:400px");
                 $(table_div).appendTo(table_row);
-                table_div.innerHTML="<table class=\"table table-bordered\" id=\""+i+"_table\"></table>";
+                table_div.innerHTML="<table class=\"table table-bordered\" id=\"table_"+table_counter+"\"></table>";
                 
                 var html_string="<thead><tr>";
                 
@@ -148,18 +464,18 @@
                     html_string+="<th class=\"text-center\">"+k+"</th>";
                 }
                 
-                html_string+="</tr></thead><tbody id=\""+i+"_table_body\"><tr id=\""+i+"_table_row_1\"></tr></tbody>";
+                html_string+="</tr></thead><tbody id=\"table_body_"+table_counter+"\"><tr id=\"table_"+table_counter+"_row_1\"></tr></tbody>";
                 
-                $("#"+i+"_table").html(html_string);
+                $("#table_"+table_counter).html(html_string);
                 
                 for (var k=0;k<selected_groups[i].length;k++){
                     html_string="";
                     for (var x in $patients[k].clinical){
                         html_string+="<td>"+$patients[k].clinical[x]+"</td>";
                     }
-                    var number_rows = document.getElementById(i+"_table").rows.length;
-                    $("#"+i+"_table_row_"+(number_rows-1)).html(html_string);
-                    $("#"+i+"_table_body").append("<tr id=\""+i+"_table_row_"+(number_rows+1)+"\"></tr>");
+                    var number_rows = document.getElementById("table_"+table_counter).rows.length;
+                    $("#table_"+table_counter+"_row_"+(number_rows-1)).html(html_string);
+                    $("#table_body_"+table_counter).append("<tr id=\"table_"+table_counter+"_row_"+(number_rows+1)+"\"></tr>");
                 }
                 
                 //table_row.innerHTML="<table class=\"table table-bordered\" id=\""+i+"_table\"></table>";
@@ -174,169 +490,70 @@
             function draw_d3_plot(points, min, max){
                 
                 $("#rppa_distribution").empty();
-                
-                var w=50000;
-                var h=1000;
-                
-                var number_proteins = $patients[0].RPPA.length;
-                
-                var xScale = d3.scale.linear()
-                                .domain([-1, number_proteins+1])
-                                .range([10, w]);
-                            
-                var yScale = d3.scale.linear()
-                                .domain([min, max])
-                                .range([h, 0]);
-                        
-                        
-                var N = number_proteins;
-                ticks=Array.apply(null, {length: N}).map(Number.call, Number)
-                        
-                var xAxis = d3.svg.axis()
-                                .scale(xScale)
-                                .tickValues(ticks)
-                                .tickFormat(function(d){return $patients[0].RPPA[d].ID})
-                                .ticks(number_proteins)
-                                .orient("bottom");
-                var yAxis = d3.svg.axis()
-                                .scale(yScale)
-                                .orient("left")
-                                .ticks(20);
-                        
-                var svg = d3.select("#rppa_distribution").append("svg").attr("width",w).attr("height",h);
-                
-                colors = {1:"#6699FF", 2: "#00FF00", 3:"#CC6699", 4:"#FF3300", 5:"#66FFFF", 6:"#99FF99", 7:"#99FF99" };
-                
-                svg.selectAll("circle")
-			.data(points)
-			.enter()
-			.append("circle")
-			.attr("cx", function(d) {
-			    return xScale(d[0]);
-			})
-			.attr("cy", function(d) {
-			    return yScale(d[1]);
-			})
-			.attr("r", function(d) {
-			    return 5;
-			})
-                        .style("fill", function(d){
-                            return colors[d[2]];
-                        });
-                        
-                svg.append("g")
-                        .attr("class", "axis")
-                        .attr("transform", "translate(0," + 500 + ")")
-                        .call(xAxis);
-                svg.append("g")
-                        .attr("class", "axis")
-                        .attr("transform", "translate(" + 50 + ",0)")
-                        .call(yAxis);
-                
-            }
-            
-            function draw_d3_plot2(points, min, max){
-                
-                $("#rppa_distribution").empty();
-                
-                var w=32767;
-                var h=1000;
-                
-                var base = d3.select("#rppa_distribution");
-                var chart = base.append("canvas")
-                    .attr("width", 32767)
-                    .attr("height", 1000);
+                if (points.length>0){
+                    $("#rppa_distribution").html("<div id=\"chart\"><canvas id=\"foreground\"></canvas><svg></svg></div>");
 
-                var context = chart.node().getContext("2d");
-                
-                var number_proteins = $patients[0].RPPA.length;
+                    var m = [30, 10, 10, 10],
+                        w = 32767 - m[1] - m[3],
+                        h = 1000 - m[0] - m[2];
 
-                var xScale = d3.scale.linear()
-                    .domain([-1, number_proteins])
-                    .range([10,32000]);
-            
-                var yScale = d3.scale.linear()
-                    .domain([min, max])
-                    .range([1000, 0]);
+                    d3.selectAll("#foreground")
+                        .attr("width", w + m[1] + m[3])
+                        .attr("height", h + m[0] + m[2])
+                        .style("padding", m.join("px ") + "px");
+                    var svg = d3.select("svg")
+                        .attr("width", w + m[1] + m[3])
+                        .attr("height", h + m[0] + m[2])
+                        .append("svg:g")
+                        .attr("transform", "translate(" + m[3] + "," + m[0] + ")");
 
-                points.forEach(function(d, i) {
-                    context.beginPath();
-                    context.arc(xScale(points[i][0]), yScale(points[i][1]), 5,0, 2*Math.PI);
-                    context.fillStyle="red";
-                    context.fill();
-                    context.closePath();
-                });
-                
-                
-            }
-            
-            function draw_d3_plot4(points, min, max){
-                
-                $("#rppa_distribution").empty();
-                $("#rppa_distribution").html("<div id=\"chart\"><canvas id=\"foreground\"></canvas><svg></svg></div>");
-                
-                var m = [30, 10, 10, 10],
-                    w = 32767 - m[1] - m[3],
-                    h = 1000 - m[0] - m[2];
-            
-                d3.selectAll("canvas")
-                    .attr("width", w + m[1] + m[3])
-                    .attr("height", h + m[0] + m[2])
-                    .style("padding", m.join("px ") + "px");
-                var svg = d3.select("svg")
-                    .attr("width", w + m[1] + m[3])
-                    .attr("height", h + m[0] + m[2])
-                    .append("svg:g")
-                    .attr("transform", "translate(" + m[3] + "," + m[0] + ")");
-            
-                var number_proteins = $patients[0].RPPA.length;
-                
-                var xScale = d3.scale.linear()
-                                .domain([-1, number_proteins+1])
-                                .range([10, w]);
-                            
-                var yScale = d3.scale.linear()
-                                .domain([min, max])
-                                .range([h, 0]);
-                
-                var N = number_proteins;
-                ticks=Array.apply(null, {length: N}).map(Number.call, Number)
-                        
-                var xAxis = d3.svg.axis()
-                                .scale(xScale)
-                                .tickValues(ticks)
-                                .tickFormat(function(d){return $patients[0].RPPA[d].ID})
-                                .ticks(number_proteins)
-                                .orient("bottom");
-                var yAxis = d3.svg.axis()
-                                .scale(yScale)
-                                .orient("left")
-                                .ticks(20);
-                        
-                svg.append("g")
-                        .attr("class", "axis")
-                        .attr("transform", "translate(0," + 500 + ")")
-                        .call(xAxis);
-                svg.append("g")
-                        .attr("class", "axis")
-                        .attr("transform", "translate(" + 50 + ",0)")
-                        .call(yAxis);
-                var context = document.getElementById('foreground').getContext('2d');
-                
-                points.forEach(function(d, i) {
-                    context.beginPath();
-                    context.arc(xScale(points[i][0]), yScale(points[i][1]), 5,0, 2*Math.PI);
-                    context.fillStyle="red";
-                    context.fill();
-                    context.closePath();
-                });
+                    var number_proteins = $patients[0].RPPA.length;
+
+                    var xScale = d3.scale.linear()
+                                    .domain([-1, number_proteins+1])
+                                    .range([10, w]);
+
+                    var yScale = d3.scale.linear()
+                                    .domain([min, max])
+                                    .range([h, 0]);
+
+                    var N = number_proteins;
+                    ticks=Array.apply(null, {length: N}).map(Number.call, Number)
+
+                    var xAxis = d3.svg.axis()
+                                    .scale(xScale)
+                                    .tickValues(ticks)
+                                    .tickFormat(function(d){return $patients[0].RPPA[d].ID})
+                                    .ticks(number_proteins)
+                                    .orient("bottom");
+                    var yAxis = d3.svg.axis()
+                                    .scale(yScale)
+                                    .orient("left")
+                                    .ticks(20);
+
+                    svg.append("g")
+                            .attr("class", "axis")
+                            .attr("transform", "translate(0," + 400 + ")")
+                            .call(xAxis);
+                    svg.append("g")
+                            .attr("class", "axis")
+                            .attr("transform", "translate(" + 50 + ",0)")
+                            .call(yAxis);
+                    var context = document.getElementById('foreground').getContext('2d');
+
+                    points.forEach(function(d, i) {
+                        context.beginPath();
+                        context.arc(xScale(points[i][0]), yScale(points[i][1]), 5,0, 2*Math.PI);
+                        context.fillStyle="red";
+                        context.fill();
+                        context.closePath();
+                    });
+                }
                 
             };
             
             myWorker.addEventListener("message", function (event) {
-                //draw_d3_plot2(event.data["data"], event.data["min"], event.data["max"]);
-                draw_d3_plot4(event.data["data"], event.data["min"], event.data["max"]);
-                //draw_d3_plot4();
+                draw_d3_plot(event.data["data"], event.data["min"], event.data["max"]);
             }, false);
             
             myWorker.postMessage({"patients":$patients, "groups":selected_groups});
@@ -346,23 +563,72 @@
         var selected_groups = {};
         function clinical_checkbox_clicked(checkbox){
             
-            var selected_group = checkbox.id.substring(0,checkbox.id.length-9);
-            var parameter = checkbox.id.split("__")[0];
-            var value = checkbox.id.split("__")[1];
-            var value = value.substring(0,value.length-9);
-            console.log(parameter+" --> "+value+" clicked");
+            if (checkbox.checked==true){
+                
+                selected_steps.push("clinical_"+checkbox.id.substring(0,checkbox.id.length-9));
             
-            var myWorker = new Worker('selected_group_finder.js');
-            
-            myWorker.addEventListener("message", function (event) {
-                selected_groups[selected_group] = event.data;
+                var selected_group = checkbox.id.substring(0,checkbox.id.length-9);
+                var parameter = checkbox.id.split("__")[0];
+                var value = checkbox.id.split("__")[1];
+                var value = value.substring(0,value.length-9);
+                console.log(parameter+" --> "+value+" clicked");
+
+                var myWorker = new Worker('selected_group_finder.js');
+
+                myWorker.addEventListener("message", function (event) {
+                    selected_groups[selected_group] = event.data;
+                    build_group_tables();
+                    draw_rppa_distribution();
+                    $(".parameter_checkbox").removeAttr("disabled");
+                }, false);
+
+                $(".parameter_checkbox").attr("disabled","true");
+                myWorker.postMessage({"patients":$patients, "parameter":parameter, "value":value});
+                
+            }
+            else{
+                var selected_group = checkbox.id.substring(0,checkbox.id.length-9);
+                var parameter = checkbox.id.split("__")[0];
+                var value = checkbox.id.split("__")[1];
+                var value = value.substring(0,value.length-9);
+                console.log(parameter+" --> "+value+" unclicked");
+                
+                var index = selected_steps.indexOf(checkbox.id.substring(0,checkbox.id.length-9));
+                selected_steps.splice(index,1);
+                
+                var unselected_group = checkbox.id.substring(0,checkbox.id.length-9);
+                delete selected_groups[unselected_group];
                 build_group_tables();
                 draw_rppa_distribution();
-                $(".parameter_checkbox").removeAttr("disabled");
-            }, false);
+            }
             
-            $(".parameter_checkbox").attr("disabled","true");
-            myWorker.postMessage({"patients":$patients, "parameter":parameter, "value":value});
+            update_history_state();
+            
+        }
+        
+        var selected_rppas = [];
+        function rppa_checkbox_clicked(checkbox){
+            
+            var rppa_id = checkbox.id.substring(0,checkbox.id.length-9);
+            
+            if (checkbox.checked==true){
+                
+                selected_rppas.push(rppa_id);
+                selected_steps.push("rppa_"+rppa_id);
+                
+            }
+            else{
+                
+                var index = selected_rppas.indexOf(rppa_id)
+                selected_rppas.splice(index,1);
+                
+                
+                index = selected_steps.indexOf("rppa_"+rppa_id)
+                selected_steps.splice(index,1);
+                
+            }
+            
+            update_history_state();
             
         }
         
@@ -413,13 +679,14 @@
                 }
                 $(column).appendTo(new_row);
             }
-            controls.setAttribute("style","border: 1px solid");
+            //controls.setAttribute("style","border: 1px solid");
+            controls.style.border="1px solid";
+            controls.style.marginTop="-1px";
         }
         
         function add_rppa_controls(){
             
             controls = document.getElementById("rppa_controls");
-            
             
             for (var i=0;i<$patients[0].RPPA.length;i++){
                         
@@ -448,188 +715,126 @@
                 $(column).appendTo(new_row);
             }
             
-            controls.setAttribute("style","border: 1px solid");
+            controls.style.border="1px solid";
+            controls.style.marginBottom="-22px";
             
         }
         
-        function draw_d3_plot3(){
+        function clear_tables_and_graph(){
             
-
-var m = [30, 10, 10, 10],
-    w = 960 - m[1] - m[3],
-    h = 500 - m[0] - m[2];
-
-var x = d3.scale.ordinal().rangePoints([0, w], 1),
-    y = {};
-
-var line = d3.svg.line(),
-    axis = d3.svg.axis().orient("left"),
-    background,
-    foreground;
-
-d3.selectAll("canvas")
-    .attr("width", w + m[1] + m[3])
-    .attr("height", h + m[0] + m[2])
-    .style("padding", m.join("px ") + "px");
-
-foreground = document.getElementById('foreground').getContext('2d');
-background = document.getElementById('background').getContext('2d');
-
-foreground.strokeStyle = "rgba(0,100,160,0.24)";
-background.strokeStyle = "rgba(0,0,0,0.02)";
-
-var svg = d3.select("svg")
-    .attr("width", w + m[1] + m[3])
-    .attr("height", h + m[0] + m[2])
-  .append("svg:g")
-    .attr("transform", "translate(" + m[3] + "," + m[0] + ")");
-
-d3.csv("cars.csv", function(cars) {
-
-  // Extract the list of dimensions and create a scale for each.
-  x.domain(dimensions = d3.keys(cars[0]).filter(function(d) {
-    return d != "name" && (y[d] = d3.scale.linear()
-        .domain(d3.extent(cars, function(p) { return +p[d]; }))
-        .range([h, 0]));
-  }));
-
-  // Render full foreground and background
-  cars.map(function(d) {
-    path(d, background);
-    path(d, foreground);
-  });
-
-  // Add a group element for each dimension.
-  var g = svg.selectAll(".dimension")
-      .data(dimensions)
-    .enter().append("svg:g")
-      .attr("class", "dimension")
-      .attr("transform", function(d) { return "translate(" + x(d) + ")"; });
-
-  // Add an axis and title.
-  g.append("svg:g")
-      .attr("class", "axis")
-      .each(function(d) { d3.select(this).call(axis.scale(y[d])); })
-    .append("svg:text")
-      .attr("text-anchor", "middle")
-      .attr("y", -9)
-      .text(String);
-
-  // Add and store a brush for each axis.
-  g.append("svg:g")
-      .attr("class", "brush")
-      .each(function(d) { d3.select(this).call(y[d].brush = d3.svg.brush().y(y[d]).on("brush", brush)); })
-    .selectAll("rect")
-      .attr("x", -8)
-      .attr("width", 16);
-
-  // Handles a brush event, toggling the display of foreground lines.
-  function brush() {
-    var actives = dimensions.filter(function(p) { return !y[p].brush.empty(); }),
-        extents = actives.map(function(p) { return y[p].brush.extent(); });
-
-    // Get lines within extents
-    var selected = [];
-    cars.map(function(d) {
-      return actives.every(function(p, i) {
-        return extents[i][0] <= d[p] && d[p] <= extents[i][1];
-      }) ? selected.push(d) : null;
-    });
-
-    // Render selected lines
-    foreground.clearRect(0,0,w+1,h+1);
-    selected.map(function(d) {
-      path(d, foreground);
-    });
-  }
-});
-
-function path(d, ctx) {
-  ctx.beginPath();
-  dimensions.map(function(p,i) {
-    if (i == 0) {
-      ctx.moveTo(x(p),y[p](d[p]));
-    } else { 
-      ctx.lineTo(x(p),y[p](d[p]));
-    }
-  });
-  ctx.stroke();
-};
+            $("#rppa_distribution").empty();
+            $("#rppa_distribution").html("<div id=\"chart\"><canvas id=\"foreground\"></canvas><svg></svg></div>");
+                
+            var table_container = document.getElementById("table_container");
+            $(table_container).empty();
+            
+            selected_rppas=[];
+            selected_groups={};
         }
         
-        function draw_d3_plot4(){
+        var selected_steps = [];
+        function update_history_state(){
             
-            var m = [30, 10, 10, 10],
-                    w = 32767 - m[1] - m[3],
-                    h = 1000 - m[0] - m[2];
+            //console.log(selected_steps);
+            var url = "?dataset="+dataset+"&";
+            for (var i=0;i<selected_steps.length;i++){
+                url = url+selected_steps[i]+"&";
+            }
+            url = url.substring(0,url.length-1);
             
-                d3.selectAll("canvas")
-                    .attr("width", w + m[1] + m[3])
-                    .attr("height", h + m[0] + m[2])
-                    .style("padding", m.join("px ") + "px");
-                var svg = d3.select("svg")
-                    .attr("width", w + m[1] + m[3])
-                    .attr("height", h + m[0] + m[2])
-                    .append("svg:g")
-                    .attr("transform", "translate(" + m[3] + "," + m[0] + ")");
+            history.pushState(selected_steps,"",url);
+        }
+        
+        function click_story_buttons(){
             
-                var number_proteins = $patients[0].RPPA.length;
-                
-                var xScale = d3.scale.linear()
-                                .domain([-1, number_proteins+1])
-                                .range([10, w]);
-                            
-                var yScale = d3.scale.linear()
-                                .domain([min, max])
-                                .range([h, 0]);
-                
-                var N = number_proteins;
-                ticks=Array.apply(null, {length: N}).map(Number.call, Number)
-                        
-                var xAxis = d3.svg.axis()
-                                .scale(xScale)
-                                .tickValues(ticks)
-                                .tickFormat(function(d){return $patients[0].RPPA[d].ID})
-                                .ticks(number_proteins)
-                                .orient("bottom");
-                var yAxis = d3.svg.axis()
-                                .scale(yScale)
-                                .orient("left")
-                                .ticks(20);
-                        
-                svg.append("g")
-                        .attr("class", "axis")
-                        .attr("transform", "translate(0," + 500 + ")")
-                        .call(xAxis);
-                svg.append("g")
-                        .attr("class", "axis")
-                        .attr("transform", "translate(" + 50 + ",0)")
-                        .call(yAxis);
-                
-                var context = document.getElementById('foreground').getContext('2d');
-                
-                points.forEach(function(d, i) {
-                    context.beginPath();
-                    context.arc(xScale(points[i][0]), yScale(points[i][1]), 5,0, 2*Math.PI);
-                    context.fillStyle="red";
-                    context.fill();
-                    context.closePath();
-                });
+            if (typeof story!='undefined'){
+                var steps = story.split("&");
+                steps.shift();
+                if (steps.length>0){
+                console.log("there is a story to tell");
+                    for (var i=0;i<steps.length;i++){
+                        if (steps[i].substring(0,8)=="clinical"){
+                            var step=steps[i].substring(9,steps[i].length);
+                            if (step.charAt(step.length-1)=="#"){
+                                step = step.substring(0,step.length-1);
+                            }
+                            step=step.replace("%20"," ");
+                            console.log(step+"_checkbox")
+                            var button = document.getElementById(step+"_checkbox");
+                            button.checked=true;
+                            clinical_checkbox_clicked(button);
+                        }
+                        else if(steps[i].substring(0,4)=="rppa"){
+                            var step=steps[i].substring(5,steps[i].length);
+                            if (step.charAt(step.length-1)=="#"){
+                                step = step.substring(0,step.length-1);
+                            }
+                            step=step.replace("%20"," ");
+                            console.log(step+"_checkbox");
+                            var button = document.getElementById(step+"_checkbox");
+                            button.checked=true;
+                            rppa_checkbox_clicked(button);
+                        }
+                    }
+                }
+            }
             
         }
         
-        $(".dataset_selection").click(function(e){
-            
-            console.log(e.target.id+" selected");
-            document.getElementById("layout_button").setAttribute("style","display:inline");
+        function load_dataset(dataset){
             loadJSON(function(response) {
-                $patients = JSON.parse(response);
+                    $patients = JSON.parse(response);
+                    $model.init_dataset($patients);
+                    $visualization.init_dots();
+                    clear_tables_and_graph();
+                    add_clinical_controls();
+                    add_rppa_controls();
+                    adjust_controls();
+                    update_history_state();
+                    click_story_buttons();
+            }, dataset); 
+        }
+        
+        var dataset;
+        var story;
+        $(function(){
+            
+            $visualization = new visualization();
+            $model = new model();
+        
+            $(".dataset_selection").click(function(e){
+
+                console.log(e.target.id+" selected");
+                dataset=e.target.id;
+                document.getElementById("layout_button").setAttribute("style","display:inline");
+                load_dataset(e.target.id);  
                 
-                add_clinical_controls();
-                add_rppa_controls();
-                adjust_controls();
-            }, e.target.id);            
+            });
+            
+            story = document.URL.split("?")[1];
+            
+            if (typeof story!='undefined'){
+                
+                console.log(story);
+                var story_dataset = story.split("&")[0];
+                console.log(story_dataset);
+                if (story_dataset.charAt(story_dataset.length-1)=="#"){
+                    var story_dataset = story_dataset.substring(8,story_dataset.length-1);
+                }
+                else{
+                    var story_dataset = story_dataset.substring(8,story_dataset.length);
+                }
+                console.log(story_dataset);
+                dataset=story_dataset;
+                story = document.URL.split("?")[1];
+                load_dataset(story_dataset);
+                
+            }
+            
+            $timer = setInterval(function(){ $visualization.render() }, 5);
         });
+        
+        
         
     </script>
 </body>
