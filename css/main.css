@@ -10,31 +10,43 @@
 }
 
 #parameter_controls{
-    height: 650px;
-    overflow-y: scroll;
+    
 }
 
-
 #clinical_controls{
-    height: 250px;
     overflow-y: scroll;
+    
 }
 
 #rppa_controls{
-    height: 400px;
     overflow-y: scroll;
 }
 
 #rppa_distribution{
-    height: 400px;
+    height: 1000px;
     overflow-y:scroll;
     overflow-x:scroll;
+    position:relative;
 }
 
 .domain{
     overflow-y:scroll;
     overflow-x:scroll;
-    height:100px;
+    height:200px;
+}
+
+#table_container{
+    overflow-y:scroll;
+}
+
+#chart {
+  position: relative;
+}
+
+canvas, svg {
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 /* ==========================================================================
