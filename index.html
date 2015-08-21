@@ -2,14 +2,15 @@
     
 <head>
     <title>GSoC Final</title>
-    <script src="http://d3js.org/d3.v2.min.js?2.8.1"></script>
+    <!--<script src="http://d3js.org/d3.v2.min.js?2.8.1"></script>-->
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="js/libs/jqueryui/css/base/jquery.ui.all.css">
     <script src="js/vendor/jquery-1.11.2.js"></script>
     <script src="js/libs/jqueryui/jquery-ui.js"></script>
-    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <!--<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>-->
     <script src="js/vendor/three.min.js"></script>
+    <script src="js/vendor/bootstrap.min.js"></script>
     <script type="text/javascript" src="tsne.js"></script>
 </head>
 <body onresize="adjust_controls()">
@@ -89,7 +90,6 @@
             </div>
         </div>
         
-        
         <div class="row">
             <div class="col-md-12" id="rppa_distribution">
                 <!--<canvas id="rppa_plot"></canvas>
@@ -98,6 +98,12 @@
                     <canvas id="foreground"></canvas>
                     <svg id="svg"></svg>
                 </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-12" id="f-scores">
+                
             </div>
         </div>
         
@@ -603,7 +609,6 @@
         }
         
         function color_dots_according_to_group(){
-            console.log("hey");
             
             for (var k=0;k<$model.patients.length;k++){
                 $visualization.dots[k].material.color = new THREE.Color(colors2[0]);
@@ -611,7 +616,7 @@
             
             var group_counter=0;
             for (var i in selected_groups){
-                console.log(i);
+                
                 for (var k=0;k<selected_groups[i].length;k++){
                     $visualization.dots[selected_groups[i][k]].material.color = new THREE.Color(colors2[group_counter+1]);
                 }
@@ -641,6 +646,10 @@
                     draw_rppa_distribution();
                     color_dots_according_to_group();
                     $(".parameter_checkbox").removeAttr("disabled");
+                    
+                    if (selected_rppas.length>0){
+                        compute_f_ratio();
+                    }
                 }, false);
 
                 $(".parameter_checkbox").attr("disabled","true");
@@ -664,9 +673,14 @@
                 build_group_tables();
                 draw_rppa_distribution();
                 color_dots_according_to_group();
+                if (selected_rppas.length>0){
+                    compute_f_ratio();
+                }
             }
             
             update_history_state();
+            
+            
             
         }
         
@@ -690,6 +704,9 @@
                 }
                 $model.recompute();
                 
+                compute_f_ratio();
+                
+                
             }
             else{
                 
@@ -709,9 +726,51 @@
                 }
                 $model.recompute();
                 
+                compute_f_ratio();
+                
             }
             
             update_history_state();
+            //compute_variance_within_group([4,5,6,7], selected_rppas);
+            //console.log(compute_mean_and_variance_within_group([4,5,6,7,8], selected_rppas)["mean"]);
+            
+        }
+        
+        function compute_f_ratio(){
+            
+            var string="F-ratios:</br>";
+            
+            for (var i=0;i<Object.keys(selected_groups).length-1;i++){
+                for (var k=i+1;k<Object.keys(selected_groups).length;k++){
+                    
+                    var group_parameter1 = Object.keys(selected_groups)[i].split("__")[0];
+                    var group_parameter2 = Object.keys(selected_groups)[k].split("__")[0];
+                    var group_value1 = Object.keys(selected_groups)[i].split("__")[1];
+                    var group_value2 = Object.keys(selected_groups)[k].split("__")[1];
+                    
+                    if (group_parameter1==group_parameter2){
+                        mean_and_variance_group1 = compute_mean_and_variance_within_group(selected_groups[Object.keys(selected_groups)[i]], selected_rppas);
+                        mean_and_variance_group2 = compute_mean_and_variance_within_group(selected_groups[Object.keys(selected_groups)[k]], selected_rppas);
+
+                        var fisher_ratios = [];
+                        for (var p=0;p<selected_rppas.length;p++){
+                            fisher_ratios[p] = Math.pow(mean_and_variance_group1["mean"][p]-mean_and_variance_group2["mean"][p],2)/(mean_and_variance_group1["variance"][p]+mean_and_variance_group2["variance"][p]);
+                        }
+
+                        var fisher_ratio_mean = 0;
+                        for (var p=0;p<selected_rppas.length;p++){
+                            fisher_ratio_mean += fisher_ratios[p];
+                        }
+                        fisher_ratio_mean = fisher_ratio_mean/selected_rppas.length;
+                        
+                        string=string+" between \""+group_parameter1+": "+group_value1+"\" and \""+group_parameter2+": "+group_value2+"\": "+fisher_ratio_mean+"</br>";
+
+                        console.log("f-ratio between groups "+Object.keys(selected_groups)[i]+"; "+Object.keys(selected_groups)[k]+": "+fisher_ratio_mean);
+                    }
+                }
+            }
+            
+            $("#f-scores").html(string);
             
         }
         
@@ -865,7 +924,9 @@
         }
         
         function load_dataset(dataset){
+            
             loadJSON(function(response) {
+                    document.getElementById("layout_button").setAttribute("style","display:inline");
                     $patients = JSON.parse(response);
                     $model.init_dataset($patients);
                     $visualization.init_dots();
@@ -875,12 +936,48 @@
                     adjust_controls();
                     update_history_state();
                     click_story_buttons();
-                    document.getElementById("layout_button").setAttribute("style","display:inline");
+                    
                     if (dataset=="brca2"){
                         $model.n_nearest_connect=7;
                         $model.recompute();
                     }
             }, dataset); 
+        }
+        
+        function compute_mean_and_variance_within_group(patient_group, selected_rppa_parameters){
+            
+            var rppa_parameters_indexes = [];
+            for (var i=0;i<$patients[0].RPPA.length;i++){
+                for (var k=0;k<selected_rppa_parameters.length;k++)
+                    if ($patients[0].RPPA[i].ID==selected_rppa_parameters[k])
+                        rppa_parameters_indexes.push(i);
+            }
+            
+            //contains the mean value for each selected_rppa_parameter in "selected_rppa_parameters" in "patient_group"
+            var mean_values = [];
+            
+            for (var i=0;i<selected_rppa_parameters.length;i++){
+                mean_values[i] = 0;
+                for (var k=0;k<patient_group.length;k++){
+                    mean_values[i] += parseFloat($patients[patient_group[k]].RPPA[rppa_parameters_indexes[i]].value);
+                }
+            }
+            
+            for (var i=0;i<selected_rppa_parameters.length;i++){
+                mean_values[i] = mean_values[i]/$patients[0].RPPA.length;
+            }
+            
+            var variance_values = [];
+            
+            for (var i=0;i<selected_rppa_parameters.length;i++){
+                variance_values[i] = 0;
+                for (var k=0;k<patient_group.length;k++){
+                    variance_values[i] += Math.pow(parseFloat($patients[patient_group[k]].RPPA[rppa_parameters_indexes[i]].value)-mean_values[i],2);
+                }
+            }
+            
+            return ({"mean":mean_values, "variance":variance_values});
+            
         }
         
         var dataset;
