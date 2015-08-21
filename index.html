@@ -10,6 +10,7 @@
     <script src="js/libs/jqueryui/jquery-ui.js"></script>
     <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
     <script src="js/vendor/three.min.js"></script>
+    <script type="text/javascript" src="tsne.js"></script>
 </head>
 <body onresize="adjust_controls()">
     <div class="container-fluid" id="outer_container">
@@ -92,7 +93,7 @@
                 <svg id="rppa_plot_axis"></svg>-->
                 <div id="chart">
                     <canvas id="foreground"></canvas>
-                    <svg></svg>
+                    <svg id="svg"></svg>
                 </div>
             </div>
         </div>
@@ -104,6 +105,9 @@
         
     </div>
     <script>
+        
+        var colors = {1:"#6699FF", 2: "#00FF00", 3:"#CC6699", 4:"#FF3300", 5:"#66FFFF", 6:"#99FF99", 7:"#FFFFCC", 8:"#9999FF", 9:"#FF9900", 10:"#0099CC" };
+        var colors2 = {0: 0x000000, 1:0x6699FF, 2: 0x00FF00, 3:0xCC6699, 4:0xFF3300, 5:0x66FFFF, 6:0x99FF99, 7:0xFFFFCC, 8:0x9999FF, 9:0xFF9900, 10:0x0099CC};
         
         function model(){
             this.n_patients=0;
@@ -444,7 +448,6 @@
             
             var table_counter=0;
             for (var i in selected_groups){
-                console.log(i);
                 table_counter++;
                 var table_row = document.createElement("div");
                 table_row.setAttribute("class", "row");
@@ -470,8 +473,8 @@
                 
                 for (var k=0;k<selected_groups[i].length;k++){
                     html_string="";
-                    for (var x in $patients[k].clinical){
-                        html_string+="<td>"+$patients[k].clinical[x]+"</td>";
+                    for (var x in $patients[selected_groups[i][k]].clinical){
+                        html_string+="<td>"+$patients[selected_groups[i][k]].clinical[x]+"</td>";
                     }
                     var number_rows = document.getElementById("table_"+table_counter).rows.length;
                     $("#table_"+table_counter+"_row_"+(number_rows-1)).html(html_string);
@@ -491,7 +494,7 @@
                 
                 $("#rppa_distribution").empty();
                 if (points.length>0){
-                    $("#rppa_distribution").html("<div id=\"chart\"><canvas id=\"foreground\"></canvas><svg></svg></div>");
+                    $("#rppa_distribution").html("<div id=\"chart\"><canvas id=\"foreground\"></canvas><svg id=\"svg\"></svg></div>");
 
                     var m = [30, 10, 10, 10],
                         w = 32767 - m[1] - m[3],
@@ -501,6 +504,7 @@
                         .attr("width", w + m[1] + m[3])
                         .attr("height", h + m[0] + m[2])
                         .style("padding", m.join("px ") + "px");
+                
                     var svg = d3.select("svg")
                         .attr("width", w + m[1] + m[3])
                         .attr("height", h + m[0] + m[2])
@@ -513,9 +517,16 @@
                                     .domain([-1, number_proteins+1])
                                     .range([10, w]);
 
-                    var yScale = d3.scale.linear()
+                    
+                        var yScale = d3.scale.linear()
                                     .domain([min, max])
+                                    .range([h, 0]);       
+            
+                    if (dataset=="brca2"){
+                        var yScale = d3.scale.linear()
+                                    .domain([0, 5000])
                                     .range([h, 0]);
+                    }
 
                     var N = number_proteins;
                     ticks=Array.apply(null, {length: N}).map(Number.call, Number)
@@ -548,6 +559,32 @@
                         context.fill();
                         context.closePath();
                     });
+                    
+                    var svg = document.getElementById("svg");
+                    
+                    svg.setAttribute("style","cursor:pointer");
+                    
+                    svg.addEventListener('mousedown', function(evt) {
+                        var pt = svg.createSVGPoint();
+                        pt.x = evt.clientX; pt.y = evt.clientY;
+                        var x = xScale.invert(pt.matrixTransform(svg.getScreenCTM().inverse()).x);
+                        var tempx = Math.floor(x);
+                        var temp2 = x-tempx;
+                        if (temp2>0.5){
+                            var temp3 = Math.ceil(x);
+                        }
+                        else{
+                            var temp3 = tempx;
+                        }
+                        console.log(x+"; "+tempx+"; "+temp2+"; "+temp3+"; "+$patients[0].RPPA[temp3].ID);
+                        console.log($patients[0].RPPA[temp3].ID+"_checkbox");
+                        var button = document.getElementById($patients[0].RPPA[temp3].ID+"_checkbox");
+                        if (button.checked==true)
+                            button.checked=false;
+                        else
+                            button.checked=true;
+                        rppa_checkbox_clicked(button);
+                    }, false);
                 }
                 
             };
@@ -557,6 +594,24 @@
             }, false);
             
             myWorker.postMessage({"patients":$patients, "groups":selected_groups});
+            
+        }
+        
+        function color_dots_according_to_group(){
+            console.log("hey");
+            
+            for (var k=0;k<$model.patients.length;k++){
+                $visualization.dots[k].material.color = new THREE.Color(colors2[0]);
+            }
+            
+            var group_counter=0;
+            for (var i in selected_groups){
+                console.log(i);
+                for (var k=0;k<selected_groups[i].length;k++){
+                    $visualization.dots[selected_groups[i][k]].material.color = new THREE.Color(colors2[group_counter+1]);
+                }
+                group_counter++;
+            }
             
         }
         
@@ -579,10 +634,13 @@
                     selected_groups[selected_group] = event.data;
                     build_group_tables();
                     draw_rppa_distribution();
+                    color_dots_according_to_group();
                     $(".parameter_checkbox").removeAttr("disabled");
                 }, false);
 
                 $(".parameter_checkbox").attr("disabled","true");
+                
+                
                 myWorker.postMessage({"patients":$patients, "parameter":parameter, "value":value});
                 
             }
@@ -600,6 +658,7 @@
                 delete selected_groups[unselected_group];
                 build_group_tables();
                 draw_rppa_distribution();
+                color_dots_according_to_group();
             }
             
             update_history_state();
@@ -616,15 +675,34 @@
                 selected_rppas.push(rppa_id);
                 selected_steps.push("rppa_"+rppa_id);
                 
+                var slider_id = rppa_id+"_slider";
+                slider = document.getElementById(slider_id);
+                slider.value=1;
+                
+                for (var i=0;i<$model.n_features;i++){
+                    if ($model.patients[0].RPPA[i].ID==rppa_id)
+                        $model.protein_weights[i] = slider.value;
+                }
+                $model.recompute();
+                
             }
             else{
                 
                 var index = selected_rppas.indexOf(rppa_id)
                 selected_rppas.splice(index,1);
                 
-                
                 index = selected_steps.indexOf("rppa_"+rppa_id)
                 selected_steps.splice(index,1);
+                
+                var slider_id = rppa_id+"_slider";
+                slider = document.getElementById(slider_id);
+                slider.value=0;
+                    
+                for (var i=0;i<$model.n_features;i++){
+                    if ($model.patients[0].RPPA[i].ID==rppa_id)
+                        $model.protein_weights[i] = slider.value;
+                }
+                $model.recompute();
                 
             }
             
@@ -687,6 +765,8 @@
         function add_rppa_controls(){
             
             controls = document.getElementById("rppa_controls");
+            
+            $("#rppa_controls").empty();
             
             for (var i=0;i<$patients[0].RPPA.length;i++){
                         
@@ -759,7 +839,6 @@
                                 step = step.substring(0,step.length-1);
                             }
                             step=step.replace("%20"," ");
-                            console.log(step+"_checkbox")
                             var button = document.getElementById(step+"_checkbox");
                             button.checked=true;
                             clinical_checkbox_clicked(button);
@@ -770,7 +849,6 @@
                                 step = step.substring(0,step.length-1);
                             }
                             step=step.replace("%20"," ");
-                            console.log(step+"_checkbox");
                             var button = document.getElementById(step+"_checkbox");
                             button.checked=true;
                             rppa_checkbox_clicked(button);
@@ -792,8 +870,11 @@
                     adjust_controls();
                     update_history_state();
                     click_story_buttons();
+                    document.getElementById("layout_button").setAttribute("style","display:inline");
             }, dataset); 
         }
+        
+        
         
         var dataset;
         var story;
@@ -806,9 +887,20 @@
 
                 console.log(e.target.id+" selected");
                 dataset=e.target.id;
-                document.getElementById("layout_button").setAttribute("style","display:inline");
                 load_dataset(e.target.id);  
                 
+            });
+            
+            $(".layout_selection").click(function(e){
+                if ( e.target.id=="tsne"){
+                        console.log("tsne selected");
+                        $model.tsne_selected=1;
+                        console.log(selected_rppas);
+                        tsne_layout = new tsne($model.patients, $visualization.dots, selected_rppas);
+                }
+                else{
+                        $model.tsne_selected=0;
+                }
             });
             
             story = document.URL.split("?")[1];
@@ -824,7 +916,6 @@
                 else{
                     var story_dataset = story_dataset.substring(8,story_dataset.length);
                 }
-                console.log(story_dataset);
                 dataset=story_dataset;
                 story = document.URL.split("?")[1];
                 load_dataset(story_dataset);
@@ -833,8 +924,6 @@
             
             $timer = setInterval(function(){ $visualization.render() }, 5);
         });
-        
-        
         
     </script>
 </body>
