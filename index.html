@@ -456,6 +456,8 @@
                 table_header.innerHTML = i.split("__")[0]+": "+i.split("__")[1];
                 $(table_header).appendTo(table_row);
                 
+                $(table_row).css("background-color", colors[table_counter]);
+                
                 var table_div = document.createElement("div");
                 table_div.setAttribute("style", "overflow-x:scroll; overflow-y:scroll; max-height:400px");
                 $(table_div).appendTo(table_row);
@@ -555,7 +557,7 @@
                     points.forEach(function(d, i) {
                         context.beginPath();
                         context.arc(xScale(points[i][0]), yScale(points[i][1]), 5,0, 2*Math.PI);
-                        context.fillStyle="red";
+                        context.fillStyle=colors[points[i][2]];
                         context.fill();
                         context.closePath();
                     });
@@ -871,10 +873,12 @@
                     update_history_state();
                     click_story_buttons();
                     document.getElementById("layout_button").setAttribute("style","display:inline");
+                    if (dataset=="brca2"){
+                        $model.n_nearest_connect=7;
+                        $model.recompute();
+                    }
             }, dataset); 
         }
-        
-        
         
         var dataset;
         var story;
