@@ -1,7 +1,7 @@
 <html>
     
 <head>
-    <title>Hello Web Workers</title>
+    <title>GSoC Final</title>
     <script src="http://d3js.org/d3.v2.min.js?2.8.1"></script>
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/main.css">
@@ -68,7 +68,10 @@
                 </button>
                 <ul class="dropdown-menu" role="menu" aria-labelledby="menu1">
                     <li role="presentation"><a class="layout_selection" role="menuitem" tabindex="-1" href="#" id="tsne">t-sne</a></li>
-                    <li role="presentation"><a class="layout_selection" role="menuitem" tabindex="-1" href="#" id="force">force layout</a></li>
+                    <li class="divider"></li>
+                    <li role="presentation"><a class="layout_selection" role="menuitem" tabindex="-1" href="#" id="force2">force layout: 2 nearest neighbors</a></li>
+                    <li role="presentation"><a class="layout_selection" role="menuitem" tabindex="-1" href="#" id="force5">force layout: 5 nearest neighbors</a></li>
+                    <li role="presentation"><a class="layout_selection" role="menuitem" tabindex="-1" href="#" id="force7">force layout: 7 nearest neighbors</a></li>
                 </ul>
             </div>
         </div>
@@ -902,8 +905,20 @@
                         console.log(selected_rppas);
                         tsne_layout = new tsne($model.patients, $visualization.dots, selected_rppas);
                 }
-                else{
-                        $model.tsne_selected=0;
+                else if (e.target.id=="force2"){
+                    $model.tsne_selected=0;
+                    $model.n_nearest_connect=2;
+                    $model.recompute();
+                }
+                else if (e.target.id=="force5"){
+                    $model.tsne_selected=0;
+                    $model.n_nearest_connect=5;
+                    $model.recompute();
+                }
+                else if (e.target.id=="force7"){
+                    $model.tsne_selected=0;
+                    $model.n_nearest_connect=7;
+                    $model.recompute();
                 }
             });
             
