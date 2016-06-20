@@ -1,0 +1,1046 @@
+<html>
+
+<head>
+    <title>GSoC Final</title>
+    <script src="https://d3js.org/d3.v2.min.js?2.8.1"></script>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="js/libs/jqueryui/css/base/jquery.ui.all.css">
+    <script src="js/vendor/jquery-1.11.2.js"></script>
+    <script src="js/libs/jqueryui/jquery-ui.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <script src="js/vendor/three.min.js"></script>
+
+    <script type="text/javascript" src="tsne.js"></script>
+</head>
+<body onresize="adjust_controls()">
+    <div class="container-fluid" id="outer_container">
+
+        <div class="row">
+            <div class="col-md-2">
+            <div class="dropdown">
+            <button class="btn btn-default dropdown-toggle" type="button" id="menu1" data-toggle="dropdown">Select Dataset
+                <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu" role="menu" aria-labelledby="menu1">
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="acc">acc</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="blca">blca</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="brca">brca</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="cesc">cesc</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="chol">chol</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="cntl">cntl</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="coad">coad</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="dlbc">dlbc</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="esca">esca</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="fppp">fppp</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="gbm">gbm</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="hnsc">hnsc</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="kich">kich</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="kirp">kirp</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="laml">laml</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="lcml">lcml</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="lgg">lgg</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="lihc">lihc</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="lnnh">lnnh</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="luad">luad</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="lusc">lusc</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="meso">meso</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="ov">ov</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="paad">paad</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="pcpg">pcpg</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="prad">prad</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="read">read</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="sarc">sarc</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="skcm">skcm</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="stad">stad</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="tgct">tgct</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="thym">thym</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="ucec">ucec</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="ucs">ucs</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="uvm">uvm</a></li>
+                <li role="presentation"><a class="dataset_selection" role="menuitem" tabindex="-1" href="#" id="brca2">brca2</a></li>
+            </ul>
+            </div>
+            </div>
+        <div class="col-md-5" id="layout_button" style="display:none">
+            <div class="dropdown">
+                <button class="btn btn-default dropdown-toggle" type="button" id="menu2" data-toggle="dropdown">Layout
+                    <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu" role="menu" aria-labelledby="menu1">
+                    <li role="presentation"><a class="layout_selection" role="menuitem" tabindex="-1" href="#" id="tsne">t-sne</a></li>
+                    <li class="divider"></li>
+                    <li role="presentation"><a class="layout_selection" role="menuitem" tabindex="-1" href="#" id="force2">force layout: 2 nearest neighbors</a></li>
+                    <li role="presentation"><a class="layout_selection" role="menuitem" tabindex="-1" href="#" id="force5">force layout: 5 nearest neighbors</a></li>
+                    <li role="presentation"><a class="layout_selection" role="menuitem" tabindex="-1" href="#" id="force7">force layout: 7 nearest neighbors</a></li>
+                </ul>
+            </div>
+        </div>
+        </div>
+        <div class="row " >
+            <div class="col-md-7" id="visuals">
+            </div>
+            <div class="col-md-5 " id="parameter_controls" style="float:right">
+                <div class="row" >
+                    <div class="col-md-12" id="clinical_controls"></div>
+                </div>
+                <div class="row" id="rppa_controls_wrapper">
+                    <div class="col-md-12" id="rppa_controls"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12" id="rppa_distribution">
+                <!--<canvas id="rppa_plot"></canvas>
+                <svg id="rppa_plot_axis"></svg>-->
+                <div id="chart">
+                    <canvas id="foreground"></canvas>
+                    <svg id="svg"></svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12" id="f-scores">
+
+            </div>
+        </div>
+
+        <div class="row" id="table_container">
+        </div>
+
+
+
+    </div>
+    <script>
+
+        var colors = {1:"#6699FF", 2: "#00FF00", 3:"#CC6699", 4:"#FF3300", 5:"#66FFFF", 6:"#99FF99", 7:"#FFFFCC", 8:"#9999FF", 9:"#FF9900", 10:"#0099CC" };
+        var colors2 = {0: 0x000000, 1:0x6699FF, 2: 0x00FF00, 3:0xCC6699, 4:0xFF3300, 5:0x66FFFF, 6:0x99FF99, 7:0xFFFFCC, 8:0x9999FF, 9:0xFF9900, 10:0x0099CC};
+
+        function model(){
+            this.n_patients=0;
+            this.n_features=0;
+            this.patients;
+            this.distances = [];
+            this.node_degree = [];
+            this.edges = [];
+            this.n_nearest_connect=2;
+            this.tsne_selected=0;
+            this.all_edges = [];
+            this.protein_weights = [];
+            this.tsne_selected=0;
+
+            this.recompute = function(){
+
+                var considered_proteins = [];
+                var protein_counter=0;
+                for (var i=0;i<this.n_features;i++){
+                    if (this.protein_weights[i]!=0){
+                        considered_proteins[protein_counter]=i;
+                        protein_counter++;
+                    }
+                }
+
+                for (var i=0;i<this.n_patients;i++){
+                    this.edges[i] = [];
+                    for (var k=0;k<this.n_patients;k++){
+                        this.edges[i][k]=0;
+                    }
+                }
+
+                compute_euclidean_distance = function(a,b){
+
+                    var sum = 0;
+
+                    for (var i=0;i<protein_counter;i++){
+                        sum = sum+$model.protein_weights[considered_proteins[i]]*(Math.pow($model.patients[a].RPPA[i].value-$model.patients[b].RPPA[i].value,2));
+                    }
+
+                    sum=Math.sqrt(sum);
+                    return(sum);
+                }
+
+                for (var i=0;i<this.n_patients-1;i++){
+                    this.distances[i] = [];
+                    for (var k=i+1;k<this.n_patients;k++){
+                        this.distances[i][k-i-1]=compute_euclidean_distance(i,k);
+                    }
+                }
+
+                find_nearest_neighbors = function(a){
+
+                    var temp_counter=0;
+                    var temp_distance=-1;
+                    var temp_max_distance;
+                    var temp_max_index;
+                    var nearest_distances = [];
+                    var nearest_indices = [];
+                    for (var i=0;i<$model.n_patients;i++){
+
+                        if (i!=a){
+
+                            if (i<a){
+                                temp_distance = $model.distances[i][a-i-1];
+                            }
+                            else{
+                                temp_distance = $model.distances[a][i-a-1];
+                            }
+
+
+
+                            if(temp_counter<$model.n_nearest_connect){
+                                nearest_distances[temp_counter]=temp_distance;
+                                nearest_indices[temp_counter]=i;
+                                temp_counter++;
+                            }
+                            else{
+                                temp_max_distance = nearest_distances[0];
+                                temp_max_index = 0;
+                                for (var k=1;k<$model.n_nearest_connect;k++){
+                                    if (nearest_distances[k]>temp_max_distance){
+                                        temp_max_distance = nearest_distances[k];
+                                        temp_max_index=k;
+                                    }
+                                }
+
+                                if (temp_distance<temp_max_distance){
+                                    nearest_distances[temp_max_index]=temp_distance;
+                                    nearest_indices[temp_max_index]=i;
+                                }
+
+                            }
+                        }
+                    }
+                    return(nearest_indices);
+                }
+
+                for (var i=0;i<this.n_patients;i++){
+                    this.node_degree[i]=0;
+                    for (var k=0;k<this.n_patients;k++){
+                        this.edges[i][k]=0;
+                    }
+                }
+
+                if (protein_counter>0){
+                    var edge_counter=0;
+                    for (var i=0;i<this.n_patients;i++){
+
+                        neighbors = find_nearest_neighbors(i);
+
+                        for (var k=0;k<neighbors.length;k++){
+                            if (neighbors[k]>i){
+                                this.edges[i][neighbors[k]-i-1]=1;
+                                this.node_degree[i]++;
+                                this.node_degree[neighbors[k]]++;
+                            }
+                            else{
+                                this.edges[neighbors[k]][i-neighbors[k]-1]=1;
+                                this.node_degree[i]++;
+                                this.node_degree[neighbors[k]]++;
+                            }
+                        }
+                    }
+                }
+            }
+
+            this.init_dataset = function(patient_data){
+
+                this.patients = patient_data;
+                this.n_patients = this.patients.length;
+                this.n_features = this.patients[0].RPPA.length;
+                for (var i=0;i<$model.n_features;i++){
+                    this.protein_weights[i]=0;
+                }
+                this.recompute();
+
+            }
+        }
+
+        function visualization(){
+
+                this.scene = new THREE.Scene();
+                this.width = $("#visuals").innerWidth();
+                this.height = window.innerHeight;
+                this.canvas = document.createElement('canvas');
+                document.getElementById('visuals').appendChild(this.canvas);
+                this.renderer = new THREE.WebGLRenderer({canvas: this.canvas,  antialiasing: true });
+                this.renderer.setSize(this.width, this.height);
+                this.camera_parameter=30;
+                this.camera = new THREE.OrthographicCamera( this.width*this.camera_parameter / - 2, this.width*this.camera_parameter / 2, this.height*this.camera_parameter / 2, this.height*this.camera_parameter / - 2, - 500, 1000 );
+                this.camera.position.x = 0;
+                this.camera.position.y = 0;
+                this.camera.position.z = 100;
+                this.dots=[];
+
+                this.init_dots = function() {
+                    delete this.scene;
+                    this.scene = new THREE.Scene();
+                    this.dots=[];
+                    this.geometry = new THREE.SphereGeometry(200,0,0);
+                    for (var i=0;i<$patients.length;i++){
+                        this.material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0, 0  ) } );
+                        // this.material =new THREE.MeshBasicMaterial( { color: new THREE.Color( 0, 0.7, 0  ) } );
+                        this.dots[i] = new THREE.Mesh( this.geometry, this.material);
+                        random_x = (Math.random() * this.camera_parameter*750/3) - this.camera_parameter*390/3;
+                        random_y = (Math.random() * this.camera_parameter*580/3) - this.camera_parameter*280/3;
+                        this.dots[i].position.x = random_x;
+                        this.dots[i].position.y = random_y;
+                        this.scene.add(this.dots[i]);
+                    }
+                }
+
+                this.on_resize = function(){
+                    for (var i=0;i<$patients.length;i++){
+
+                        this.dots[i].position.x = 0;
+                        this.dots[i].position.y = 0;
+                    }
+                }
+
+                this.update = function(){
+
+                    if (!$model.tsne_selected==1){
+
+                        var max_x=0;
+                        var max_y=0;
+                        var Fr = 0;
+                        var Fa = 0;
+                        var Fg = 0;
+                        var distance = 0;
+                        var kr = -1200;
+                        var kg = 0.002;
+                        var Ftotal = 0;
+                        var vector_between_x;
+                        var vector_between_y;
+                        var gravity_vector_x;
+                        var gravity_vector_y;
+                        var gravity_vector_length;
+                        var velocity;
+
+                        for (var i=0;i<$model.n_patients;i++){
+                            for (var k=i+1;k<$model.n_patients;k++){
+                                distance = Math.sqrt(Math.pow(($visualization.dots[i].position.x-$visualization.dots[k].position.x),2)+Math.pow(($visualization.dots[i].position.y-$visualization.dots[k].position.y),2));
+                                vector_between_x = $visualization.dots[i].position.x-$visualization.dots[k].position.x;
+                                vector_between_y = $visualization.dots[i].position.y-$visualization.dots[k].position.y;
+                                vector_between_x = vector_between_x/distance;
+                                vector_between_y = vector_between_y/distance;
+
+                                //compute Fr as suggested in the paper
+                                Fr = kr*(4/distance);
+
+                                //if the two patients are similar comptue Fa, else set Fa=0
+                                if ($model.edges[i][k-i-1]==1){
+                                    Fa = 1.5*Math.log((1+distance));
+                                }
+                                else{
+                                    Fa=0;
+                                }
+                                Ftotal = Fr + Fa;
+
+                                //set new positions
+                                $visualization.dots[k].position.x=$visualization.dots[k].position.x+vector_between_x*Ftotal*0.8;
+                                $visualization.dots[k].position.y=$visualization.dots[k].position.y+vector_between_y*Ftotal*0.8;
+
+                                $visualization.dots[i].position.x=$visualization.dots[i].position.x-vector_between_x*Ftotal*0.8;
+                                $visualization.dots[i].position.y=$visualization.dots[i].position.y-vector_between_y*Ftotal*0.8;
+                            }
+                        }
+                    //finally go over all nodes and compute the gravity
+                    for (var i=0;i<$model.n_patients;i++){
+                        gravity_vector_x=-$visualization.dots[i].position.x;
+                        gravity_vector_y=-$visualization.dots[i].position.y;
+
+                        gravity_vector_length=Math.sqrt(Math.pow(gravity_vector_x,2)+Math.pow(gravity_vector_y,2));
+
+
+                        if ($model.n_nearest_connect>0)
+                            Fg = (kg/Math.log($model.n_nearest_connect+1))*($model.node_degree[i]+1)*gravity_vector_length;
+                        else{
+                            Fg = (kg/1)*($model.node_degree[i]+1)*gravity_vector_length;
+                        }
+
+                        gravity_vector_x=gravity_vector_x/gravity_vector_length;
+                        gravity_vector_y=gravity_vector_y/gravity_vector_length;
+                        $visualization.dots[i].position.x=$visualization.dots[i].position.x+gravity_vector_x*Fg*0.8;
+                        $visualization.dots[i].position.y=$visualization.dots[i].position.y+gravity_vector_y*Fg*0.8;
+
+                        if (Math.abs($visualization.dots[i].position.x)>max_x){
+                            max_index = i;
+                            max_x=Math.abs($visualization.dots[i].position.x);
+                        }
+                        if (Math.abs($visualization.dots[i].position.y)>max_y){
+                            max_y=Math.abs($visualization.dots[i].position.y);
+                        }
+                    }
+
+                    var max_x=0;
+                    var max_y=0;
+                    for (var i=0;i<$model.n_patients;i++){
+
+                        if (Math.abs($visualization.dots[i].position.x)>max_x){
+                            max_index = i;
+                            max_x=Math.abs($visualization.dots[i].position.x);
+                        }
+                        if (Math.abs($visualization.dots[i].position.y)>max_y){
+                            max_y=Math.abs($visualization.dots[i].position.y);
+                        }
+                    }
+
+                    //console.log("max: "+max_x+"; "+max_index);
+                        var new_cam_x;
+                        var new_cam_y;
+                        var new_cam=-1;
+
+                        new_cam_x=((max_x+400)/$visualization.width)*2;
+                        new_cam_y=((max_y+400)/$visualization.height)*2;
+
+                        if (new_cam_x>new_cam_y){
+                            new_cam=new_cam_x;
+                        }
+                        else{
+                            new_cam=new_cam_y;
+                        }
+
+                        if (new_cam!=$visualization.camera_parameter ){
+                            $visualization.camera_parameter=new_cam;
+                            $visualization.camera.top=new_cam*$visualization.height/2;
+                            $visualization.camera.right=new_cam*$visualization.width/2;
+                            $visualization.camera.left=new_cam*$visualization.width/-2;
+                            $visualization.camera.bottom=new_cam*$visualization.height/-2;
+                            $visualization.camera.updateProjectionMatrix();
+                        }
+                    }
+
+                }
+
+                this.renderer.setClearColor( 0xffffff, 1);
+
+                this.render = function(){
+                    this.update();
+                    this.renderer.render( this.scene, this.camera );
+                }
+
+            }
+
+        function adjust_controls(){
+            var viewportHeight = window.innerHeight;
+
+            $("#parameter_controls").height(viewportHeight-4);
+            $("#clinical_controls").height((viewportHeight/3)*2);
+            $("#rppa_controls").height((viewportHeight/3)-26);
+
+            $visualization.renderer.setSize( (window.innerWidth/12)*7, window.innerHeight );
+
+
+        }
+
+        function loadJSON(callback, which) {
+
+                    var file_string = "json_data/"+which+"_data.json";
+                    console.log("loading "+file_string);
+                    var xobj = new XMLHttpRequest();
+                    xobj.overrideMimeType("application/json");
+                    xobj.open('GET', file_string, true);
+                    xobj.onreadystatechange = function () {
+                        if (xobj.readyState == 4 && xobj.status == "200") {
+                            callback(xobj.responseText);
+                        }
+                    };
+                    xobj.send();
+        }
+
+        function build_group_tables(){
+
+            var table_container = document.getElementById("table_container");
+            $(table_container).empty();
+
+            var table_counter=0;
+            for (var i in selected_groups){
+                table_counter++;
+                var table_row = document.createElement("div");
+                table_row.setAttribute("class", "row");
+                $(table_row).appendTo(table_container);
+                var table_header = document.createElement("h1");
+                table_header.innerHTML = i.split("__")[0]+": "+i.split("__")[1];
+                $(table_header).appendTo(table_row);
+
+                $(table_row).css("background-color", colors[table_counter]);
+
+                var table_div = document.createElement("div");
+                table_div.setAttribute("style", "overflow-x:scroll; overflow-y:scroll; max-height:400px");
+                $(table_div).appendTo(table_row);
+                table_div.innerHTML="<table class=\"table table-bordered\" id=\"table_"+table_counter+"\"></table>";
+
+                var html_string="<thead><tr>";
+
+                for (var k in $patients[0].clinical){
+                    html_string+="<th class=\"text-center\">"+k+"</th>";
+                }
+
+                html_string+="</tr></thead><tbody id=\"table_body_"+table_counter+"\"><tr id=\"table_"+table_counter+"_row_1\"></tr></tbody>";
+
+                $("#table_"+table_counter).html(html_string);
+
+                for (var k=0;k<selected_groups[i].length;k++){
+                    html_string="";
+                    for (var x in $patients[selected_groups[i][k]].clinical){
+                        html_string+="<td>"+$patients[selected_groups[i][k]].clinical[x]+"</td>";
+                    }
+                    var number_rows = document.getElementById("table_"+table_counter).rows.length;
+                    $("#table_"+table_counter+"_row_"+(number_rows-1)).html(html_string);
+                    $("#table_body_"+table_counter).append("<tr id=\"table_"+table_counter+"_row_"+(number_rows+1)+"\"></tr>");
+                }
+
+                //table_row.innerHTML="<table class=\"table table-bordered\" id=\""+i+"_table\"></table>";
+
+            }
+        }
+
+        function draw_rppa_distribution(){
+
+            var myWorker = new Worker('rppa_data_preprocessor.js');
+
+            function draw_d3_plot(points, min, max){
+
+                $("#rppa_distribution").empty();
+                if (points.length>0){
+                    $("#rppa_distribution").html("<div id=\"chart\"><canvas id=\"foreground\"></canvas><svg id=\"svg\"></svg></div>");
+
+                    var m = [30, 10, 10, 10],
+                        w = 32767 - m[1] - m[3],
+                        h = 1000 - m[0] - m[2];
+
+                    d3.selectAll("#foreground")
+                        .attr("width", w + m[1] + m[3])
+                        .attr("height", h + m[0] + m[2])
+                        .style("padding", m.join("px ") + "px");
+
+                    var svg = d3.select("svg")
+                        .attr("width", w + m[1] + m[3])
+                        .attr("height", h + m[0] + m[2])
+                        .append("svg:g")
+                        .attr("transform", "translate(" + m[3] + "," + m[0] + ")");
+
+                    var number_proteins = $patients[0].RPPA.length;
+
+                    var xScale = d3.scale.linear()
+                                    .domain([-1, number_proteins+1])
+                                    .range([10, w]);
+
+
+                        var yScale = d3.scale.linear()
+                                    .domain([min, max])
+                                    .range([h, 0]);
+
+                    if (dataset=="brca2"){
+                        var yScale = d3.scale.linear()
+                                    .domain([0, 5000])
+                                    .range([h, 0]);
+                    }
+
+                    var N = number_proteins;
+                    ticks=Array.apply(null, {length: N}).map(Number.call, Number)
+
+                    var xAxis = d3.svg.axis()
+                                    .scale(xScale)
+                                    .tickValues(ticks)
+                                    .tickFormat(function(d){return $patients[0].RPPA[d].ID})
+                                    .ticks(number_proteins)
+                                    .orient("bottom");
+                    var yAxis = d3.svg.axis()
+                                    .scale(yScale)
+                                    .orient("left")
+                                    .ticks(20);
+
+                    svg.append("g")
+                            .attr("class", "axis")
+                            .attr("transform", "translate(0," + 400 + ")")
+                            .call(xAxis);
+                    svg.append("g")
+                            .attr("class", "axis")
+                            .attr("transform", "translate(" + 50 + ",0)")
+                            .call(yAxis);
+                    var context = document.getElementById('foreground').getContext('2d');
+
+                    points.forEach(function(d, i) {
+                        context.beginPath();
+                        context.arc(xScale(points[i][0]), yScale(points[i][1]), 5,0, 2*Math.PI);
+                        context.fillStyle=colors[points[i][2]];
+                        context.fill();
+                        context.closePath();
+                    });
+
+                    var svg = document.getElementById("svg");
+
+                    svg.setAttribute("style","cursor:pointer");
+
+                    svg.addEventListener('mousedown', function(evt) {
+                        var pt = svg.createSVGPoint();
+                        pt.x = evt.clientX; pt.y = evt.clientY;
+                        var x = xScale.invert(pt.matrixTransform(svg.getScreenCTM().inverse()).x);
+                        var tempx = Math.floor(x);
+                        var temp2 = x-tempx;
+                        if (temp2>0.5){
+                            var temp3 = Math.ceil(x);
+                        }
+                        else{
+                            var temp3 = tempx;
+                        }
+                        console.log(x+"; "+tempx+"; "+temp2+"; "+temp3+"; "+$patients[0].RPPA[temp3].ID);
+                        console.log($patients[0].RPPA[temp3].ID+"_checkbox");
+                        var button = document.getElementById($patients[0].RPPA[temp3].ID+"_checkbox");
+                        if (button.checked==true)
+                            button.checked=false;
+                        else
+                            button.checked=true;
+                        rppa_checkbox_clicked(button);
+                    }, false);
+                }
+
+            };
+
+            myWorker.addEventListener("message", function (event) {
+                draw_d3_plot(event.data["data"], event.data["min"], event.data["max"]);
+            }, false);
+
+            myWorker.postMessage({"patients":$patients, "groups":selected_groups});
+
+        }
+
+        function color_dots_according_to_group(){
+
+            for (var k=0;k<$model.patients.length;k++){
+                $visualization.dots[k].material.color = new THREE.Color(colors2[0]);
+            }
+
+            var group_counter=0;
+            for (var i in selected_groups){
+
+                for (var k=0;k<selected_groups[i].length;k++){
+                    $visualization.dots[selected_groups[i][k]].material.color = new THREE.Color(colors2[group_counter+1]);
+                }
+                group_counter++;
+            }
+
+        }
+
+        var selected_groups = {};
+        function clinical_checkbox_clicked(checkbox){
+
+            if (checkbox.checked==true){
+
+                selected_steps.push("clinical_"+checkbox.id.substring(0,checkbox.id.length-9));
+
+                var selected_group = checkbox.id.substring(0,checkbox.id.length-9);
+                var parameter = checkbox.id.split("__")[0];
+                var value = checkbox.id.split("__")[1];
+                var value = value.substring(0,value.length-9);
+                console.log(parameter+" --> "+value+" clicked");
+
+                var myWorker = new Worker('selected_group_finder.js');
+
+                myWorker.addEventListener("message", function (event) {
+                    selected_groups[selected_group] = event.data;
+                    build_group_tables();
+                    draw_rppa_distribution();
+                    color_dots_according_to_group();
+                    $(".parameter_checkbox").removeAttr("disabled");
+
+                    if (selected_rppas.length>0){
+                        compute_f_ratio();
+                    }
+                }, false);
+
+                $(".parameter_checkbox").attr("disabled","true");
+
+
+                myWorker.postMessage({"patients":$patients, "parameter":parameter, "value":value});
+
+            }
+            else{
+                var selected_group = checkbox.id.substring(0,checkbox.id.length-9);
+                var parameter = checkbox.id.split("__")[0];
+                var value = checkbox.id.split("__")[1];
+                var value = value.substring(0,value.length-9);
+                console.log(parameter+" --> "+value+" unclicked");
+
+                var index = selected_steps.indexOf(checkbox.id.substring(0,checkbox.id.length-9));
+                selected_steps.splice(index,1);
+
+                var unselected_group = checkbox.id.substring(0,checkbox.id.length-9);
+                delete selected_groups[unselected_group];
+                build_group_tables();
+                draw_rppa_distribution();
+                color_dots_according_to_group();
+                if (selected_rppas.length>0){
+                    compute_f_ratio();
+                }
+            }
+
+            update_history_state();
+
+
+
+        }
+
+        var selected_rppas = [];
+        function rppa_checkbox_clicked(checkbox){
+
+            var rppa_id = checkbox.id.substring(0,checkbox.id.length-9);
+
+            if (checkbox.checked==true){
+
+                selected_rppas.push(rppa_id);
+                selected_steps.push("rppa_"+rppa_id);
+
+                var slider_id = rppa_id+"_slider";
+                slider = document.getElementById(slider_id);
+                slider.value=1;
+
+                for (var i=0;i<$model.n_features;i++){
+                    if ($model.patients[0].RPPA[i].ID==rppa_id)
+                        $model.protein_weights[i] = slider.value;
+                }
+                $model.recompute();
+
+                compute_f_ratio();
+
+
+            }
+            else{
+
+                var index = selected_rppas.indexOf(rppa_id)
+                selected_rppas.splice(index,1);
+
+                index = selected_steps.indexOf("rppa_"+rppa_id)
+                selected_steps.splice(index,1);
+
+                var slider_id = rppa_id+"_slider";
+                slider = document.getElementById(slider_id);
+                slider.value=0;
+
+                for (var i=0;i<$model.n_features;i++){
+                    if ($model.patients[0].RPPA[i].ID==rppa_id)
+                        $model.protein_weights[i] = slider.value;
+                }
+                $model.recompute();
+
+                compute_f_ratio();
+
+            }
+
+            update_history_state();
+            //compute_variance_within_group([4,5,6,7], selected_rppas);
+            //console.log(compute_mean_and_variance_within_group([4,5,6,7,8], selected_rppas)["mean"]);
+
+        }
+
+        function compute_f_ratio(){
+
+            var string="F-ratios:</br>";
+
+            for (var i=0;i<Object.keys(selected_groups).length-1;i++){
+                for (var k=i+1;k<Object.keys(selected_groups).length;k++){
+
+                    var group_parameter1 = Object.keys(selected_groups)[i].split("__")[0];
+                    var group_parameter2 = Object.keys(selected_groups)[k].split("__")[0];
+                    var group_value1 = Object.keys(selected_groups)[i].split("__")[1];
+                    var group_value2 = Object.keys(selected_groups)[k].split("__")[1];
+
+                    if (group_parameter1==group_parameter2){
+                        mean_and_variance_group1 = compute_mean_and_variance_within_group(selected_groups[Object.keys(selected_groups)[i]], selected_rppas);
+                        mean_and_variance_group2 = compute_mean_and_variance_within_group(selected_groups[Object.keys(selected_groups)[k]], selected_rppas);
+
+                        var fisher_ratios = [];
+                        for (var p=0;p<selected_rppas.length;p++){
+                            fisher_ratios[p] = Math.pow(mean_and_variance_group1["mean"][p]-mean_and_variance_group2["mean"][p],2)/(mean_and_variance_group1["variance"][p]+mean_and_variance_group2["variance"][p]);
+                        }
+
+                        var fisher_ratio_mean = 0;
+                        for (var p=0;p<selected_rppas.length;p++){
+                            fisher_ratio_mean += fisher_ratios[p];
+                        }
+                        fisher_ratio_mean = fisher_ratio_mean/selected_rppas.length;
+
+                        string=string+" between \""+group_parameter1+": "+group_value1+"\" and \""+group_parameter2+": "+group_value2+"\": "+fisher_ratio_mean+"</br>";
+
+                        console.log("f-ratio between groups "+Object.keys(selected_groups)[i]+"; "+Object.keys(selected_groups)[k]+": "+fisher_ratio_mean);
+                    }
+                }
+            }
+
+            $("#f-scores").html(string);
+
+        }
+
+        function add_clinical_controls(){
+
+            $("#clinical_controls").empty();
+
+            controls = document.getElementById("clinical_controls");
+
+            for (var i in $patients[0].clinical){
+
+                new_row = document.createElement('div');
+                new_row.setAttribute('class',"row");
+                $(new_row).appendTo(controls);
+
+                column = document.createElement('div');
+                column.setAttribute('class',"col-md-5");
+                column.innerHTML=i;
+                $(column).appendTo(new_row);
+
+                column = document.createElement('div');
+                column.setAttribute('class',"col-md-7 domain");
+
+                var domain = {};
+                for (var k=0;k<$patients.length;k++){
+                   if ($patients[k].clinical[i] in domain){
+                        domain[$patients[k].clinical[i]]=domain[$patients[k].clinical[i]]+1;
+                    }
+                    else{
+                        domain[$patients[k].clinical[i]]=1;
+                    }
+                }
+
+                for (var k in domain){
+                    row = document.createElement('div');
+                    row.setAttribute('class',"row");
+
+                    column2 = document.createElement('div');
+                    column2.setAttribute('class',"col-md-8");
+                    column2.innerHTML=k+": "+domain[k];
+                    $(column2).appendTo(row);
+
+                    column3 = document.createElement('div');
+                    column3.setAttribute('class',"col-md-2");
+                    column3.innerHTML="<input class=\"parameter_checkbox\" type=\"checkbox\" onchange=\"clinical_checkbox_clicked(this)\" id=\""+i+"__"+k+"_checkbox\"/>";
+                    $(column3).appendTo(row);
+                    $(row).appendTo(column);
+                }
+                $(column).appendTo(new_row);
+            }
+            //controls.setAttribute("style","border: 1px solid");
+            controls.style.border="1px solid";
+            controls.style.marginTop="-1px";
+        }
+
+        function add_rppa_controls(){
+
+            controls = document.getElementById("rppa_controls");
+
+            $("#rppa_controls").empty();
+
+            for (var i=0;i<$patients[0].RPPA.length;i++){
+
+                new_row = document.createElement('div');
+                new_row.setAttribute('class',"row");
+                $(new_row).appendTo(controls);
+
+                column = document.createElement('div');
+                column.setAttribute('class',"col-md-5");
+                column.innerHTML=$patients[0].RPPA[i].ID;
+                $(column).appendTo(new_row);
+
+                column = document.createElement('div');
+                column.setAttribute('class',"col-md-3");
+                column.innerHTML="<input type=\"checkbox\" onchange=\"rppa_checkbox_clicked(this)\" id=\""+$patients[0].RPPA[i].ID+"_checkbox\"/>";
+                $(column).appendTo(new_row);
+
+                column = document.createElement('div');
+                column.setAttribute('class',"col-md-2");
+                column.innerHTML="weight:";
+                $(column).appendTo(new_row);
+
+                column = document.createElement('div');
+                column.setAttribute('class',"col-md-2");
+                column.innerHTML="<input type=\"range\" min=\"0\" max=\"1\" step=\"0.01\" value=\"0\" style=\"width:60px\" id=\""+$patients[0].RPPA[i].ID+"_slider\" onchange=\"rppa_weight_changed(this,0)\"/>"
+                $(column).appendTo(new_row);
+            }
+
+            controls.style.border="1px solid";
+            controls.style.marginBottom="-22px";
+
+        }
+
+        function clear_tables_and_graph(){
+
+            $("#rppa_distribution").empty();
+            $("#rppa_distribution").html("<div id=\"chart\"><canvas id=\"foreground\"></canvas><svg></svg></div>");
+
+            var table_container = document.getElementById("table_container");
+            $(table_container).empty();
+
+            selected_rppas=[];
+            selected_groups={};
+        }
+
+        var selected_steps = [];
+        function update_history_state(){
+
+            //console.log(selected_steps);
+            var url = "?dataset="+dataset+"&";
+            for (var i=0;i<selected_steps.length;i++){
+                url = url+selected_steps[i]+"&";
+            }
+            url = url.substring(0,url.length-1);
+
+            history.pushState(selected_steps,"",url);
+        }
+
+        function click_story_buttons(){
+
+            if (typeof story!='undefined'){
+                var steps = story.split("&");
+                steps.shift();
+                if (steps.length>0){
+                console.log("there is a story to tell");
+                    for (var i=0;i<steps.length;i++){
+                        if (steps[i].substring(0,8)=="clinical"){
+                            var step=steps[i].substring(9,steps[i].length);
+                            if (step.charAt(step.length-1)=="#"){
+                                step = step.substring(0,step.length-1);
+                            }
+                            step=step.replace("%20"," ");
+                            var button = document.getElementById(step+"_checkbox");
+                            button.checked=true;
+                            clinical_checkbox_clicked(button);
+                        }
+                        else if(steps[i].substring(0,4)=="rppa"){
+                            var step=steps[i].substring(5,steps[i].length);
+                            if (step.charAt(step.length-1)=="#"){
+                                step = step.substring(0,step.length-1);
+                            }
+                            step=step.replace("%20"," ");
+                            var button = document.getElementById(step+"_checkbox");
+                            button.checked=true;
+                            rppa_checkbox_clicked(button);
+                        }
+                    }
+                }
+            }
+
+        }
+
+        function load_dataset(dataset){
+
+            loadJSON(function(response) {
+                    document.getElementById("layout_button").setAttribute("style","display:inline");
+                    $patients = JSON.parse(response);
+                    $model.init_dataset($patients);
+                    $visualization.init_dots();
+                    clear_tables_and_graph();
+                    add_clinical_controls();
+                    add_rppa_controls();
+                    adjust_controls();
+                    update_history_state();
+                    click_story_buttons();
+
+                    if (dataset=="brca2"){
+                        $model.n_nearest_connect=7;
+                        $model.recompute();
+                    }
+            }, dataset);
+        }
+
+        function compute_mean_and_variance_within_group(patient_group, selected_rppa_parameters){
+
+            var rppa_parameters_indexes = [];
+            for (var i=0;i<$patients[0].RPPA.length;i++){
+                for (var k=0;k<selected_rppa_parameters.length;k++)
+                    if ($patients[0].RPPA[i].ID==selected_rppa_parameters[k])
+                        rppa_parameters_indexes.push(i);
+            }
+
+            //contains the mean value for each selected_rppa_parameter in "selected_rppa_parameters" in "patient_group"
+            var mean_values = [];
+
+            for (var i=0;i<selected_rppa_parameters.length;i++){
+                mean_values[i] = 0;
+                for (var k=0;k<patient_group.length;k++){
+                    mean_values[i] += parseFloat($patients[patient_group[k]].RPPA[rppa_parameters_indexes[i]].value);
+                }
+            }
+
+            for (var i=0;i<selected_rppa_parameters.length;i++){
+                mean_values[i] = mean_values[i]/$patients[0].RPPA.length;
+            }
+
+            var variance_values = [];
+
+            for (var i=0;i<selected_rppa_parameters.length;i++){
+                variance_values[i] = 0;
+                for (var k=0;k<patient_group.length;k++){
+                    variance_values[i] += Math.pow(parseFloat($patients[patient_group[k]].RPPA[rppa_parameters_indexes[i]].value)-mean_values[i],2);
+                }
+            }
+
+            return ({"mean":mean_values, "variance":variance_values});
+
+        }
+
+        var dataset;
+        var story;
+        $(function(){
+
+            $visualization = new visualization();
+            $model = new model();
+
+            $(".dataset_selection").click(function(e){
+
+                console.log(e.target.id+" selected");
+                dataset=e.target.id;
+                load_dataset(e.target.id);
+
+            });
+
+            $(".layout_selection").click(function(e){
+                if ( e.target.id=="tsne"){
+                        console.log("tsne selected");
+                        $model.tsne_selected=1;
+                        console.log(selected_rppas);
+                        tsne_layout = new tsne($model.patients, $visualization.dots, selected_rppas);
+                }
+                else if (e.target.id=="force2"){
+                    $model.tsne_selected=0;
+                    $model.n_nearest_connect=2;
+                    $model.recompute();
+                }
+                else if (e.target.id=="force5"){
+                    $model.tsne_selected=0;
+                    $model.n_nearest_connect=5;
+                    $model.recompute();
+                }
+                else if (e.target.id=="force7"){
+                    $model.tsne_selected=0;
+                    $model.n_nearest_connect=7;
+                    $model.recompute();
+                }
+            });
+
+            story = document.URL.split("?")[1];
+
+            if (typeof story!='undefined'){
+
+                console.log(story);
+                var story_dataset = story.split("&")[0];
+                console.log(story_dataset);
+                if (story_dataset.charAt(story_dataset.length-1)=="#"){
+                    var story_dataset = story_dataset.substring(8,story_dataset.length-1);
+                }
+                else{
+                    var story_dataset = story_dataset.substring(8,story_dataset.length);
+                }
+                dataset=story_dataset;
+                story = document.URL.split("?")[1];
+                load_dataset(story_dataset);
+
+            }
+
+            $timer = setInterval(function(){ $visualization.render() }, 5);
+        });
+
+    </script>
+</body>
+</html>
